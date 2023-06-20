@@ -3,6 +3,8 @@
 "mdds testing\main.o"
 "mdds testing\stm32f1xx_it.o"
 "mdds testing\stm32f1xx_hal_msp.o"
+"mdds testing\system_stm32f1xx.o"
+"mdds testing\mpu9250.o"
 "mdds testing\stm32f1xx_hal_gpio_ex.o"
 "mdds testing\stm32f1xx_hal_spi.o"
 "mdds testing\stm32f1xx_hal.o"
@@ -18,8 +20,6 @@
 "mdds testing\stm32f1xx_hal_tim.o"
 "mdds testing\stm32f1xx_hal_tim_ex.o"
 "mdds testing\stm32f1xx_hal_uart.o"
-"mdds testing\system_stm32f1xx.o"
-"mdds testing\mpu9250.o"
 --strict --scatter "MDDS Testing\MDDS Testing.sct"
 --summary_stderr --info summarysizes --map --load_addr_map_info --xref --callgraph --symbols
 --info sizes --info totals --info unused --info veneers
