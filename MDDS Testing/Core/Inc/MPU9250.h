@@ -29,7 +29,16 @@ TODO *              - calculation of pitch, roll and yaw angles
  *********************************************************/
 
 // MPU9250 register addresses
-#define MPU9250_WHOAMI_ADDR 117  // WHO AM I register address
+#define MPU9250_WHOAMI_ADDR 117 // WHO AM I register address
+#define PWR_MGMT_1_ADDR 107     // Power Management 1 register address  
+#define SMPLRT_DIV_ADDR 25      // Sample Rate Divider register address
+#define CFG_ADDR 26             // configuration register address
+#define INT_ADDR 55             // INT Pin / Bypass Enable Configuration register address
+#define GYRO_CONFIG_ADDR 27     // gyroscope configuration register address
+#define ACCEL_CONFIG_ADDR 28    // accelerometer configuration register address
+#define ACCEL_XOUT_H_ADDR 59    // Accelerometer measurements X-Axis High register address 
+#define TEMP_OUT_H_ADDR 65      // Temperature measurements High register address 
+#define GYRO_XOUT_H_ADDR 67     // Gyroscope measurements X-Axis High register address 
 
  /*********************************************************
  ------------------- GLOBAL STRUCTURES --------------------
