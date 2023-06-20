@@ -28,14 +28,14 @@ void MPU9250_ReadRegister(SPI_HandleTypeDef *hspi1, uint8_t addr, uint8_t *data,
 {
     uint8_t fullAddr = 0x80 | addr; // add read bit to front of address
 
-    HAL_GPIO_WritePin(GPIOC, GPIO_PIN_12, GPIO_PIN_SET);    // set CS_MS to inactive
+    HAL_GPIO_WritePin(CS_MS_GPIO_Port, CS_MS_Pin, GPIO_PIN_SET);    // set CS_MS to inactive
 
-    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);   // set CS_MPU to active
+    HAL_GPIO_WritePin(CS_MPU_GPIO_Port, CS_MPU_Pin, GPIO_PIN_RESET);// set CS_MPU to active
 
     HAL_SPI_Transmit(hspi1, &fullAddr, 1, HAL_MAX_DELAY);   // transmit register address
     HAL_SPI_Receive(hspi1, data, rxBytes, HAL_MAX_DELAY);   // receive register data
 
-    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);     // set CS_MPU to inactive
+    HAL_GPIO_WritePin(CS_MPU_GPIO_Port, CS_MPU_Pin, GPIO_PIN_RESET);// set CS_MPU to inactive
 }
 
 /**
