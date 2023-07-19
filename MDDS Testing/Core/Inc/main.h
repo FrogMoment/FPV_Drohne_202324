@@ -36,7 +36,8 @@ extern "C" {
 
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
-
+extern uint8_t mpu9250_rawdata[14];
+extern TIM_HandleTypeDef htim2;
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/
@@ -57,10 +58,10 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define CS_MPU_Pin GPIO_PIN_4
-#define CS_MPU_GPIO_Port GPIOA
-#define CS_MS_Pin GPIO_PIN_12
-#define CS_MS_GPIO_Port GPIOC
+#define MPU9250_CS_Pin GPIO_PIN_4
+#define MPU9250_CS_GPIO_Port GPIOA
+#define DS2438_DQ_Pin GPIO_PIN_12
+#define DS2438_DQ_GPIO_Port GPIOC
 
 /* USER CODE BEGIN Private defines */
 

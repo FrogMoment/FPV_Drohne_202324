@@ -4,6 +4,7 @@
         "stdio.h": "c",
         "stm32f1xx_hal.h": "c",
         "mpu9250.h": "c",
-        "stm32f1xx_it.h": "c"
+        "stm32f1xx_it.h": "c",
+        "ds2438.h": "c"
     }
 }
