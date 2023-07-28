@@ -49,7 +49,7 @@ Sensor_Status MPU9250_Init(SPI_HandleTypeDef *hspi, bandwidthDLPF dlpf, fullScal
     // check if MPU is connected
     while(data[0] != 0x71)
     {
-        MPU9250_ReadRegister(hspi, MPU9250_WHOAMI_ADDR, &data[0], 1); // read data from WHOAMI register
+        MPU9250_ReadRegister(hspi, MPU9250_WHOAMI, &data[0], 1); // read data from WHOAMI register
         if(timeout++ > 100)
             return MPU9250_ERROR;
     }
@@ -97,8 +97,8 @@ Sensor_Status MPU9250_Init(SPI_HandleTypeDef *hspi, bandwidthDLPF dlpf, fullScal
 
     HAL_GPIO_WritePin(MPU9250_CS_GPIO_Port, MPU9250_CS_Pin, GPIO_PIN_SET);  // set CS_MPU inactive
 
-    accelSens = ACCEL_SENS / (1 << accelFS);    // calc sensitivity scale factor of accelerometer
-    gyroSens = GYRO_SENS / (1 << gyroFS);       // calc sensitivity scale factor of gyroscope
+    accelSens = MPU9250_ACCEL_SENS / (1 << accelFS);    // calc sensitivity scale factor of accelerometer
+    gyroSens = MPU9250_GYRO_SENS / (1 << gyroFS);       // calc sensitivity scale factor of gyroscope
 
     return MPU9250_OK;
 }
@@ -165,7 +165,7 @@ coordinates MPU9250_ReadAccel(SPI_HandleTypeDef *hspi)
     coordinates accelData;
     uint8_t measurements[6];
 
-    MPU9250_ReadRegister(hspi, ACCEL_XOUT_H_ADDR, measurements, 6);     // read the accel output registers
+    MPU9250_ReadRegister(hspi, MPU9250_ACCEL_XOUT_H, measurements, 6);     // read the accel output registers
 
     // format the measurements to g's
     accelData.x = (((int8_t)measurements[0] << 8) | (int8_t)measurements[1]) / accelSens;
@@ -185,7 +185,7 @@ coordinates MPU9250_ReadGyro(SPI_HandleTypeDef *hspi)
     coordinates gyroData;
     uint8_t measurements[6];
 
-    MPU9250_ReadRegister(hspi, GYRO_XOUT_H_ADDR, measurements, 6);      // read the accel output registers
+    MPU9250_ReadRegister(hspi, MPU9250_GYRO_XOUT_H, measurements, 6);      // read the accel output registers
 
     // format the measurements to °/s
     gyroData.x = ((measurements[0] << 8) | measurements[1]) / gyroSens;
@@ -204,7 +204,7 @@ float MPU9250_ReadTemperature(SPI_HandleTypeDef *hspi)
 {
     uint8_t measurements[2];
 
-    MPU9250_ReadRegister(hspi, TEMP_OUT_H_ADDR, measurements, 2);
+    MPU9250_ReadRegister(hspi, MPU9250_TEMP_OUT_H, measurements, 2);
 
     return (((measurements[0] << 8) | measurements[1]) / 333.87) + 21.0;
 }

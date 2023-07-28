@@ -147,8 +147,8 @@ DS2438_Status DS2438_ReadPage(uint8_t page, int8_t *pageData)
         return DS2438_ERROR;
 
     // copy current data to scratchpad
-    DS2438_WriteByte(SKIP_ROM_COM);
-    DS2438_WriteByte(RECALL_MEM_COM);
+    DS2438_WriteByte(DS2438_SKIP_ROM);
+    DS2438_WriteByte(DS2438_RECALL_MEM);
     DS2438_WriteByte(page);
 
     // reset + presence pulse
@@ -156,8 +156,8 @@ DS2438_Status DS2438_ReadPage(uint8_t page, int8_t *pageData)
         return DS2438_ERROR;
 
     // read scratchpad data
-    DS2438_WriteByte(SKIP_ROM_COM);
-    DS2438_WriteByte(READ_SP);
+    DS2438_WriteByte(DS2438_SKIP_ROM);
+    DS2438_WriteByte(DS2438_READ_SP);
     DS2438_WriteByte(page);
 
     for(int8_t i = 0; i < 9; i++)
@@ -168,7 +168,7 @@ DS2438_Status DS2438_ReadPage(uint8_t page, int8_t *pageData)
 
 /**
  * @brief This function starts voltage measurement
- * @return DS2438_Status 
+ * @return DS2438_Status
  */
 DS2438_Status DS2438_StartVoltageMeasurement(void)
 {
@@ -177,15 +177,15 @@ DS2438_Status DS2438_StartVoltageMeasurement(void)
         return DS2438_ERROR;
 
     // read voltage data
-    DS2438_WriteByte(SKIP_ROM_COM);
-    DS2438_WriteByte(CONVERT_V);
+    DS2438_WriteByte(DS2438_SKIP_ROM);
+    DS2438_WriteByte(DS2438_CONVERT_V);
 
     return DS2438_OK;
 }
 
 /**
- * @brief This function returns the control voltage flag bit 
- * @return int8_t 
+ * @brief This function returns the control voltage flag bit
+ * @return int8_t
  */
 int8_t DS2438_ControlVoltageFlag(void)
 {
@@ -199,7 +199,7 @@ int8_t DS2438_ControlVoltageFlag(void)
 /**
  * @brief This function reads vica
  * @param data
- * @return DS2438_Status 
+ * @return DS2438_Status
  */
 DS2438_Status DS2438_ReadVICA(int8_t *data)
 {
@@ -319,3 +319,4 @@ DS2438_Status DS2438_ReadAllSensors(void)
 
     return DS2438_OK;
 }
+

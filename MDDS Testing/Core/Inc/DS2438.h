@@ -23,13 +23,13 @@
  ---------------------------------------- GLOBAL DEFINES ----------------------------------------
  ************************************************************************************************/
 
-#define SKIP_ROM_COM 0xCC // Skip ROM function command
-#define RECALL_MEM_COM 0xB8 // Recall Memory function command
-#define CONVERT_T 0x44 // Convert Temperature command
-#define CONVERT_V 0xB4  // Convert Voltage command
-#define READ_SP 0xBE // read scratchpad command
+#define DS2438_SKIP_ROM 0xCC    // Skip ROM function command
+#define DS2438_RECALL_MEM 0xB8  // Recall Memory function command
+#define DS2438_CONVERT_T 0x44   // Convert Temperature command
+#define DS2438_CONVERT_V 0xB4   // Convert Voltage command
+#define DS2438_READ_SP 0xBE     // read scratchpad command
 
-#define DS2438_RSENS 0.150 // value of sense resistor [ohm]
+#define DS2438_RSENS 0.150      // value of sense resistor [ohm]
 
  /************************************************************************************************
  --------------------------------------- GLOBAL STRUCTURES ---------------------------------------
@@ -103,20 +103,20 @@ DS2438_Status DS2438_ReadPage(uint8_t page, int8_t *pageData);
 
 /**
  * @brief This function starts voltage measurement
- * @return DS2438_Status 
+ * @return DS2438_Status
  */
 DS2438_Status DS2438_StartVoltageMeasurement(void);
 
 /**
- * @brief This function returns the control voltage flag bit 
- * @return int8_t 
+ * @brief This function returns the control voltage flag bit
+ * @return int8_t
  */
 int8_t DS2438_ControlVoltageFlag(void);
 
 /**
  * @brief This function reads vica
  * @param data
- * @return DS2438_Status 
+ * @return DS2438_Status
  */
 DS2438_Status DS2438_ReadVICA(int8_t *data);
 
@@ -149,3 +149,4 @@ DS2438_Status DS2438_ReadCapacity(void);
  * @return DS2438_Status
  */
 DS2438_Status DS2438_ReadAllSensors(void);
+

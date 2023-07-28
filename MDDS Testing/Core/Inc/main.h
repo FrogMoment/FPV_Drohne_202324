@@ -38,6 +38,7 @@ extern "C" {
 /* USER CODE BEGIN ET */
 extern uint8_t mpu9250_rawdata[14];
 extern TIM_HandleTypeDef htim2;
+extern DMA_HandleTypeDef hdma_usart2_rx;
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/

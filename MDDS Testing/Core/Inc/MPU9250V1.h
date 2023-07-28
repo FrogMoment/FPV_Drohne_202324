@@ -28,26 +28,26 @@ TODO *              - calculation of pitch, roll and yaw angles
  ************************************************************************************************/
 
  // MPU9250 register addresses
-#define MPU9250_WHOAMI_ADDR 117 // WHO AM I register address
-#define PWR_MGMT_1_ADDR 107     // Power Management 1 register address  
-#define PWR_MGMT_2_ADDR 108     // Power Management 2 register address  
-#define SMPLRT_DIV_ADDR 25      // Sample Rate Divider register address
-#define CONFIG_ADDR 26          // configuration register address
-#define INT_PIN_CFG_ADDR 55     // INT Pin / Bypass Enable Configuration register address
-#define INT_ENABLE 56           // interript enable register address
-#define GYRO_CONFIG_ADDR 27     // gyroscope configuration register address
-#define ACCEL_CONFIG_1_ADDR 28  // accelerometer configuration 1 register address
-#define ACCEL_CONFIG_2_ADDR 29  // accelerometer configuration 2 register address
-#define USER_CTRL_ADDR 106      // User Control register address
+#define MPU9250_WHOAMI 117 // WHO AM I register address
+#define MPU9250_PWR_MGMT_1 107     // Power Management 1 register address  
+#define MPU9250_PWR_MGMT_2 108     // Power Management 2 register address  
+#define MPU9250_SMPLRT_DIV 25      // Sample Rate Divider register address
+#define MPU9250_CONFIG 26          // configuration register address
+#define MPU9250_INT_PIN_CFG 55     // INT Pin / Bypass Enable Configuration register address
+#define MPU9250_INT_ENABLE 56           // interript enable register address
+#define MPU9250_GYRO_CONFIG 27     // gyroscope configuration register address
+#define MPU9250_ACCEL_CONFIG_1 28  // accelerometer configuration 1 register address
+#define MPU9250_ACCEL_CONFIG_2 29  // accelerometer configuration 2 register address
+#define MPU9250_USER_CTRL 106      // User Control register address
 
 // MPU9250 output registers
-#define ACCEL_XOUT_H_ADDR 59    // Accelerometer measurements X-Axis High register address 
-#define TEMP_OUT_H_ADDR 65      // Temperature sensor measurements High register address 
-#define GYRO_XOUT_H_ADDR 67     // Gyroscope measurements X-Axis High register address 
+#define MPU9250_ACCEL_XOUT_H 59    // Accelerometer measurements X-Axis High register address 
+#define MPU9250_TEMP_OUT_H 65      // Temperature sensor measurements High register address 
+#define MPU9250_GYRO_XOUT_H 67     // Gyroscope measurements X-Axis High register address 
 
 // max sensitivity scale factors (SSF)
-#define ACCEL_SENS 16384.0      // SSF of accelerometer
-#define GYRO_SENS 131.0         // SSF of gyroscope
+#define MPU9250_ACCEL_SENS 16384.0      // SSF of accelerometer
+#define MPU9250_GYRO_SENS 131.0         // SSF of gyroscope
 
 /************************************************************************************************
 --------------------------------------- GLOBAL STRUCTURES ---------------------------------------
