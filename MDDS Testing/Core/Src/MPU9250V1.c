@@ -38,9 +38,9 @@ float gyroSens;      // sensitivity scale factor of gyroscope
  * @param dlpf dlpf bandwidth
  * @param gyroFS full scale range of gyroscope
  * @param accelFS full scale range of accelermeter
- * @return MPU_status
+ * @return MPU9250_Status
  */
-Sensor_Status MPU9250_Init(SPI_HandleTypeDef *hspi, bandwidthDLPF dlpf, fullScale gyroFS, fullScale accelFS)
+MPU9250_Status MPU9250_Init(SPI_HandleTypeDef *hspi, bandwidthDLPF dlpf, fullScale gyroFS, fullScale accelFS)
 {
     uint8_t data[6] = {0}, timeout = 0;
 

@@ -53,11 +53,11 @@ TODO *              - calculation of pitch, roll and yaw angles
 --------------------------------------- GLOBAL STRUCTURES ---------------------------------------
 ************************************************************************************************/
 
-typedef enum Sensor_Status
+typedef enum MPU9250_Status
 {
     MPU9250_OK = 0,
     MPU9250_ERROR = 1
-} Sensor_Status;
+} MPU9250_Status;
 
 // full scale ranges for gyroscope and accelerometer
 typedef enum fullScale
@@ -121,9 +121,9 @@ extern float gyroSens;      // sensitivity scale factor of gyroscope
  * @param dlpf dlpf bandwidth
  * @param gyroFS full scale range of gyroscope
  * @param accelFS full scale range of accelermeter
- * @return Sensor_Status
+ * @return MPU9250_Status
  */
-Sensor_Status MPU9250_Init(SPI_HandleTypeDef *hspi, bandwidthDLPF dlpf, fullScale gyroFS, fullScale accelFS);
+MPU9250_Status MPU9250_Init(SPI_HandleTypeDef *hspi, bandwidthDLPF dlpf, fullScale gyroFS, fullScale accelFS);
 
 /**
  * @brief read register of MPU9250

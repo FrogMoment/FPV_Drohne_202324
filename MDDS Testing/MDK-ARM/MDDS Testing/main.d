@@ -24,7 +24,6 @@ mdds\ testing/main.o: ..\Core\Src\main.c ..\Core\Inc\main.h \
   C:\Users\Max\STM32Cube\Repository\STM32Cube_FW_F1_V1.8.5\Drivers\STM32F1xx_HAL_Driver\Inc\stm32f1xx_hal_cortex.h \
   C:\Users\Max\STM32Cube\Repository\STM32Cube_FW_F1_V1.8.5\Drivers\STM32F1xx_HAL_Driver\Inc\stm32f1xx_hal_flash.h \
   C:\Users\Max\STM32Cube\Repository\STM32Cube_FW_F1_V1.8.5\Drivers\STM32F1xx_HAL_Driver\Inc\stm32f1xx_hal_flash_ex.h \
-  C:\Users\Max\STM32Cube\Repository\STM32Cube_FW_F1_V1.8.5\Drivers\STM32F1xx_HAL_Driver\Inc\stm32f1xx_hal_i2c.h \
   C:\Users\Max\STM32Cube\Repository\STM32Cube_FW_F1_V1.8.5\Drivers\STM32F1xx_HAL_Driver\Inc\stm32f1xx_hal_pwr.h \
   C:\Users\Max\STM32Cube\Repository\STM32Cube_FW_F1_V1.8.5\Drivers\STM32F1xx_HAL_Driver\Inc\stm32f1xx_hal_spi.h \
   C:\Users\Max\STM32Cube\Repository\STM32Cube_FW_F1_V1.8.5\Drivers\STM32F1xx_HAL_Driver\Inc\stm32f1xx_hal_tim.h \
@@ -32,4 +31,4 @@ mdds\ testing/main.o: ..\Core\Src\main.c ..\Core\Inc\main.h \
   C:\Users\Max\STM32Cube\Repository\STM32Cube_FW_F1_V1.8.5\Drivers\STM32F1xx_HAL_Driver\Inc\stm32f1xx_hal_uart.h \
   C:\Keil_v5\ARM\ARMCLANG\Bin\..\include\stdio.h \
   C:\Keil_v5\ARM\ARMCLANG\Bin\..\include\string.h \
-  ..\Core\Inc\MPU9250V1.h ..\Core\Inc\DS2438.h
+  ..\Core\Inc\MPU9250V1.h ..\Core\Inc\DS2438.h ..\Core\Inc\I.Bus.h

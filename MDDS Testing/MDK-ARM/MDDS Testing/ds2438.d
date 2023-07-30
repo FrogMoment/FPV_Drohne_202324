@@ -25,7 +25,6 @@ mdds\ testing/ds2438.o: ..\Core\Src\DS2438.c ..\Core\Inc\DS2438.h \
   C:\Users\Max\STM32Cube\Repository\STM32Cube_FW_F1_V1.8.5\Drivers\STM32F1xx_HAL_Driver\Inc\stm32f1xx_hal_cortex.h \
   C:\Users\Max\STM32Cube\Repository\STM32Cube_FW_F1_V1.8.5\Drivers\STM32F1xx_HAL_Driver\Inc\stm32f1xx_hal_flash.h \
   C:\Users\Max\STM32Cube\Repository\STM32Cube_FW_F1_V1.8.5\Drivers\STM32F1xx_HAL_Driver\Inc\stm32f1xx_hal_flash_ex.h \
-  C:\Users\Max\STM32Cube\Repository\STM32Cube_FW_F1_V1.8.5\Drivers\STM32F1xx_HAL_Driver\Inc\stm32f1xx_hal_i2c.h \
   C:\Users\Max\STM32Cube\Repository\STM32Cube_FW_F1_V1.8.5\Drivers\STM32F1xx_HAL_Driver\Inc\stm32f1xx_hal_pwr.h \
   C:\Users\Max\STM32Cube\Repository\STM32Cube_FW_F1_V1.8.5\Drivers\STM32F1xx_HAL_Driver\Inc\stm32f1xx_hal_spi.h \
   C:\Users\Max\STM32Cube\Repository\STM32Cube_FW_F1_V1.8.5\Drivers\STM32F1xx_HAL_Driver\Inc\stm32f1xx_hal_tim.h \
