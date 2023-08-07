@@ -494,8 +494,8 @@
   </Group>
 
   <Group>
-    <GroupName>I.Bus</GroupName>
-    <tvExp>0</tvExp>
+    <GroupName>Receiver</GroupName>
+    <tvExp>1</tvExp>
     <tvExpOptDlg>0</tvExpOptDlg>
     <cbSel>0</cbSel>
     <RteFlg>0</RteFlg>
@@ -506,8 +506,8 @@
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
       <bDave2>0</bDave2>
-      <PathWithFileName>..\Core\Src\I.Bus.c</PathWithFileName>
-      <FilenameWithoutPath>I.Bus.c</FilenameWithoutPath>
+      <PathWithFileName>..\Core\Src\receiver.c</PathWithFileName>
+      <FilenameWithoutPath>receiver.c</FilenameWithoutPath>
       <RteFlg>0</RteFlg>
       <bShared>0</bShared>
     </File>

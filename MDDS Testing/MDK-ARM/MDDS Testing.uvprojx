@@ -522,12 +522,12 @@
           </Files>
         </Group>
         <Group>
-          <GroupName>I.Bus</GroupName>
+          <GroupName>Receiver</GroupName>
           <Files>
             <File>
-              <FileName>I.Bus.c</FileName>
+              <FileName>receiver.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\Core\Src\I.Bus.c</FilePath>
+              <FilePath>..\Core\Src\receiver.c</FilePath>
             </File>
           </Files>
         </Group>

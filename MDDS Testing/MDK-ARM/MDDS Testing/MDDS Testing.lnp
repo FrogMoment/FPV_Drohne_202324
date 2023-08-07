@@ -21,7 +21,7 @@
 "mdds testing\system_stm32f1xx.o"
 "mdds testing\mpu9250v1.o"
 "mdds testing\ds2438.o"
-"mdds testing\i.bus.o"
+"mdds testing\receiver.o"
 --strict --scatter "MDDS Testing\MDDS Testing.sct"
 --summary_stderr --info summarysizes --map --load_addr_map_info --xref --callgraph --symbols
 --info sizes --info totals --info unused --info veneers

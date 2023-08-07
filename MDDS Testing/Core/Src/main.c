@@ -25,7 +25,7 @@
 #include <string.h>
 #include "MPU9250V1.h"
 #include "DS2438.h"
-#include "I.Bus.h"
+#include "receiver.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -34,7 +34,7 @@ typedef enum Sensors
 {
   MPU9250 = 0,
   DS2438 = 1,
-  IBUS = 2
+  RECEIVER = 2
 } Sensors;
 /* USER CODE END PTD */
 
@@ -104,15 +104,15 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     // sprintf(txt, "%f\n\n\r", temp);
     // HAL_UART_Transmit(&huart1, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
 
-    IBUS_Status tmp = IBUS_Decode();
+    Receiver_Status tmp = Receiver_Decode();
     sprintf(txt2, "..%d..\t", tmp);
     for(int8_t i = 0; i < 14; i++)
     {
-      sprintf(txt, "%d\t", ibus_ChData[i]);
+      sprintf(txt, "%d\t", receiver_ChData[i]);
       strcat(txt2, txt);
     }
     strcat(txt2, "\n\r");
-    // sprintf(txt, "..%d..\t0x%2X\t0x%2X\t0x%2X\t%d\t%d\n\r", tmp, ibus_RawData[0], ibus_RawData[1], ibus_RawData[2], ibus_ChData[7]);
+    // sprintf(txt, "..%d..\t0x%2X\t0x%2X\t0x%2X\t%d\t%d\n\r", tmp, receiver_RawData[0], ibus_RawData[1], ibus_RawData[2], ibus_ChData[7]);
     HAL_UART_Transmit(&huart1, (uint8_t *)&txt2, strlen(txt2), HAL_MAX_DELAY);
   }
 }
@@ -157,17 +157,17 @@ int main(void)
   int8_t errorCode;
 
   // initialize MPU9250
-  errorCode = MPU9250_Init(&hspi1, DLPF_184Hz, GYRO_2000DPS, ACCEL_2G);
-  if(errorCode != MPU9250_OK)
-    Sensor_ErrorHandler(MPU9250, errorCode);
-  HAL_UART_Transmit(&huart1, (uint8_t *)"MPU9250 detected and configured\n\r", sizeof("MPU9250 detected and configured\n\r"), HAL_MAX_DELAY);
+  // errorCode = MPU9250_Init(&hspi1, DLPF_184Hz, GYRO_2000DPS, ACCEL_2G);
+  // if(errorCode != MPU9250_OK)
+  //   Sensor_ErrorHandler(MPU9250, errorCode);
+  // HAL_UART_Transmit(&huart1, (uint8_t *)"MPU9250 detected and configured\n\r", sizeof("MPU9250 detected and configured\n\r"), HAL_MAX_DELAY);
 
 
   // initliaze DS2438
-  errorCode = DS2438_Init();
-  if(errorCode != DS2438_OK)
-    Sensor_ErrorHandler(DS2438, errorCode);
-  HAL_UART_Transmit(&huart1, (uint8_t *)"DS2438 detected\n\r", sizeof("DS2438 detected\n\r"), HAL_MAX_DELAY);
+  // errorCode = DS2438_Init();
+  // if(errorCode != DS2438_OK)
+  //   Sensor_ErrorHandler(DS2438, errorCode);
+  // HAL_UART_Transmit(&huart1, (uint8_t *)"DS2438 detected\n\r", sizeof("DS2438 detected\n\r"), HAL_MAX_DELAY);
 
 
   // // start SPI DMA circular read cycle
@@ -177,10 +177,11 @@ int main(void)
   // HAL_SPI_TransmitReceive_DMA(&hspi1, &fullAddr, mpu9250_RawData, 14);
 
 
-  // initialize I.Bus reception with DMA
-  errorCode = IBUS_Init(&huart2);
-  if(errorCode != IBUS_OK)
-    Sensor_ErrorHandler(IBUS, errorCode);
+  // initialize receiver reception with DMA
+  errorCode = Receiver_Init(IBUS, &huart2);
+  if(errorCode != RECEIVER_OK)
+    Sensor_ErrorHandler(RECEIVER, errorCode);
+  HAL_UART_Transmit(&huart1, (uint8_t *)"Receiver detected and calibrated\n\r", sizeof("Receiver detected and calibrated\n\r"), HAL_MAX_DELAY);
 
 
   // start timer 1 counter + interrupt 
@@ -553,7 +554,7 @@ void Sensor_ErrorHandler(Sensors sens, int8_t errorCode)
       sprintf(txt, "DS2438 ERROR | Code: %d\n\r", errorCode);
       break;
 
-    case IBUS:
+    case RECEIVER:
       sprintf(txt, "IBUS ERROR | Code: %d\n\r", errorCode);
       break;
   }

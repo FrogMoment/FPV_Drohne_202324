@@ -57,10 +57,6 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define MPU9250_CS_Pin GPIO_PIN_4
-#define MPU9250_CS_GPIO_Port GPIOA
-#define DS2438_DQ_Pin GPIO_PIN_12
-#define DS2438_DQ_GPIO_Port GPIOA
 
 /* USER CODE BEGIN Private defines */
 

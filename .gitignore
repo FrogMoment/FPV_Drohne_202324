@@ -1,3 +1,37 @@
-.gitignore
-MDDS Testing/MDK-ARM/MDDS Testing/*
-Drohne Lendl/MDK-ARM/Drohne Lendl/*
+MDDS Testing/MDK-ARM/MDDS Testing/ds2438.o
+MDDS Testing/MDK-ARM/MDDS Testing/i.bus.d
+MDDS Testing/MDK-ARM/MDDS Testing/i.bus.o
+MDDS Testing/MDK-ARM/MDDS Testing/main.d
+MDDS Testing/MDK-ARM/MDDS Testing/main.o
+MDDS Testing/MDK-ARM/MDDS Testing/MDDS Testing_MDDS Testing.dep
+MDDS Testing/MDK-ARM/MDDS Testing/MDDS Testing.axf
+MDDS Testing/MDK-ARM/MDDS Testing/MDDS Testing.build_log.htm
+MDDS Testing/MDK-ARM/MDDS Testing/MDDS Testing.hex
+MDDS Testing/MDK-ARM/MDDS Testing/MDDS Testing.htm
+MDDS Testing/MDK-ARM/MDDS Testing/MDDS Testing.lnp
+MDDS Testing/MDK-ARM/MDDS Testing/MDDS Testing.map
+MDDS Testing/MDK-ARM/MDDS Testing/mpu9250v1.o
+MDDS Testing/MDK-ARM/MDDS Testing/receiver.d
+MDDS Testing/MDK-ARM/MDDS Testing/receiver.o
+MDDS Testing/MDK-ARM/MDDS Testing/startup_stm32f10x_md.o
+MDDS Testing/MDK-ARM/MDDS Testing/startup_stm32f103xb.o
+MDDS Testing/MDK-ARM/MDDS Testing/stm32f1xx_hal_cortex.o
+MDDS Testing/MDK-ARM/MDDS Testing/stm32f1xx_hal_dma.o
+MDDS Testing/MDK-ARM/MDDS Testing/stm32f1xx_hal_exti.o
+MDDS Testing/MDK-ARM/MDDS Testing/stm32f1xx_hal_flash_ex.o
+MDDS Testing/MDK-ARM/MDDS Testing/stm32f1xx_hal_flash.o
+MDDS Testing/MDK-ARM/MDDS Testing/stm32f1xx_hal_gpio_ex.o
+MDDS Testing/MDK-ARM/MDDS Testing/stm32f1xx_hal_gpio.o
+MDDS Testing/MDK-ARM/MDDS Testing/stm32f1xx_hal_msp.o
+MDDS Testing/MDK-ARM/MDDS Testing/stm32f1xx_hal_pwr.o
+MDDS Testing/MDK-ARM/MDDS Testing/stm32f1xx_hal_rcc_ex.o
+MDDS Testing/MDK-ARM/MDDS Testing/stm32f1xx_hal_rcc.o
+MDDS Testing/MDK-ARM/MDDS Testing/stm32f1xx_hal_spi.o
+MDDS Testing/MDK-ARM/MDDS Testing/stm32f1xx_hal_tim_ex.o
+MDDS Testing/MDK-ARM/MDDS Testing/stm32f1xx_hal_tim.o
+MDDS Testing/MDK-ARM/MDDS Testing/stm32f1xx_hal_uart.o
+MDDS Testing/MDK-ARM/MDDS Testing/stm32f1xx_hal.o
+MDDS Testing/MDK-ARM/MDDS Testing/stm32f1xx_it.o
+MDDS Testing/MDK-ARM/MDDS Testing/system_stm32f1xx.o
+MDDS Testing/MDK-ARM/MDDS Testing/system_stm32f10x.d
+MDDS Testing/MDK-ARM/MDDS Testing/system_stm32f10x.o
