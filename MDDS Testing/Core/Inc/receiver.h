@@ -10,8 +10,8 @@
  *          - receiver init
  *          - I.Bus read
  *          - I.Bus decode
- TODO *          - S.Bus read
- TODO *          - S.Bus decode
+  *          - S.Bus read
+  *          - S.Bus decode
  MAYBE *          - check receiver disconnection
  */
 
