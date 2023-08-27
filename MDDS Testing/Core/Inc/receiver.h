@@ -13,7 +13,7 @@
  *          - S.Bus read
  *          - S.Bus decode
  *          - check receiver disconnection
- TODO*          - motor control
+ *          - motor control
  */
 
 #ifndef RECEIVER_H_INCLUDED
@@ -31,8 +31,8 @@
 ************************************************************************************************/
 
 #define PWM_SAFEMODE_DC_MAX 10      // max duty cycle in safe mode
-#define PWM_NORMALMODE_DC_MAX 100   // max duty cycle in safe mode
-#define PWM_TURN_SPEED_MAX 10        // max addition duty cycle speed when turning 
+#define PWM_NORMALMODE_DC_MAX 80    // max duty cycle in safe mode
+#define PWM_TURN_SPEED_MAX 20       // max addition duty cycle speed when turning 
 
 /************************************************************************************************
 --------------------------------------- GLOBAL STRUCTURES ---------------------------------------
@@ -111,7 +111,7 @@ Receiver_Status Receiver_Decode(void);
 
 /**
  * @brief this function controls the output pwm signals accourding to the receiver input
- * 
+ * @retval None
  */
 void Receiver_MotorControl(void);
 

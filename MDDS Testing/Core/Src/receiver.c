@@ -233,7 +233,7 @@ Receiver_Status Receiver_Decode(void)
 
 /**
  * @brief this function controls the output pwm signals accourding to the receiver input
- * 
+ * @retval None
  */
 void Receiver_MotorControl(void)
 {
@@ -243,74 +243,85 @@ void Receiver_MotorControl(void)
         pwm_MaxDutyCycle = PWM_SAFEMODE_DC_MAX;
 
 
+    double channel[4] = {0.0}; 
+
+
     // throttle (up / down)
-    float throttle_percent = (float)(receiver_ChData[2] - receiver_Input.min) / receiver_Input.delta;
-    float throttle = throttle_percent * pwm_MaxDutyCycle;
-    
-    __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_1, (int)(throttle * 10));
-    __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_2, (int)(throttle * 10));
-    __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_3, (int)(throttle * 10));
-    __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_4, (int)(throttle * 10));
+    float throttle = (float)(receiver_ChData[2] - receiver_Input.min) / receiver_Input.delta;   // get joystick position
+    throttle *= pwm_MaxDutyCycle;                               // get percent of max duty cycle addition
+    for(uint8_t i = 0; i < 4; i++)
+        channel[i] = throttle;
 
 
     // pitch (forward / backwards)
-    float pitch_percent = (float)(receiver_ChData[1] - receiver_Input.min) / receiver_Input.delta;
-    pitch_percent = (pitch_percent < .5) ? (.5 - pitch_percent) * 2 : (pitch_percent - .5) * 2;
-    float pitch = throttle + pitch_percent * PWM_TURN_SPEED_MAX;
+    float pitch = (float)(receiver_ChData[1] - receiver_Input.min) / receiver_Input.delta;      // get joystick position
+    pitch = (pitch < .5) ? (.5 - pitch) * 2 : (pitch - .5) * 2; // get difference from 50%
+    pitch *= PWM_TURN_SPEED_MAX;                                // get percent of max duty cycle addition
     
     // flying backwards, front motors faster
     if(receiver_ChData[1] < receiver_Input.half)
     {
-        __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_1, (int)(pitch * 10));
-        __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_2, (int)(pitch * 10));
+        channel[0] += pitch;
+        channel[1] += pitch;
     }
     // flying forward, rear motors faster
     else
     {
-        __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_3, (int)(pitch * 10));
-        __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_4, (int)(pitch * 10));
+        channel[2] += pitch;
+        channel[3] += pitch;
     }
 
 
-    // TODO roll (left / right)
-    uint32_t tmp;
-    float roll_percent = (float)(receiver_ChData[3] - receiver_Input.min) / receiver_Input.delta;
-    roll_percent = (roll_percent < .5) ? (.5 - roll_percent) * 2 : (roll_percent - .5) * 2;
-    float roll = throttle + roll_percent * PWM_TURN_SPEED_MAX;
-    
+    // roll (left / right)
+    float roll = (float)(receiver_ChData[3] - receiver_Input.min) / receiver_Input.delta;       // get joystick position
+    roll = (roll < .5) ? (.5 - roll) * 2 : (roll - .5) * 2; // get difference from 50%
+    roll *= PWM_TURN_SPEED_MAX;                             // get percent of max duty cycle addition
+
     // flying left, right motors faster
     if(receiver_ChData[3] < receiver_Input.half)
     {
-        tmp = __HAL_TIM_GET_COMPARE(pwm_Timer, TIM_CHANNEL_2) + (int)(roll * 10);
-        if(tmp > PWM_TURN_SPEED_MAX)
-            tmp = PWM_TURN_SPEED_MAX;
-        __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_2, (int)(tmp * 10));
-
-        tmp = __HAL_TIM_GET_COMPARE(pwm_Timer, TIM_CHANNEL_4) + (int)(roll * 10);
-        if(tmp > PWM_TURN_SPEED_MAX)
-            tmp = PWM_TURN_SPEED_MAX;
-        __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_4, (int)(tmp * 10));
+        channel[1] += roll;
+        channel[3] += roll;
     }
     // flying right, left motors faster
     else
     {
-        tmp = __HAL_TIM_GET_COMPARE(pwm_Timer, TIM_CHANNEL_1) + (int)(roll * 10);
-        if(tmp > PWM_TURN_SPEED_MAX)
-            tmp = PWM_TURN_SPEED_MAX;
-        __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_1, (int)(tmp * 10));
-
-        tmp = __HAL_TIM_GET_COMPARE(pwm_Timer, TIM_CHANNEL_3) + (int)(roll * 10);
-        if(tmp > PWM_TURN_SPEED_MAX)
-            tmp = PWM_TURN_SPEED_MAX;
-        __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_3, (int)(tmp * 10));
+        channel[0] += roll;
+        channel[2] += roll;
     }
 
 
-    // TODO yaw (rotate left / rotate right)
+    // yaw (rotate left / rotate right)
+    float yaw = (float)(receiver_ChData[0] - receiver_Input.min) / receiver_Input.delta;       // get joystick position
+    yaw = (yaw < .5) ? (.5 - yaw) * 2 : (yaw - .5) * 2;     // get difference from 50%
+    yaw *= PWM_TURN_SPEED_MAX;                              // get percent of max duty cycle addition
+
+    // rotate left, right front and left rear motors faster
+    if(receiver_ChData[0] < receiver_Input.half)
+    {
+        channel[1] += yaw;
+        channel[2] += yaw;
+    }
+    // rotate right, left front and right rear motors faster
+    else
+    {
+        channel[0] += yaw;
+        channel[3] += yaw;
+    }
 
 
-    // TODO hover mode
+    // MAYBE hover mode
 
+
+    // check if the value is larger then the max value
+    for(uint8_t i = 0; i < 4; i++)
+        if(channel[i] > throttle + PWM_TURN_SPEED_MAX)
+            channel[i] = throttle + PWM_TURN_SPEED_MAX;
+
+    __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_1, (uint16_t)(channel[0] * 10));
+    __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_2, (uint16_t)(channel[1] * 10));
+    __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_3, (uint16_t)(channel[2] * 10));
+    __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_4, (uint16_t)(channel[3] * 10));
 
 }
 

@@ -126,7 +126,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     strcat(txt2, "\n\r");
     HAL_UART_Transmit(&huart1, (uint8_t *)&txt2, strlen(txt2), HAL_MAX_DELAY);
 
-    Receiver_MotorControl();
+    // Receiver_MotorControl();
     // -----------------------------------------------
   }
 }
@@ -220,7 +220,7 @@ int main(void)
   while(1)
   {
     /* USER CODE END WHILE */
-
+    Receiver_MotorControl();
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
