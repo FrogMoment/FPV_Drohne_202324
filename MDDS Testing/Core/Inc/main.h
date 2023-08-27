@@ -51,6 +51,8 @@ extern TIM_HandleTypeDef htim2; // timer 2 for us delay
 
 /* USER CODE END EM */
 
+void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
+
 /* Exported functions prototypes ---------------------------------------------*/
 void Error_Handler(void);
 
@@ -59,8 +61,8 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define MPU9250_CS_Pin GPIO_PIN_4
-#define MPU9250_CS_GPIO_Port GPIOA
+#define Receiver_PPM_Pin GPIO_PIN_3
+#define Receiver_PPM_GPIO_Port GPIOA
 #define DS2438_DQ_Pin GPIO_PIN_12
 #define DS2438_DQ_GPIO_Port GPIOC
 

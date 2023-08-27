@@ -59,6 +59,8 @@ DS2438_Status DS2438_Init(void)
     if(HAL_GPIO_ReadPin(DS2438_DQ_GPIO_Port, DS2438_DQ_Pin) == GPIO_PIN_SET)
         return DS2438_ERROR;
 
+    HAL_TIM_Base_Start(&htim2); // start timer for Delay_us
+
     return DS2438_OK;
 }
 

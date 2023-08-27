@@ -56,7 +56,9 @@ TODO *              - calculation of pitch, roll and yaw angles
 typedef enum MPU9250_Status
 {
     MPU9250_OK = 0,
-    MPU9250_ERROR = 1
+
+    MPU9250_WHOAMI_ERROR = 1,
+    MPU9250_DMA_ERROR = 2
 } MPU9250_Status;
 
 // full scale ranges for gyroscope and accelerometer
@@ -102,6 +104,8 @@ typedef enum bandwidthDLPF
 --------------------------------------- GLOBAL VARIABLES ---------------------------------------
 ************************************************************************************************/
 
+extern uint8_t mpu9250_RawData[14]; // mpu9250 raw data
+
 extern coordinates accel;   // accelerometer values
 extern coordinates gyro;    // gyroscope values
 extern float temp;          // temperature values
@@ -124,6 +128,13 @@ extern float gyroSens;      // sensitivity scale factor of gyroscope
  * @return MPU9250_Status
  */
 MPU9250_Status MPU9250_Init(SPI_HandleTypeDef *hspi, bandwidthDLPF dlpf, fullScale gyroFS, fullScale accelFS);
+
+/**
+ * @brief This function starts DMA reading of accel, gyro and temp 
+ * @param hspi pointer to a SPI_HandleTypeDef structure
+ * @return MPU9250_Status 
+ */
+MPU9250_Status MPU9250_StartReading(SPI_HandleTypeDef *hspi);
 
 /**
  * @brief read register of MPU9250

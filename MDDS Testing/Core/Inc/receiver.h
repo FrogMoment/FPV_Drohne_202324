@@ -10,13 +10,14 @@
  *          - receiver init
  *          - I.Bus read
  *          - I.Bus decode
-  *          - S.Bus read
-  *          - S.Bus decode
- MAYBE *          - check receiver disconnection
+ *          - S.Bus read
+ *          - S.Bus decode
+ *          - check receiver disconnection
+ TODO*          - motor control
  */
 
-#ifndef IBUS_H_INCLUDED
-#define IBUS_H_INCLUDED
+#ifndef RECEIVER_H_INCLUDED
+#define RECEIVER_H_INCLUDED
 
 /************************************************************************************************
 ------------------------------------------- INCLUDES -------------------------------------------
@@ -24,6 +25,14 @@
 
 #include "main.h"
 #include <stm32f1xx_hal.h>
+
+/************************************************************************************************
+---------------------------------------- GLOBAL DEFINES ----------------------------------------
+************************************************************************************************/
+
+#define PWM_SAFEMODE_DC_MAX 10      // max duty cycle in safe mode
+#define PWM_NORMALMODE_DC_MAX 100   // max duty cycle in safe mode
+#define PWM_TURN_SPEED_MAX 10        // max addition duty cycle speed when turning 
 
 /************************************************************************************************
 --------------------------------------- GLOBAL STRUCTURES ---------------------------------------
@@ -42,18 +51,25 @@ typedef enum Receiver_Status
 {
     RECEIVER_OK = 0,
     RECEIVER_UART_ERROR = 1,
-    PROTOCOL_ERROR = 2,
+    RECEIVER_TIMEOUT = 2,
+    PROTOCOL_ERROR = 3,
 
-    IBUS_ERROR = 3,
-    IBUS_HEADER_ERROR = 4,
-    IBUS_CHECKSUM_ERROR = 5,
+    IBUS_ERROR = 4,
+    IBUS_HEADER_ERROR = 5,
+    IBUS_CHECKSUM_ERROR = 6,
 
-    SBUS_ERROR = 6,
-    SBUS_HEADER_ERROR = 7,
-    SBUS_FOOTER_ERROR = 8,
-    SBUS_SIGNAL_LOST = 9,
-    SBUS_SIGNAL_FAILSAFE = 10
+    SBUS_ERROR = 7,
+    SBUS_HEADER_ERROR = 8,
+    SBUS_FOOTER_ERROR = 9,
+    SBUS_SIGNAL_LOST = 10,
+    SBUS_SIGNAL_FAILSAFE = 11
 } Receiver_Status;
+
+// min and max values of receiver raw data
+typedef struct Receiver_Values
+{
+    uint16_t min, max, delta, half;
+} Receiver_Values;
 
 /************************************************************************************************
 --------------------------------------- GLOBAL VARIABLES ---------------------------------------
@@ -69,10 +85,11 @@ extern uint16_t receiver_ChData[16];    // each channel data
 /**
  * @brief This function calibrates and starts uart receive dma with selected protocol 
  * @param protocol protocol to use (SBUS / IBUS)
- * @param huart pointer to a UART_HandleTypeDef structure
+ * @param huart pointer to a UART_HandleTypeDef structure (input usart)
+ * @param htim pointer to a TIM_HandleTypeDef structure (output pwm timer)
  * @return Receiver_Status 
  */
-Receiver_Status Receiver_Init(Receiver_Protocol protocol, UART_HandleTypeDef *huart);
+Receiver_Status Receiver_Init(Receiver_Protocol proto, UART_HandleTypeDef *huart, TIM_HandleTypeDef *htim);
 
 /**
  * @brief This function decodes the receiver raw data depending on the protocol
@@ -92,4 +109,10 @@ Receiver_Status Receiver_Init(Receiver_Protocol protocol, UART_HandleTypeDef *hu
  */
 Receiver_Status Receiver_Decode(void);
 
-#endif // IBUS_H_INCLUDED
+/**
+ * @brief this function controls the output pwm signals accourding to the receiver input
+ * 
+ */
+void Receiver_MotorControl(void);
+
+#endif // RECEIVER_H_INCLUDED

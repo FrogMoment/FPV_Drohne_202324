@@ -10,7 +10,7 @@
  *              - initialization of MPU9250 + read/write functions
  *              - measurement for accelerometer (x, y, z)
  *              - measurement for gyroscope (x, y, z)
-TODO *              - calculation of pitch, roll and yaw angles
+ *              - calculation of pitch, roll and yaw angles
  */
 
 #ifndef MPU9250_H_INCLUDED
@@ -22,6 +22,7 @@ TODO *              - calculation of pitch, roll and yaw angles
 
 #include "main.h"
 #include "stm32f1xx_hal.h"
+#include <math.h>
 
  /************************************************************************************************
  ---------------------------------------- GLOBAL DEFINES ----------------------------------------
@@ -50,15 +51,21 @@ TODO *              - calculation of pitch, roll and yaw angles
 #define ACCEL_SENS 16384.0      // SSF of accelerometer
 #define GYRO_SENS 131.0         // SSF of gyroscope
 
+#define MPU9250_DT 0.5    // delta calculate time
+#define RAD_TO_DEG 57.2957795131
+#define COMP_GYRO_COEFF .95
+
 /************************************************************************************************
 --------------------------------------- GLOBAL STRUCTURES ---------------------------------------
 ************************************************************************************************/
 
-typedef enum Sensor_Status
+typedef enum MPU9250_Status
 {
-    SENSOR_OK = 0,
-    MPU_ERROR = 1
-} Sensor_Status;
+    MPU9250_OK = 0,
+
+    MPU9250_WHOAMI_ERROR = 1,
+    MPU9250_I2C_ERROR = 2
+} MPU9250_Status;
 
 // full scale ranges for gyroscope and accelerometer
 typedef enum fullScale
@@ -103,6 +110,10 @@ typedef enum bandwidthDLPF
 --------------------------------------- GLOBAL VARIABLES ---------------------------------------
 ************************************************************************************************/
 
+extern uint8_t mpu9250_RawData[14]; // mpu9250 raw data
+
+extern uint8_t MPU9250_InitFinished;
+
 extern coordinates accel;   // accelerometer values
 extern coordinates gyro;    // gyroscope values
 extern float temp;          // temperature values
@@ -122,9 +133,16 @@ extern float gyroSens;      // sensitivity scale factor of gyroscope
  * @param dlpf dlpf bandwidth
  * @param gyroFS full scale range of gyroscope
  * @param accelFS full scale range of accelermeter
- * @return Sensor_Status
+ * @return MPU9250_Status
  */
-Sensor_Status MPU9250_Init(I2C_HandleTypeDef *hi2c, bandwidthDLPF dlpf, fullScale gyroFS, fullScale accelFS);
+MPU9250_Status MPU9250_Init(I2C_HandleTypeDef *hi2c, bandwidthDLPF dlpf, fullScale gyroFS, fullScale accelFS);
+
+/**
+ * @brief This function starts DMA reading of accel, gyro and temp 
+ * @param hi2c pointer to a I2C_HandleTypeDef structure
+ * @return MPU9250_Status 
+ */
+MPU9250_Status MPU9250_StartReading(I2C_HandleTypeDef *hi2c);
 
 /**
  * @brief read register of MPU9250
@@ -166,10 +184,21 @@ coordinates MPU9250_ReadGyro(I2C_HandleTypeDef *hi2c);
 float MPU9250_ReadTemperature(I2C_HandleTypeDef *hi2c);
 
 /**
- * @brief This function converts rawData to specific data 
- * @param rawData pointer to rawData
+ * @brief This function converts the raw data of the MPU9250
+ * @details
+ * Byte[0-5]:  acclerometer H/L byte x,y,z values 
+ * Byte[6-7]:  temperature H/L byte  
+ * Byte[8-13]: gyroscope H/L byte x,y,z values 
+ * The final result gets stored in the variables accel, temp and gyro.
+ * @param rawData pointer to raw data
  * @return None
  */
 void MPU9250_CalcValues(uint8_t *rawData);
+
+/**
+ * @brief This function calculates pitch and roll with gyro and accel data
+ * @return None
+ */
+void MPU9250_CompFilter(void);
 
 #endif // MPU9250_H_INCLUDED

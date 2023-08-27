@@ -19,6 +19,8 @@
 --------------------------------------- GLOBAL VARIABLES ---------------------------------------
 ************************************************************************************************/
 
+uint8_t mpu9250_RawData[14] = {0}; // mpu9250 raw data
+
 coordinates accel;   // accelerometer values
 coordinates gyro;    // gyroscope values
 float temp;          // temperature values
@@ -51,7 +53,7 @@ MPU9250_Status MPU9250_Init(SPI_HandleTypeDef *hspi, bandwidthDLPF dlpf, fullSca
     {
         MPU9250_ReadRegister(hspi, MPU9250_WHOAMI, &data[0], 1); // read data from WHOAMI register
         if(timeout++ > 100)
-            return MPU9250_ERROR;
+            return MPU9250_WHOAMI_ERROR;
     }
 
     // // MPU9250 configuration
@@ -99,6 +101,21 @@ MPU9250_Status MPU9250_Init(SPI_HandleTypeDef *hspi, bandwidthDLPF dlpf, fullSca
 
     accelSens = MPU9250_ACCEL_SENS / (1 << accelFS);    // calc sensitivity scale factor of accelerometer
     gyroSens = MPU9250_GYRO_SENS / (1 << gyroFS);       // calc sensitivity scale factor of gyroscope
+
+    return MPU9250_OK;
+}
+
+/**
+ * @brief This function starts DMA reading of accel, gyro and temp 
+ * @param hspi pointer to a SPI_HandleTypeDef structure
+ * @return MPU9250_Status 
+ */
+MPU9250_Status MPU9250_StartReading(SPI_HandleTypeDef *hspi)
+{
+    uint8_t fullAddr = 0x80 | MPU9250_ACCEL_XOUT_H;
+    HAL_GPIO_WritePin(MPU9250_CS_GPIO_Port, MPU9250_CS_Pin, GPIO_PIN_RESET);
+    if(HAL_SPI_TransmitReceive_IT(hspi, &fullAddr, mpu9250_RawData, 15) != HAL_OK)
+        return MPU9250_DMA_ERROR;
 
     return MPU9250_OK;
 }

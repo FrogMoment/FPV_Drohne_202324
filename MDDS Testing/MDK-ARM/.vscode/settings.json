@@ -6,6 +6,8 @@
         "mpu9250.h": "c",
         "stm32f1xx_it.h": "c",
         "ds2438.h": "c",
-        "receiver.h": "c"
-    }
+        "receiver.h": "c",
+        "math.h": "c"
+    },
+    "todo-tree.tree.scanMode": "workspace"
 }

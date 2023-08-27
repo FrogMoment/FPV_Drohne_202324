@@ -13,6 +13,7 @@
  *          - S.Bus read
  *          - S.Bus decode
  *          - check receiver disconnection
+ *          - motor control
  */
 
 #include "receiver.h"
@@ -21,9 +22,14 @@
 --------------------------------------- GLOBAL VARIABLES ---------------------------------------
 ************************************************************************************************/
 
+// receiver variables
 Receiver_Protocol protocol = NO_PROTO; // selected serial protocol
 uint8_t receiver_RawData[32] = {0}; // raw data of receiver communication
 uint16_t receiver_ChData[16] = {0}; // each channel data
+
+// pwm output variables
+TIM_HandleTypeDef *pwm_Timer; // pointer to TIM_HandleTypeDef of output pwm signal
+Receiver_Values receiver_Input = {0};
 
 /************************************************************************************************
 ------------------------------------------- FUNCTIONS -------------------------------------------
@@ -32,10 +38,11 @@ uint16_t receiver_ChData[16] = {0}; // each channel data
 /**
  * @brief This function calibrates and starts uart receive dma with selected protocol 
  * @param protocol protocol to use (SBUS / IBUS)
- * @param huart pointer to a UART_HandleTypeDef structure
+ * @param huart pointer to a UART_HandleTypeDef structure (input usart)
+ * @param htim pointer to a TIM_HandleTypeDef structure (output pwm timer)
  * @return Receiver_Status 
  */
-Receiver_Status Receiver_Init(Receiver_Protocol proto, UART_HandleTypeDef *huart)
+Receiver_Status Receiver_Init(Receiver_Protocol proto, UART_HandleTypeDef *huart, TIM_HandleTypeDef *htim)
 {
     protocol = proto; // select serial protocol
     switch(protocol)
@@ -56,18 +63,23 @@ Receiver_Status Receiver_Init(Receiver_Protocol proto, UART_HandleTypeDef *huart
             if(huart->Init.BaudRate != 115200)
                 return RECEIVER_UART_ERROR;
 
-            uint8_t tmp[2] = {0};
+            uint8_t tmp[2] = {0}, timeout = 0;
         
             // calibrate reception to begin of protocol
             while(!(tmp[0] == 0x20 && tmp[1] == 0x40))
+            {
                 HAL_UART_Receive(huart, tmp, 2, 4);
-
+                if(timeout++ > 100)
+                    return RECEIVER_TIMEOUT;
+            }
             HAL_Delay(4);
 
             // start DMA read i.bus signal
             if(HAL_UART_Receive_DMA(huart, receiver_RawData, 32) != HAL_OK)
                 return IBUS_ERROR;
 
+            receiver_Input.min = 1070;  // set min value of receiver input data
+            receiver_Input.max = 1920;  // set max value of receiver input data
             break;
         }
 
@@ -91,18 +103,23 @@ Receiver_Status Receiver_Init(Receiver_Protocol proto, UART_HandleTypeDef *huart
             if(huart->Init.BaudRate != 100000)
                 return RECEIVER_UART_ERROR;
 
-            uint8_t tmp = 0;
+            uint8_t tmp = 0, timeout = 0;
 
             // calibrate reception to begin of protocol
             while(tmp != 0x0F)
+            {
                 HAL_UART_Receive(huart, &tmp, 1, 4);
-
+                if(timeout++ > 100)
+                    return RECEIVER_TIMEOUT;
+            }
             HAL_Delay(4);
 
             // start DMA read s.bus signal
             if(HAL_UART_Receive_DMA(huart, receiver_RawData, 25) != HAL_OK)
                 return SBUS_ERROR;
 
+            receiver_Input.min = 350;   // set min value of receiver input data
+            receiver_Input.max = 1680;  // set max value of receiver input data
             break;
         }
 
@@ -112,6 +129,21 @@ Receiver_Status Receiver_Init(Receiver_Protocol proto, UART_HandleTypeDef *huart
             return PROTOCOL_ERROR;           
             break;
     }
+
+    receiver_Input.delta = receiver_Input.max - receiver_Input.min;
+    receiver_Input.half = (receiver_Input.max + receiver_Input.min) / 2;
+
+    // set start duty cycle (0.1%) and start pwm output
+    pwm_Timer = htim;
+    __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_1, 1);
+    __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_2, 1);
+    __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_3, 1);
+    __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_4, 1);
+
+    HAL_TIM_PWM_Start(pwm_Timer, TIM_CHANNEL_1);
+    HAL_TIM_PWM_Start(pwm_Timer, TIM_CHANNEL_2);
+    HAL_TIM_PWM_Start(pwm_Timer, TIM_CHANNEL_3);
+    HAL_TIM_PWM_Start(pwm_Timer, TIM_CHANNEL_4);
 
     return RECEIVER_OK;
 }
@@ -197,5 +229,88 @@ Receiver_Status Receiver_Decode(void)
     }
     
     return RECEIVER_OK;
+}
+
+/**
+ * @brief this function controls the output pwm signals accourding to the receiver input
+ * 
+ */
+void Receiver_MotorControl(void)
+{
+    // check save mode (one switch)
+    uint8_t pwm_MaxDutyCycle = PWM_NORMALMODE_DC_MAX;
+    if(receiver_ChData[7] < receiver_Input.half)
+        pwm_MaxDutyCycle = PWM_SAFEMODE_DC_MAX;
+
+
+    // throttle (up / down)
+    float throttle_percent = (float)(receiver_ChData[2] - receiver_Input.min) / receiver_Input.delta;
+    float throttle = throttle_percent * pwm_MaxDutyCycle;
+    
+    __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_1, (int)(throttle * 10));
+    __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_2, (int)(throttle * 10));
+    __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_3, (int)(throttle * 10));
+    __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_4, (int)(throttle * 10));
+
+
+    // pitch (forward / backwards)
+    float pitch_percent = (float)(receiver_ChData[1] - receiver_Input.min) / receiver_Input.delta;
+    pitch_percent = (pitch_percent < .5) ? (.5 - pitch_percent) * 2 : (pitch_percent - .5) * 2;
+    float pitch = throttle + pitch_percent * PWM_TURN_SPEED_MAX;
+    
+    // flying backwards, front motors faster
+    if(receiver_ChData[1] < receiver_Input.half)
+    {
+        __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_1, (int)(pitch * 10));
+        __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_2, (int)(pitch * 10));
+    }
+    // flying forward, rear motors faster
+    else
+    {
+        __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_3, (int)(pitch * 10));
+        __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_4, (int)(pitch * 10));
+    }
+
+
+    // TODO roll (left / right)
+    uint32_t tmp;
+    float roll_percent = (float)(receiver_ChData[3] - receiver_Input.min) / receiver_Input.delta;
+    roll_percent = (roll_percent < .5) ? (.5 - roll_percent) * 2 : (roll_percent - .5) * 2;
+    float roll = throttle + roll_percent * PWM_TURN_SPEED_MAX;
+    
+    // flying left, right motors faster
+    if(receiver_ChData[3] < receiver_Input.half)
+    {
+        tmp = __HAL_TIM_GET_COMPARE(pwm_Timer, TIM_CHANNEL_2) + (int)(roll * 10);
+        if(tmp > PWM_TURN_SPEED_MAX)
+            tmp = PWM_TURN_SPEED_MAX;
+        __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_2, (int)(tmp * 10));
+
+        tmp = __HAL_TIM_GET_COMPARE(pwm_Timer, TIM_CHANNEL_4) + (int)(roll * 10);
+        if(tmp > PWM_TURN_SPEED_MAX)
+            tmp = PWM_TURN_SPEED_MAX;
+        __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_4, (int)(tmp * 10));
+    }
+    // flying right, left motors faster
+    else
+    {
+        tmp = __HAL_TIM_GET_COMPARE(pwm_Timer, TIM_CHANNEL_1) + (int)(roll * 10);
+        if(tmp > PWM_TURN_SPEED_MAX)
+            tmp = PWM_TURN_SPEED_MAX;
+        __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_1, (int)(tmp * 10));
+
+        tmp = __HAL_TIM_GET_COMPARE(pwm_Timer, TIM_CHANNEL_3) + (int)(roll * 10);
+        if(tmp > PWM_TURN_SPEED_MAX)
+            tmp = PWM_TURN_SPEED_MAX;
+        __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_3, (int)(tmp * 10));
+    }
+
+
+    // TODO yaw (rotate left / rotate right)
+
+
+    // TODO hover mode
+
+
 }
 

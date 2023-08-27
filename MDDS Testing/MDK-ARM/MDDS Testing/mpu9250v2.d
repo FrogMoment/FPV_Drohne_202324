@@ -27,7 +27,7 @@ mdds\ testing/mpu9250v2.o: ..\Core\Src\MPU9250V2.c \
   C:\Users\Max\STM32Cube\Repository\STM32Cube_FW_F1_V1.8.5\Drivers\STM32F1xx_HAL_Driver\Inc\stm32f1xx_hal_flash_ex.h \
   C:\Users\Max\STM32Cube\Repository\STM32Cube_FW_F1_V1.8.5\Drivers\STM32F1xx_HAL_Driver\Inc\stm32f1xx_hal_i2c.h \
   C:\Users\Max\STM32Cube\Repository\STM32Cube_FW_F1_V1.8.5\Drivers\STM32F1xx_HAL_Driver\Inc\stm32f1xx_hal_pwr.h \
-  C:\Users\Max\STM32Cube\Repository\STM32Cube_FW_F1_V1.8.5\Drivers\STM32F1xx_HAL_Driver\Inc\stm32f1xx_hal_spi.h \
   C:\Users\Max\STM32Cube\Repository\STM32Cube_FW_F1_V1.8.5\Drivers\STM32F1xx_HAL_Driver\Inc\stm32f1xx_hal_tim.h \
   C:\Users\Max\STM32Cube\Repository\STM32Cube_FW_F1_V1.8.5\Drivers\STM32F1xx_HAL_Driver\Inc\stm32f1xx_hal_tim_ex.h \
-  C:\Users\Max\STM32Cube\Repository\STM32Cube_FW_F1_V1.8.5\Drivers\STM32F1xx_HAL_Driver\Inc\stm32f1xx_hal_uart.h
+  C:\Users\Max\STM32Cube\Repository\STM32Cube_FW_F1_V1.8.5\Drivers\STM32F1xx_HAL_Driver\Inc\stm32f1xx_hal_uart.h \
+  C:\Keil_v5\ARM\ARMCLANG\Bin\..\include\math.h
