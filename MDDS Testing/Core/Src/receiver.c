@@ -312,7 +312,6 @@ void Receiver_MotorControl(void)
 
     // MAYBE hover mode
 
-
     // check if the value is larger then the max value
     for(uint8_t i = 0; i < 4; i++)
         if(channel[i] > throttle + PWM_TURN_SPEED_MAX)
@@ -322,6 +321,5 @@ void Receiver_MotorControl(void)
     __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_2, (uint16_t)(channel[1] * 10));
     __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_3, (uint16_t)(channel[2] * 10));
     __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_4, (uint16_t)(channel[3] * 10));
-
 }
 

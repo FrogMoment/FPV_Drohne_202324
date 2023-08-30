@@ -16,6 +16,8 @@
  *          - motor control
  */
 
+// TODO check disconnect while flying
+
 #ifndef RECEIVER_H_INCLUDED
 #define RECEIVER_H_INCLUDED
 
