@@ -271,14 +271,16 @@ Receiver_Status Receiver_MotorControl(void)
         pwm_MaxDutyCycle = PWM_NORMALMODE_DC_MAX; // MAYBE thrid flight mode select
 
 
-    double channel[4] = {0.0};
+    Motor_Position motor;
 
 
     // throttle (up / down)
     float throttle = (float)(receiver_ChData[THROTTLE_CHANNEL] - receiver_Input.min) / receiver_Input.delta;   // get joystick position
-    throttle *= pwm_MaxDutyCycle;                               // get percent of max duty cycle addition
-    for(uint8_t i = 0; i < 4; i++)
-        channel[i] = throttle;
+    throttle *= pwm_MaxDutyCycle;   // get percent of max duty cycle addition
+    motor.LF = throttle;            // set motor speed to throttle
+    motor.RF = throttle;            // set motor speed to throttle
+    motor.LR = throttle;            // set motor speed to throttle
+    motor.RR = throttle;            // set motor speed to throttle
 
 
     // pitch (forwards / backwards)
@@ -289,14 +291,14 @@ Receiver_Status Receiver_MotorControl(void)
     // flying backwards, front motors faster
     if(receiver_ChData[PITCH_CHANNEL] < receiver_Input.half)
     {
-        channel[0] += pitch;
-        channel[1] += pitch;
+        motor.LF += pitch;  // add motor speed to left front
+        motor.RF += pitch;  // add motor speed to right front
     }
     // flying forward, rear motors faster
     else
     {
-        channel[2] += pitch;
-        channel[3] += pitch;
+        motor.LR += pitch;  // add motor speed to left rear
+        motor.RR += pitch;  // add motor speed to right rear
     }
 
 
@@ -308,14 +310,14 @@ Receiver_Status Receiver_MotorControl(void)
     // flying left, right motors faster
     if(receiver_ChData[ROLL_CHANNEL] < receiver_Input.half)
     {
-        channel[1] += roll;
-        channel[3] += roll;
+        motor.RF += roll;   // add motor speed to right front
+        motor.RR += roll;   // add motor speed to right rear 
     }
     // flying right, left motors faster
     else
     {
-        channel[0] += roll;
-        channel[2] += roll;
+        motor.LF += roll;   // add motor speed to left front 
+        motor.LR += roll;   // add motor speed to left rear 
     }
 
 
@@ -327,27 +329,34 @@ Receiver_Status Receiver_MotorControl(void)
     // rotate left, right front and left rear motors faster
     if(receiver_ChData[YAW_CHANNEL] < receiver_Input.half)
     {
-        channel[1] += yaw;
-        channel[2] += yaw;
+        motor.RF += yaw;    // add motor speed to right front 
+        motor.LR += yaw;    // add motor speed to left rear 
     }
     // rotate right, left front and right rear motors faster
     else
     {
-        channel[0] += yaw;
-        channel[3] += yaw;
+        motor.LF += yaw;    // add motor speed to left front 
+        motor.RR += yaw;    // add motor speed to right rear 
     }
 
 
     // check if the value is larger then the max value
-    for(uint8_t i = 0; i < 4; i++)
-        if(channel[i] > throttle + PWM_TURN_SPEED_MAX)
-            channel[i] = throttle + PWM_TURN_SPEED_MAX;
+    motor.LF = (motor.LF > throttle + PWM_TURN_SPEED_MAX) ? throttle + PWM_TURN_SPEED_MAX : motor.LF;
+    motor.RF = (motor.RF > throttle + PWM_TURN_SPEED_MAX) ? throttle + PWM_TURN_SPEED_MAX : motor.RF;
+    motor.LR = (motor.LR > throttle + PWM_TURN_SPEED_MAX) ? throttle + PWM_TURN_SPEED_MAX : motor.LR;
+    motor.RR = (motor.RR > throttle + PWM_TURN_SPEED_MAX) ? throttle + PWM_TURN_SPEED_MAX : motor.RR;
 
-    // change pwm to new duty cycle
-    __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_1, (uint16_t)(channel[0] * 10));
-    __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_2, (uint16_t)(channel[1] * 10));
-    __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_3, (uint16_t)(channel[2] * 10));
-    __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_4, (uint16_t)(channel[3] * 10));
+    /**
+     * change the duty cycle of the pwm signals
+     * channel1 = left front
+     * channel2 = right front
+     * channel3 = left rear
+     * channel4 = right rear
+     */
+    __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_1, (uint16_t)(motor.LF * 10));
+    __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_2, (uint16_t)(motor.RF * 10));
+    __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_3, (uint16_t)(motor.LR * 10));
+    __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_4, (uint16_t)(motor.RR * 10));
 
     return RECEIVER_OK;
 }

@@ -83,6 +83,12 @@ typedef struct Receiver_Values
     uint16_t min, max, delta, half;
 } Receiver_Values;
 
+// motor position (right/left front/rear)
+typedef struct Motor_Position
+{
+    double RF, LF, RR, LR;
+} Motor_Position;
+
 /************************************************************************************************
 --------------------------------------- GLOBAL VARIABLES ---------------------------------------
 ************************************************************************************************/
