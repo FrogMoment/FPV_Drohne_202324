@@ -1,0 +1,45 @@
+Fernbedinung starten
+switch error erklären
+Menu Taste gedrückt halten
+SYSTEM SETTING:
+- TYPE SELE: ACRO
+- MODEUAT: PPM
+- STICK SET: MODE 1
+- OUTPUT SELE: PPM i-Bus / PPM s-Bus
+FUNC SETTING:
+- AUX-CH: CH5 GEAR
+- PROG.MIX:
+- - MIX1:
+- - - STATE: ACT
+- - - MASTER: GYR
+- - - SLAVE: FLP
+- - - OFFSET: 000
+- - - UPRATE: -100
+- - - DNRATE: 100
+- - - SW: NOR
+- - MIX2:
+- - - STATE: ACT
+- - - MASTER: GYR
+- - - SLAVE: FLP
+- - - OFFSET: 000
+- - - UPRATE: 000
+- - - DNRATE: 000
+- - - SW: ID1
+- - MIX3:
+- - - STATE: ACT
+- - - MASTER: GYR
+- - - SLAVE: FLP
+- - - OFFSET: 000
+- - - UPRATE: 100
+- - - DNRATE: -100
+- - - SW: ID2
+- DISPLAY: check channel output
+
+CH1: Yaw
+CH2: Pitch
+CH3: Throttle
+CH4: Roll
+CH5: Gear switch
+CH6: 3 way switch
+CH7: not used
+CH8: not used

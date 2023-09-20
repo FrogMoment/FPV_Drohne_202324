@@ -27,6 +27,8 @@ float ds2438_voltage = 0;        // DS2438 voltage value
 float ds2438_temperature = 0;    // DS2438 temperature value    
 float ds2438_capacity = 0;       // DS2438 capacity value
 
+TIM_HandleTypeDef *DS2438_DelayTimer;
+
 /******************************************************
 ---------------------- FUNCTIONS ----------------------
 ******************************************************/
@@ -38,15 +40,16 @@ float ds2438_capacity = 0;       // DS2438 capacity value
  */
 void Delay_us(uint32_t us)
 {
-    __HAL_TIM_SET_COUNTER(&htim2, 0);
-    while(__HAL_TIM_GET_COUNTER(&htim2) < us);
+    __HAL_TIM_SET_COUNTER(DS2438_DelayTimer, 0);
+    while(__HAL_TIM_GET_COUNTER(DS2438_DelayTimer) < us);
 }
 
 /**
  * @brief This function initializes the DS2438 (reset + presence pulse)
- * @retval None
+ * @param htim pointer to TIM_HandleTypeDef (timer for us delay)
+ * @return DS2438_Status
  */
-DS2438_Status DS2438_Init(void)
+DS2438_Status DS2438_Init(TIM_HandleTypeDef *htim)
 {
     // reset DS2438
     HAL_GPIO_WritePin(DS2438_DQ_GPIO_Port, DS2438_DQ_Pin, GPIO_PIN_RESET);  // send reset pulse (min 480us)
@@ -59,7 +62,11 @@ DS2438_Status DS2438_Init(void)
     if(HAL_GPIO_ReadPin(DS2438_DQ_GPIO_Port, DS2438_DQ_Pin) == GPIO_PIN_SET)
         return DS2438_ERROR;
 
-    HAL_TIM_Base_Start(&htim2); // start timer for Delay_us
+    if(htim != NULL)
+    {
+        DS2438_DelayTimer = htim;
+        HAL_TIM_Base_Start(DS2438_DelayTimer); // start timer for Delay_us
+    }
 
     return DS2438_OK;
 }
@@ -145,7 +152,7 @@ int8_t DS2438_ReadBit(void)
 DS2438_Status DS2438_ReadPage(uint8_t page, int8_t *pageData)
 {
     // reset + presence pulse
-    if(DS2438_Init() == DS2438_ERROR)
+    if(DS2438_Init(NULL) == DS2438_ERROR)
         return DS2438_ERROR;
 
     // copy current data to scratchpad
@@ -154,7 +161,7 @@ DS2438_Status DS2438_ReadPage(uint8_t page, int8_t *pageData)
     DS2438_WriteByte(page);
 
     // reset + presence pulse
-    if(DS2438_Init() == DS2438_ERROR)
+    if(DS2438_Init(NULL) == DS2438_ERROR)
         return DS2438_ERROR;
 
     // read scratchpad data
@@ -175,7 +182,7 @@ DS2438_Status DS2438_ReadPage(uint8_t page, int8_t *pageData)
 DS2438_Status DS2438_StartVoltageMeasurement(void)
 {
     // reset + presence pulse
-    if(DS2438_Init() == DS2438_ERROR)
+    if(DS2438_Init(NULL) == DS2438_ERROR)
         return DS2438_ERROR;
 
     // read voltage data

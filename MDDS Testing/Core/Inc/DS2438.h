@@ -63,9 +63,10 @@ void Delay_us(uint32_t us);
 
 /**
  * @brief This function initializes the DS2438 (reset + presence pulse)
- * @retval None
+ * @param htim pointer to TIM_HandleTypeDef (timer for us delay)
+ * @return DS2438_Status 
  */
-DS2438_Status DS2438_Init(void);
+DS2438_Status DS2438_Init(TIM_HandleTypeDef *htim);
 
 /**
  * @brief This function writes one byte to the DS2438

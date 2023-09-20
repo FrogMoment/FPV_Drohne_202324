@@ -55,6 +55,7 @@ DMA_HandleTypeDef hdma_i2c1_rx;
 TIM_HandleTypeDef htim1;
 TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
+TIM_HandleTypeDef htim4;
 
 UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
@@ -63,7 +64,9 @@ DMA_HandleTypeDef hdma_usart2_rx;
 /* USER CODE BEGIN PV */
 
 uint16_t test = 0;
-char txt[100], txt2[1000];
+char txt[100];
+
+int8_t receiver_DataReady = 0;
 
 /* USER CODE END PV */
 
@@ -77,12 +80,14 @@ static void MX_USART1_UART_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_TIM3_Init(void);
+static void MX_TIM4_Init(void);
 /* USER CODE BEGIN PFP */
 
 /**
- * @brief This funciton is executed in case of an Sensor Error 
+ * @brief This funciton completly stops the program 
  * @param sens what sensor has the error
  * @param errorCode 
+ * @retval None
  */
 void Sensor_ErrorHandler(Sensors sens, int8_t errorCode);
 
@@ -97,48 +102,52 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   {
     // ---------------- MPU9250 ----------------
     // MPU9250 data output
-    // MPU9250_CalcValues(mpu9250_RawData);
-    // MPU9250_CompFilter();
-
-    // sprintf(txt, "%.3f  %.3f  %.3f\n\r", accel.x, accel.y, accel.z);
+  
+    // sprintf(txt, "accel:\t%.3f  %.3f  %.3f\n\r", accel.x, accel.y, accel.z);
     // HAL_UART_Transmit(&huart1, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
 
-    // sprintf(txt, "%.3f  %.3f  %.3f\n\r", gyro.x, gyro.y, gyro.z);
+    // sprintf(txt, "gyro:\t%.3f  %.3f  %.3f\n\r", gyro.x, gyro.y, gyro.z);
     // HAL_UART_Transmit(&huart1, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
 
-    // sprintf(txt, "%f\n\r", temp);
+    // sprintf(txt, "temp:\t%f\n\r", temp);
     // HAL_UART_Transmit(&huart1, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
 
-    // sprintf(txt, "%.3f  %.3f\n\n\r", fusion.pitch, fusion.roll);
+    // sprintf(txt, "filter: %.3f  %.3f\n\n\r", fusion.pitch, fusion.roll);
     // HAL_UART_Transmit(&huart1, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
 
     // ---------------------------------------------
 
 
     // ------------------ RECEIVER ------------------
-    Receiver_Status tmp = Receiver_Decode();
-    sprintf(txt2, "..%d..\t", tmp);
-    for(int8_t i = 0; i < 14; i++)
-    {
-      sprintf(txt, "%d\t", receiver_ChData[i]);
-      strcat(txt2, txt);
-    }
-    strcat(txt2, "\n\r");
-    HAL_UART_Transmit(&huart1, (uint8_t *)&txt2, strlen(txt2), HAL_MAX_DELAY);
+    
+    Receiver_OutputChannels(&huart1);
 
-    // Receiver_MotorControl();
+    int8_t tmp = Receiver_MotorControl();
+    if(tmp != RECEIVER_OK)
+    {
+      sprintf(txt, "Receiver Error: %d\n\r", tmp);
+      HAL_UART_Transmit(&huart1, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
+
+      if(tmp == RECEIVER_PPM_ERROR || tmp == SBUS_SIGNAL_LOST || tmp == SBUS_SIGNAL_FAILSAFE)
+      {
+        // TODO error handler (disconnection)
+        // hover mode
+      }
+    }
+
     // -----------------------------------------------
   }
 }
 
+// MPU9250 circular dma operation
 void HAL_I2C_MemRxCpltCallback(I2C_HandleTypeDef *hi2c)
 {
-  if(hi2c->Instance == I2C1 && MPU9250_InitFinished)
+  if(hi2c->Instance == mpu9250_InputI2C->Instance)
   {
-    MPU9250_CalcValues(mpu9250_RawData);
+    MPU9250_CalcValues();
     MPU9250_CompFilter();
 
-    MPU9250_StartReading(&hi2c1);
+    MPU9250_StartReading();
   }
 }
 
@@ -178,26 +187,25 @@ int main(void)
   MX_USART2_UART_Init();
   MX_I2C1_Init();
   MX_TIM3_Init();
+  MX_TIM4_Init();
   /* USER CODE BEGIN 2 */
 
   int8_t errorCode;
 
   // initialize MPU9250
-  // errorCode = MPU9250_Init(&hi2c1, DLPF_184Hz, GYRO_2000DPS, ACCEL_16G);
+  // errorCode = MPU9250_Init(&hi2c1, DLPF_184Hz, GYRO_2000DPS, ACCEL_16G, &htim2);
   // if(errorCode != MPU9250_OK)
   //   Sensor_ErrorHandler(MPU9250, errorCode);
   // HAL_UART_Transmit(&huart1, (uint8_t *)"MPU9250 detected and configured\n\r", sizeof("MPU9250 detected and configured\n\r"), HAL_MAX_DELAY); 
 
   // initliaze DS2438
-  // errorCode = DS2438_Init();
+  // errorCode = DS2438_Init(&htim4);
   // if(errorCode != DS2438_OK)
   //   Sensor_ErrorHandler(DS2438, errorCode);
   // HAL_UART_Transmit(&huart1, (uint8_t *)"DS2438 detected\n\r", sizeof("DS2438 detected\n\r"), HAL_MAX_DELAY);
 
-  // HAL_TIM_Base_Start(&htim2); // for time delta
-
   // start I2C DMA read cycle
-  // errorCode = MPU9250_StartReading(&hi2c1);
+  // errorCode = MPU9250_StartReading();
   // if(errorCode != MPU9250_OK)
   //   Sensor_ErrorHandler(MPU9250, errorCode);
     
@@ -209,7 +217,7 @@ int main(void)
   HAL_UART_Transmit(&huart1, (uint8_t *)"Receiver detected and calibrated\n\r", sizeof("Receiver detected and calibrated\n\r"), HAL_MAX_DELAY);
 
 
-  // start timer 1 counter + interrupt 
+  // start timer 1 counter + interrupt (real time structure)
   HAL_TIM_Base_Start_IT(&htim1);
 
 
@@ -220,7 +228,7 @@ int main(void)
   while(1)
   {
     /* USER CODE END WHILE */
-    Receiver_MotorControl();
+
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
@@ -451,6 +459,51 @@ static void MX_TIM3_Init(void)
 }
 
 /**
+  * @brief TIM4 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM4_Init(void)
+{
+
+  /* USER CODE BEGIN TIM4_Init 0 */
+
+  /* USER CODE END TIM4_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM4_Init 1 */
+
+  /* USER CODE END TIM4_Init 1 */
+  htim4.Instance = TIM4;
+  htim4.Init.Prescaler = 72-1;
+  htim4.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim4.Init.Period = 65535;
+  htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim4.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim4) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim4, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim4, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM4_Init 2 */
+
+  /* USER CODE END TIM4_Init 2 */
+
+}
+
+/**
   * @brief USART1 Initialization Function
   * @param None
   * @retval None
@@ -573,11 +626,11 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : Receiver_PPM_Pin */
-  GPIO_InitStruct.Pin = Receiver_PPM_Pin;
+  /*Configure GPIO pin : RECEIVER_PPM_Pin */
+  GPIO_InitStruct.Pin = RECEIVER_PPM_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(Receiver_PPM_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(RECEIVER_PPM_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PB2 PB10 PB11 PB12
                            PB13 PB14 PB15 PB3
@@ -607,9 +660,10 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
 
 /**
- * @brief This funciton is executed in case of an Sensor Error 
+ * @brief This funciton completly stops the program 
  * @param sens what sensor has the error
  * @param errorCode 
+ * @retval None
  */
 void Sensor_ErrorHandler(Sensors sens, int8_t errorCode)
 {

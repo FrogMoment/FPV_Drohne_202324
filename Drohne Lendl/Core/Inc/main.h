@@ -59,6 +59,8 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define DS2438_DQ_Pin GPIO_PIN_0
+#define DS2438_DQ_GPIO_Port GPIOC
 #define TERMINAL_TX_Pin GPIO_PIN_0
 #define TERMINAL_TX_GPIO_Port GPIOA
 #define TERMINAL_RX_Pin GPIO_PIN_1

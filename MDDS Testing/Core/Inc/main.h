@@ -37,8 +37,6 @@ extern "C" {
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
 
-extern TIM_HandleTypeDef htim2; // timer 2 for us delay
-
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/
@@ -61,10 +59,28 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define Receiver_PPM_Pin GPIO_PIN_3
-#define Receiver_PPM_GPIO_Port GPIOA
+#define RECEIVER_DATA_Pin GPIO_PIN_2
+#define RECEIVER_DATA_GPIO_Port GPIOA
+#define RECEIVER_PPM_Pin GPIO_PIN_3
+#define RECEIVER_PPM_GPIO_Port GPIOA
+#define ESC_CH1_Pin GPIO_PIN_6
+#define ESC_CH1_GPIO_Port GPIOA
+#define ESC_CH2_Pin GPIO_PIN_7
+#define ESC_CH2_GPIO_Port GPIOA
+#define ESC_CH3_Pin GPIO_PIN_0
+#define ESC_CH3_GPIO_Port GPIOB
+#define ESC_CH4_Pin GPIO_PIN_1
+#define ESC_CH4_GPIO_Port GPIOB
+#define TERMINAL_TX_Pin GPIO_PIN_9
+#define TERMINAL_TX_GPIO_Port GPIOA
+#define TERMINAL_RX_Pin GPIO_PIN_10
+#define TERMINAL_RX_GPIO_Port GPIOA
 #define DS2438_DQ_Pin GPIO_PIN_12
 #define DS2438_DQ_GPIO_Port GPIOC
+#define MPU9250_SCL_Pin GPIO_PIN_6
+#define MPU9250_SCL_GPIO_Port GPIOB
+#define MPU9250_SDA_Pin GPIO_PIN_7
+#define MPU9250_SDA_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 

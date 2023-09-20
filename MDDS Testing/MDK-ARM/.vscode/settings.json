@@ -8,7 +8,8 @@
         "ds2438.h": "c",
         "receiver.h": "c",
         "math.h": "c",
-        "type_traits": "c"
+        "type_traits": "c",
+        "functional": "c"
     },
     "todo-tree.tree.scanMode": "workspace"
 }

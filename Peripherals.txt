@@ -1,0 +1,23 @@
+MDDS Testing:
+	TIM1: real time system
+	TIM2: us Delay (MPU9250)
+	TIM3 (PA6,PA7,PB0,PB1): PWM output
+	TIM4: us Delay (DS2438)
+	I2C1 (PB7,PB6): MPU9250
+	USART1 (PA9,PA10): Terminal
+	USART2_TX (PA2): Receiver_Data
+	GPIO_Output_OD (PC12): DS2438_DQ
+	GPIO_Input (PA3): Receiver_PPM
+
+Drohne Lendl:
+	TIM1: real time system
+	TIM2: us Delay
+	TIM3 (PA6,PA7,PB0,PB1): PWM output
+	TIM5: us Delay
+	I2C1 (PB7,PB6): MPU9250
+	UART4 (PA0,PA1): Terminal
+	USART1 (PB14): Receiver_Data
+	GPIO_Output_OD (PC0): DS2438_DQ	
+	PC6: Receiver_PPM
+	
+	

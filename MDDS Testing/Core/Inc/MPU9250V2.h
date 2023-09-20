@@ -4,7 +4,7 @@
  * @date 2023-06-18
  * @version 1
  *
- * @copyright Speed Junkies DA 202324
+ * @copyright FPV Drohne DA 202324
  *
  * @brief This file provides functions for:
  *              - initialization of MPU9250 + read/write functions
@@ -112,8 +112,6 @@ typedef enum bandwidthDLPF
 
 extern uint8_t mpu9250_RawData[14]; // mpu9250 raw data
 
-extern uint8_t MPU9250_InitFinished;
-
 extern coordinates accel;   // accelerometer values
 extern coordinates gyro;    // gyroscope values
 extern float temp;          // temperature values
@@ -122,6 +120,8 @@ extern angles fusion;       // data after complementary filter has been applied
 
 extern float accelSens;     // sensitivity scale factor of accelerometer
 extern float gyroSens;      // sensitivity scale factor of gyroscope
+
+extern I2C_HandleTypeDef *mpu9250_InputI2C;
 
 /************************************************************************************************
 -------------------------------------- FUNCTION PROTOTYPES --------------------------------------
@@ -133,55 +133,58 @@ extern float gyroSens;      // sensitivity scale factor of gyroscope
  * @param dlpf dlpf bandwidth
  * @param gyroFS full scale range of gyroscope
  * @param accelFS full scale range of accelermeter
+ * @param htim pointer to TIM_HandleTypeDef structure (for us delay)
  * @return MPU9250_Status
  */
-MPU9250_Status MPU9250_Init(I2C_HandleTypeDef *hi2c, bandwidthDLPF dlpf, fullScale gyroFS, fullScale accelFS);
+MPU9250_Status MPU9250_Init(I2C_HandleTypeDef *hi2c, bandwidthDLPF dlpf, fullScale gyroFS, fullScale accelFS, TIM_HandleTypeDef *htim);
 
 /**
  * @brief This function starts DMA reading of accel, gyro and temp 
- * @param hi2c pointer to a I2C_HandleTypeDef structure
+ * @attention This function uses the global I2C structure mpu9250_InputI2C
  * @return MPU9250_Status 
  */
-MPU9250_Status MPU9250_StartReading(I2C_HandleTypeDef *hi2c);
+MPU9250_Status MPU9250_StartReading(void);
 
 /**
  * @brief read register of MPU9250
- * @param hi2c pointer to a I2C_HandleTypeDef structure
  * @param addr register address/es
  * @param data received data
  * @param rxBytes amount of reveived bytes
+ * @attention This function uses the global I2C structure mpu9250_InputI2C
+ * @retval None
  */
-void MPU9250_ReadRegister(I2C_HandleTypeDef *hi2c, uint8_t addr, uint8_t *data, int8_t rxBytes);
+void MPU9250_ReadRegister(uint8_t addr, uint8_t *data, int8_t rxBytes);
 
 /**
  * @brief write to register of MPU9250
- * @param hi2c pointer to a I2C_HandleTypeDef structure
  * @param addr register address/es
  * @param data data to write to register
  * @param txBytes amount of bytes to transmit
+ * @attention This function uses the global I2C structure mpu9250_InputI2C
+ * @retval None
  */
-void MPU9250_WriteRegister(I2C_HandleTypeDef *hi2c, uint8_t addr, uint8_t data, int8_t txBytes);
+void MPU9250_WriteRegister(uint8_t addr, uint8_t data, int8_t txBytes);
 
 /**
  * @brief This function reads and formats [g] the accelerometer measurements
- * @param hi2c pointer to a I2C_HandleTypeDef structure
+ * @attention This function uses the global I2C structure mpu9250_InputI2C
  * @return coordinates
  */
-coordinates MPU9250_ReadAccel(I2C_HandleTypeDef *hi2c);
+coordinates MPU9250_ReadAccel(void);
 
 /**
  * @brief This function reads and formats [°/s] the gyroscope measurements
- * @param hi2c pointer to a I2C_HandleTypeDef structure
+ * @attention This function uses the global I2C structure mpu9250_InputI2C
  * @return coordinates
  */
-coordinates MPU9250_ReadGyro(I2C_HandleTypeDef *hi2c);
+coordinates MPU9250_ReadGyro(void);
 
 /**
  * @brief This function reads and formats the temperature measurements
- * @param hi2c pointer to a I2C_HandleTypeDef structure
+ * @attention This function uses the global I2C structure mpu9250_InputI2C
  * @return float
  */
-float MPU9250_ReadTemperature(I2C_HandleTypeDef *hi2c);
+float MPU9250_ReadTemperature(void);
 
 /**
  * @brief This function converts the raw data of the MPU9250
@@ -189,11 +192,11 @@ float MPU9250_ReadTemperature(I2C_HandleTypeDef *hi2c);
  * Byte[0-5]:  acclerometer H/L byte x,y,z values 
  * Byte[6-7]:  temperature H/L byte  
  * Byte[8-13]: gyroscope H/L byte x,y,z values 
- * The final result gets stored in the variables accel, temp and gyro.
- * @param rawData pointer to raw data
+ * The final result gets stored in the variables accel, temp and gyro
+ * @attention This function uses the global variable mpu9250_RawData
  * @return None
  */
-void MPU9250_CalcValues(uint8_t *rawData);
+void MPU9250_CalcValues(void);
 
 /**
  * @brief This function calculates pitch and roll with gyro and accel data
