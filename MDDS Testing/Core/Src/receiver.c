@@ -263,12 +263,12 @@ Receiver_Status Receiver_MotorControl(void)
 
     // check mode select (3 way switch)
     uint8_t pwm_MaxDutyCycle;
-    if(receiver_ChData[MODESEL_SWTICH_CHANNEL] < receiver_Input.half)
+    if(receiver_ChData[MODESEL_SWTICH_CHANNEL] < receiver_Input.half - 10)
         pwm_MaxDutyCycle = PWM_SAFEMODE_DC_MAX;
-    else if(receiver_ChData[MODESEL_SWTICH_CHANNEL] == receiver_Input.half)
+    else if(receiver_ChData[MODESEL_SWTICH_CHANNEL] >= receiver_Input.half - 10 && receiver_ChData[MODESEL_SWTICH_CHANNEL] <= receiver_Input.half + 10)
         pwm_MaxDutyCycle = PWM_NORMALMODE_DC_MAX;
     else
-        pwm_MaxDutyCycle = PWM_NORMALMODE_DC_MAX; // MAYBE thrid flight mode select
+        pwm_MaxDutyCycle = PWM_NORMALMODE_DC_MAX; // MAYBE third flight mode select
 
 
     Motor_Position motor;
@@ -345,6 +345,7 @@ Receiver_Status Receiver_MotorControl(void)
     motor.RF = (motor.RF > throttle + PWM_TURN_SPEED_MAX) ? throttle + PWM_TURN_SPEED_MAX : motor.RF;
     motor.LR = (motor.LR > throttle + PWM_TURN_SPEED_MAX) ? throttle + PWM_TURN_SPEED_MAX : motor.LR;
     motor.RR = (motor.RR > throttle + PWM_TURN_SPEED_MAX) ? throttle + PWM_TURN_SPEED_MAX : motor.RR;
+    
 
     /**
      * change the duty cycle of the pwm signals
@@ -371,10 +372,10 @@ Receiver_Status Receiver_SetStdDC(void)
     if(pwm_Timer == NULL)
         return RECEIVER_PWM_ERROR;
 
-    __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_1, 1);
-    __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_2, 1);
-    __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_3, 1);
-    __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_4, 1);
+    __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_1, (uint16_t)(PWM_OFFMODE_DC * 10));
+    __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_2, (uint16_t)(PWM_OFFMODE_DC * 10));
+    __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_3, (uint16_t)(PWM_OFFMODE_DC * 10));
+    __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_4, (uint16_t)(PWM_OFFMODE_DC * 10));
 
     return RECEIVER_OK;
 }
@@ -385,18 +386,43 @@ Receiver_Status Receiver_SetStdDC(void)
  * @param huart pointer to a UART_HandleTypeDef structure (for output)
  * @retval None
  */
-void Receiver_OutputChannels(UART_HandleTypeDef *huart)
+void Receiver_OutputChValues(UART_HandleTypeDef *huart)
 {
     char txt[100], txt2[1000];
 
+    // get protocol channel amount
+    int8_t len = (protocol == IBUS) ? 14 : 16;
+
     // convert channel data to string
-    for(int8_t i = 0; i < 14; i++)
+    for(int8_t i = 0; i < len; i++)
     {
-      sprintf(txt, "CH%d: %d\t", i+1, receiver_ChData[i]);
+      sprintf(txt, "%d  ", receiver_ChData[i]);
       strcat(txt2, txt);
     }
     strcat(txt2, "\n\r");
 
     // output string 
     HAL_UART_Transmit(huart, (uint8_t *)&txt2, strlen(txt2), HAL_MAX_DELAY);
+}
+
+/**
+ * @brief This function test each motor
+ * @param htim pointer to a TIM_HandleTypeDef structure (output pwm timer)
+ * @details turn motor 1 for 2 seconds on then next motor etc
+ * @retval None
+ */
+void Reciever_MotorTest(TIM_HandleTypeDef *htim)
+{
+    Receiver_SetStdDC(); // set std duty cycle
+
+    __HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_1, (uint16_t)(PWM_MOTORTEST_DC * 10));
+    HAL_Delay(2000);
+    __HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_2, (uint16_t)(PWM_MOTORTEST_DC * 10));
+    HAL_Delay(2000);
+    __HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_3, (uint16_t)(PWM_MOTORTEST_DC * 10));
+    HAL_Delay(2000);
+    __HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_4, (uint16_t)(PWM_MOTORTEST_DC * 10));
+    HAL_Delay(2000);
+
+    Receiver_SetStdDC(); // set std duty cycle
 }

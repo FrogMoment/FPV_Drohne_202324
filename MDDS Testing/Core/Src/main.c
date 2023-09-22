@@ -120,7 +120,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
     // ------------------ RECEIVER ------------------
     
-    Receiver_OutputChannels(&huart1);
+    // Receiver_OutputChValues(&huart1);
 
     int8_t tmp = Receiver_MotorControl();
     if(tmp != RECEIVER_OK)
@@ -144,10 +144,10 @@ void HAL_I2C_MemRxCpltCallback(I2C_HandleTypeDef *hi2c)
 {
   if(hi2c->Instance == mpu9250_InputI2C->Instance)
   {
-    MPU9250_CalcValues();
-    MPU9250_CompFilter();
+    MPU9250_CalcValues(); // convert raw data in actual data
+    MPU9250_CompFilter(); // calculate angles
 
-    MPU9250_StartReading();
+    MPU9250_StartReading(); // restart reading
   }
 }
 
@@ -204,7 +204,7 @@ int main(void)
   //   Sensor_ErrorHandler(DS2438, errorCode);
   // HAL_UART_Transmit(&huart1, (uint8_t *)"DS2438 detected\n\r", sizeof("DS2438 detected\n\r"), HAL_MAX_DELAY);
 
-  // start I2C DMA read cycle
+  // start MPU9250 I2C DMA read cycle
   // errorCode = MPU9250_StartReading();
   // if(errorCode != MPU9250_OK)
   //   Sensor_ErrorHandler(MPU9250, errorCode);
@@ -216,6 +216,8 @@ int main(void)
     Sensor_ErrorHandler(RECEIVER, errorCode);
   HAL_UART_Transmit(&huart1, (uint8_t *)"Receiver detected and calibrated\n\r", sizeof("Receiver detected and calibrated\n\r"), HAL_MAX_DELAY);
 
+  // test motors
+  // Reciever_MotorTest(&htim3);
 
   // start timer 1 counter + interrupt (real time structure)
   HAL_TIM_Base_Start_IT(&htim1);

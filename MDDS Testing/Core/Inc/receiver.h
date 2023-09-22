@@ -27,21 +27,26 @@
 #include <stm32f1xx_hal.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 
  /************************************************************************************************
  ---------------------------------------- GLOBAL DEFINES ----------------------------------------
  ************************************************************************************************/
 
-#define PWM_SAFEMODE_DC_MAX 5       // max duty cycle in safe mode
-#define PWM_NORMALMODE_DC_MAX 80    // max duty cycle in safe mode
-#define PWM_TURN_SPEED_MAX 20       // max addition duty cycle speed when turning
+// duty cycles in various modes
+#define PWM_SAFEMODE_DC_MAX     05      // max duty cycle in safe mode
+#define PWM_NORMALMODE_DC_MAX   80      // max duty cycle in safe mode
+#define PWM_TURN_SPEED_MAX      10      // max addition duty cycle speed when turning
+#define PWM_OFFMODE_DC          .1      // duty cycle when on/off switch is on off
+#define PWM_MOTORTEST_DC        .5      // duty cycle for motor test
 
-#define YAW_CHANNEL 1 - 1           // yaw channel index
-#define PITCH_CHANNEL 2 - 1         // pitch channel index
-#define THROTTLE_CHANNEL 3 - 1      // throttle channel index
-#define ROLL_CHANNEL 4 - 1          // roll channel index
-#define ONOFF_SWITCH_CHANNEL 5 - 1  // on/off switch channel index
-#define MODESEL_SWTICH_CHANNEL 6 - 1// mode select channel index
+// channel index (-1 because of array index)
+#define YAW_CHANNEL             1 - 1   // yaw channel index
+#define PITCH_CHANNEL           2 - 1   // pitch channel index
+#define THROTTLE_CHANNEL        3 - 1   // throttle channel index
+#define ROLL_CHANNEL            4 - 1   // roll channel index
+#define ONOFF_SWITCH_CHANNEL    5 - 1   // on/off switch channel index
+#define MODESEL_SWTICH_CHANNEL  6 - 1   // mode select channel index
 
  /************************************************************************************************
  --------------------------------------- GLOBAL STRUCTURES ---------------------------------------
@@ -146,6 +151,21 @@ Receiver_Status Receiver_SetStdDC(void);
  * @param huart pointer to a UART_HandleTypeDef structure (for output)
  * @retval None
  */
-void Receiver_OutputChannels(UART_HandleTypeDef *huart);
+void Receiver_OutputChValues(UART_HandleTypeDef *huart);
+
+/**
+ * @brief This function test each motor
+ * @details
+ * turn motor 1 for 2 seconds on then next motor etc
+ * @retval None
+ */
+
+/**
+ * @brief This function test each motor
+ * @param htim pointer to a TIM_HandleTypeDef structure (output pwm timer)
+ * @details turn motor 1 for 2 seconds on then next motor etc
+ * @retval None
+ */
+void Reciever_MotorTest(TIM_HandleTypeDef *htim);
 
 #endif // RECEIVER_H_INCLUDED
