@@ -200,6 +200,7 @@ void MPU9250_CalcValues(void);
 
 /**
  * @brief This function calculates pitch and roll with gyro and accel data
+ * @attention This funciton resets the counter of the configured delay timer
  * @return None
  */
 void MPU9250_CompFilter(void);

@@ -33,6 +33,9 @@ TIM_HandleTypeDef *ppm_Timer;           // pointer to TIM_HandleTypeDef of input
 TIM_HandleTypeDef *pwm_Timer = NULL;    // pointer to TIM_HandleTypeDef of output pwm signal
 Receiver_Values receiver_Input = {0};   // max values of receiver input
 
+uint16_t receiver_OldChData[16] = {0};  // previous channel data
+uint16_t receiver_ChDataCheck = 0;        // counter amount of same channel data after another
+
 
 /************************************************************************************************
 ------------------------------------------- FUNCTIONS -------------------------------------------
@@ -182,7 +185,8 @@ Receiver_Status Receiver_Decode(void)
     {
         case IBUS:
         {
-            // MAYBE check if the transmitter is still connected
+            if(receiver_ChDataCheck > 250)
+                return IBUS_SIGNAL_LOST_ERROR;
 
             // check if protocol header is correct
             if(receiver_RawData[0] != 0x20 || receiver_RawData[1] != 0x40)
@@ -262,7 +266,7 @@ Receiver_Status Receiver_MotorControl(void)
         return Receiver_SetStdDC();
 
     // check mode select (3 way switch)
-    uint8_t pwm_MaxDutyCycle;
+    uint16_t pwm_MaxDutyCycle;
     if(receiver_ChData[MODESEL_SWTICH_CHANNEL] < receiver_Input.half - 10)
         pwm_MaxDutyCycle = PWM_SAFEMODE_DC_MAX;
     else if(receiver_ChData[MODESEL_SWTICH_CHANNEL] >= receiver_Input.half - 10 && receiver_ChData[MODESEL_SWTICH_CHANNEL] <= receiver_Input.half + 10)
@@ -286,7 +290,7 @@ Receiver_Status Receiver_MotorControl(void)
     // pitch (forwards / backwards)
     float pitch = (float)(receiver_ChData[PITCH_CHANNEL] - receiver_Input.min) / receiver_Input.delta;      // get joystick position
     pitch = (pitch < .5) ? (.5 - pitch) * 2 : (pitch - .5) * 2; // get difference from 50%
-    pitch *= PWM_TURN_SPEED_MAX;                                // get percent of max duty cycle addition
+    pitch *= PWM_TURN_OFFSET_MAX;                                // get percent of max duty cycle addition
 
     // flying backwards, front motors faster
     if(receiver_ChData[PITCH_CHANNEL] < receiver_Input.half)
@@ -305,7 +309,7 @@ Receiver_Status Receiver_MotorControl(void)
     // roll (left / right)
     float roll = (float)(receiver_ChData[ROLL_CHANNEL] - receiver_Input.min) / receiver_Input.delta;       // get joystick position
     roll = (roll < .5) ? (.5 - roll) * 2 : (roll - .5) * 2; // get difference from 50%
-    roll *= PWM_TURN_SPEED_MAX;                             // get percent of max duty cycle addition
+    roll *= PWM_TURN_OFFSET_MAX;                             // get percent of max duty cycle addition
 
     // flying left, right motors faster
     if(receiver_ChData[ROLL_CHANNEL] < receiver_Input.half)
@@ -324,7 +328,7 @@ Receiver_Status Receiver_MotorControl(void)
     // yaw (rotate left / rotate right)
     float yaw = (float)(receiver_ChData[YAW_CHANNEL] - receiver_Input.min) / receiver_Input.delta;       // get joystick position
     yaw = (yaw < .5) ? (.5 - yaw) * 2 : (yaw - .5) * 2;     // get difference from 50%
-    yaw *= PWM_TURN_SPEED_MAX;                              // get percent of max duty cycle addition
+    yaw *= PWM_TURN_OFFSET_MAX;                              // get percent of max duty cycle addition
 
     // rotate left, right front and left rear motors faster
     if(receiver_ChData[YAW_CHANNEL] < receiver_Input.half)
@@ -341,18 +345,18 @@ Receiver_Status Receiver_MotorControl(void)
 
 
     // check if the value is larger then the max value
-    motor.LF = (motor.LF > throttle + PWM_TURN_SPEED_MAX) ? throttle + PWM_TURN_SPEED_MAX : motor.LF;
-    motor.RF = (motor.RF > throttle + PWM_TURN_SPEED_MAX) ? throttle + PWM_TURN_SPEED_MAX : motor.RF;
-    motor.LR = (motor.LR > throttle + PWM_TURN_SPEED_MAX) ? throttle + PWM_TURN_SPEED_MAX : motor.LR;
-    motor.RR = (motor.RR > throttle + PWM_TURN_SPEED_MAX) ? throttle + PWM_TURN_SPEED_MAX : motor.RR;
+    motor.LF = (motor.LF > throttle + PWM_TURN_OFFSET_MAX) ? throttle + PWM_TURN_OFFSET_MAX : motor.LF;
+    motor.RF = (motor.RF > throttle + PWM_TURN_OFFSET_MAX) ? throttle + PWM_TURN_OFFSET_MAX : motor.RF;
+    motor.LR = (motor.LR > throttle + PWM_TURN_OFFSET_MAX) ? throttle + PWM_TURN_OFFSET_MAX : motor.LR;
+    motor.RR = (motor.RR > throttle + PWM_TURN_OFFSET_MAX) ? throttle + PWM_TURN_OFFSET_MAX : motor.RR;
     
 
-    /**
+    /** 
      * change the duty cycle of the pwm signals
-     * channel1 = left front
+     * channel1 = right rear
      * channel2 = right front
      * channel3 = left rear
-     * channel4 = right rear
+     * channel4 = left front
      */
     __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_1, (uint16_t)(motor.LF * 10));
     __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_2, (uint16_t)(motor.RF * 10));
@@ -372,10 +376,10 @@ Receiver_Status Receiver_SetStdDC(void)
     if(pwm_Timer == NULL)
         return RECEIVER_PWM_ERROR;
 
-    __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_1, (uint16_t)(PWM_OFFMODE_DC * 10));
-    __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_2, (uint16_t)(PWM_OFFMODE_DC * 10));
-    __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_3, (uint16_t)(PWM_OFFMODE_DC * 10));
-    __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_4, (uint16_t)(PWM_OFFMODE_DC * 10));
+    __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_1, (uint16_t)(PWM_OFFMODE_DC));
+    __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_2, (uint16_t)(PWM_OFFMODE_DC));
+    __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_3, (uint16_t)(PWM_OFFMODE_DC));
+    __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_4, (uint16_t)(PWM_OFFMODE_DC));
 
     return RECEIVER_OK;
 }
@@ -390,7 +394,7 @@ void Receiver_OutputChValues(UART_HandleTypeDef *huart)
 {
     char txt[100], txt2[1000];
 
-    // get protocol channel amount
+    // get amount of channels per protocol
     int8_t len = (protocol == IBUS) ? 14 : 16;
 
     // convert channel data to string
@@ -411,18 +415,81 @@ void Receiver_OutputChValues(UART_HandleTypeDef *huart)
  * @details turn motor 1 for 2 seconds on then next motor etc
  * @retval None
  */
-void Reciever_MotorTest(TIM_HandleTypeDef *htim)
+void Receiver_MotorTest(TIM_HandleTypeDef *htim)
 {
-    Receiver_SetStdDC(); // set std duty cycle
+    // TODO rewrite motor test
 
-    __HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_1, (uint16_t)(PWM_MOTORTEST_DC * 10));
+    __HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_1, (uint16_t)(PWM_OFFMODE_DC));
+    __HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_2, (uint16_t)(PWM_OFFMODE_DC));
+    __HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_3, (uint16_t)(PWM_OFFMODE_DC));
+    __HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_4, (uint16_t)(PWM_OFFMODE_DC));
+    
+    HAL_TIM_PWM_Start(htim, TIM_CHANNEL_1);
+    HAL_TIM_PWM_Start(htim, TIM_CHANNEL_2);
+    HAL_TIM_PWM_Start(htim, TIM_CHANNEL_3);
+    HAL_TIM_PWM_Start(htim, TIM_CHANNEL_4);
+    HAL_Delay(3000);
+
+    __HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_1, (uint16_t)(PWM_MOTORTEST_DC));
     HAL_Delay(2000);
-    __HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_2, (uint16_t)(PWM_MOTORTEST_DC * 10));
+    __HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_2, (uint16_t)(PWM_MOTORTEST_DC));
     HAL_Delay(2000);
-    __HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_3, (uint16_t)(PWM_MOTORTEST_DC * 10));
+    __HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_3, (uint16_t)(PWM_MOTORTEST_DC));
     HAL_Delay(2000);
-    __HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_4, (uint16_t)(PWM_MOTORTEST_DC * 10));
+    __HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_4, (uint16_t)(PWM_MOTORTEST_DC));
     HAL_Delay(2000);
 
-    Receiver_SetStdDC(); // set std duty cycle
+    __HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_1, (uint16_t)(PWM_OFFMODE_DC));
+    __HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_2, (uint16_t)(PWM_OFFMODE_DC));
+    __HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_3, (uint16_t)(PWM_OFFMODE_DC));
+    __HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_4, (uint16_t)(PWM_OFFMODE_DC));
+}
+
+/**
+ * @brief This function sets the drone motors under the hover duty cycle -> landing
+ * @retval Receiver_Status
+ */
+Receiver_Status Receiver_SignalLostHandler(void)
+{
+    // check if pwm_Timer is set
+    if(pwm_Timer == NULL)
+        return RECEIVER_PWM_ERROR;
+
+    // set motors to less then hover mode -> slowing flying downward
+    __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_1, (uint16_t)(PWM_HOVER_DC - PWM_SIGNAL_LOST_OFFSET));
+    __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_2, (uint16_t)(PWM_HOVER_DC - PWM_SIGNAL_LOST_OFFSET));
+    __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_3, (uint16_t)(PWM_HOVER_DC - PWM_SIGNAL_LOST_OFFSET));
+    __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_4, (uint16_t)(PWM_HOVER_DC - PWM_SIGNAL_LOST_OFFSET));
+
+    // MAYBE check IMU for stability
+
+    return RECEIVER_OK;
+}
+
+/**
+ * @brief This function saves the current channel data and check if its the same as before
+ * @retval None
+ */
+void Receiver_SaveChannelData(void)
+{
+    // TODO fehlerbehebung (einmal error 9 dann immer) (löst nicht richtig aus)
+
+    if(protocol != IBUS)
+        return;
+
+    for(int8_t i = 0; i < 14; i++)
+    {
+        // check if the old channel data is not the same as the current
+        if(receiver_OldChData[i] != receiver_ChData[i] || receiver_ChData[ONOFF_SWITCH_CHANNEL] < receiver_Input.half)
+        {    
+            receiver_ChDataCheck = 0; // reset channel data check
+            break;
+        }
+        else if(i == 14 - 1)
+            receiver_ChDataCheck = (receiver_ChDataCheck == UINT16_MAX - 10) ? 260 : receiver_ChDataCheck + 1; // increment channel data check
+    }
+
+    // save current channel data
+    for(int8_t i = 0; i < 14; i++)
+        receiver_OldChData[i] = receiver_ChData[i];
 }

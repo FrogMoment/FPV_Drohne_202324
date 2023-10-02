@@ -3,6 +3,7 @@
 "drohne lendl\main.o"
 "drohne lendl\stm32h7xx_it.o"
 "drohne lendl\stm32h7xx_hal_msp.o"
+"drohne lendl\system_stm32h7xx.o"
 "drohne lendl\stm32h7xx_hal_cortex.o"
 "drohne lendl\stm32h7xx_hal_rcc.o"
 "drohne lendl\stm32h7xx_hal_rcc_ex.o"
@@ -23,7 +24,6 @@
 "drohne lendl\stm32h7xx_hal_tim_ex.o"
 "drohne lendl\stm32h7xx_hal_uart.o"
 "drohne lendl\stm32h7xx_hal_uart_ex.o"
-"drohne lendl\system_stm32h7xx.o"
 --strict --scatter "Drohne Lendl\Drohne Lendl.sct"
 --summary_stderr --info summarysizes --map --load_addr_map_info --xref --callgraph --symbols
 --info sizes --info totals --info unused --info veneers

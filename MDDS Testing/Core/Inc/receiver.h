@@ -33,14 +33,17 @@
  ---------------------------------------- GLOBAL DEFINES ----------------------------------------
  ************************************************************************************************/
 
-// duty cycles in various modes
-#define PWM_SAFEMODE_DC_MAX     05      // max duty cycle in safe mode
-#define PWM_NORMALMODE_DC_MAX   80      // max duty cycle in safe mode
-#define PWM_TURN_SPEED_MAX      10      // max addition duty cycle speed when turning
-#define PWM_OFFMODE_DC          .1      // duty cycle when on/off switch is on off
-#define PWM_MOTORTEST_DC        .5      // duty cycle for motor test
+// duty cycles in various modes (*10 because of value range of 0-1000 / 0.0%-100.0%)
+#define PWM_SAFEMODE_DC_MAX     05 // max duty cycle in safe mode
+#define PWM_NORMALMODE_DC_MAX   80 // max duty cycle in safe mode
+#define PWM_TURN_OFFSET_MAX     10 // max addition duty cycle speed when turning
+#define PWM_OFFMODE_DC          .1 * 10 // duty cycle when on/off switch is on off
+#define PWM_MOTORTEST_DC        50 * 10 // duty cycle for motor test
 
-// channel index (-1 because of array index)
+#define PWM_HOVER_DC            50 * 10 // duty cycle for hovering
+#define PWM_SIGNAL_LOST_OFFSET  10 * 10 // duty cycle offset for landing while receiver disconnected
+
+// channel indices (-1 because of array indices)
 #define YAW_CHANNEL             1 - 1   // yaw channel index
 #define PITCH_CHANNEL           2 - 1   // pitch channel index
 #define THROTTLE_CHANNEL        3 - 1   // throttle channel index
@@ -73,7 +76,7 @@ typedef enum Receiver_Status
     IBUS_ERROR = 6,                 // IBUS UART DMA not starting 
     IBUS_HEADER_ERROR = 7,          // IBUS header is wrong
     IBUS_CHECKSUM_ERROR = 8,        // IBUS checksum is wrong
-    IBUS_CONNECTION_LOST = 9,       // IBUS connection lost
+    IBUS_SIGNAL_LOST_ERROR = 9,     // IBUS signal lost
 
     SBUS_ERROR = 10,                // SBUS UART DMA not starting 
     SBUS_HEADER_ERROR = 11,         // SBUS header is wrong
@@ -166,6 +169,18 @@ void Receiver_OutputChValues(UART_HandleTypeDef *huart);
  * @details turn motor 1 for 2 seconds on then next motor etc
  * @retval None
  */
-void Reciever_MotorTest(TIM_HandleTypeDef *htim);
+void Receiver_MotorTest(TIM_HandleTypeDef *htim);
+
+/**
+ * @brief This function sets the drone motors under the hover duty cycle -> landing
+ * @retval Receiver_Status
+ */
+Receiver_Status Receiver_SignalLostHandler(void);
+
+/**
+ * @brief This function saves the current channel data and check if its the same as before
+ * @retval None
+ */
+void Receiver_SaveChannelData(void);
 
 #endif // RECEIVER_H_INCLUDED

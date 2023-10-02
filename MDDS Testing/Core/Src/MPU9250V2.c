@@ -90,6 +90,8 @@ MPU9250_Status MPU9250_StartReading(void)
     if(HAL_I2C_Mem_Read_DMA(mpu9250_InputI2C, I2C_SLV_ADDR << 1, ACCEL_XOUT_H_ADDR, I2C_MEMADD_SIZE_8BIT, mpu9250_RawData, 14) != HAL_OK)
         return MPU9250_I2C_ERROR;
     
+    __HAL_TIM_SET_COUNTER(MPU9250_DelayTimer, 0); // set delay counter to 0
+
     return MPU9250_OK;
 }
 
@@ -205,14 +207,14 @@ void MPU9250_CalcValues(void)
 
 /**
  * @brief This function calculates pitch and roll with gyro and accel data
+ * @attention This funciton resets the counter of the configured delay timer
  * @return None
  */
 void MPU9250_CompFilter(void)
 {
     // calculate time delay
-    uint32_t newTime = __HAL_TIM_GET_COUNTER(MPU9250_DelayTimer);
-    uint32_t time1 = (newTime < oldTime) ? newTime + __HAL_TIM_GET_AUTORELOAD(MPU9250_DelayTimer) : newTime;
-    double deltaTime = (time1 - newTime) * 1E-6;
+    float deltaTime = __HAL_TIM_GET_COUNTER(MPU9250_DelayTimer) * 1E-6;
+    if(deltaTime <= 0) deltaTime *= -1;
 
     // check if z axis is inverted
     float accel_z = (accel.z < 0) ? -accel.z : accel.z;
@@ -228,7 +230,6 @@ void MPU9250_CompFilter(void)
     fusion.pitch = COMP_GYRO_COEFF * (fusion.pitch + gyro.y * deltaTime) + (1 - COMP_GYRO_COEFF) * tmp.pitch;
     fusion.roll = COMP_GYRO_COEFF * (fusion.roll + gyro.x * deltaTime) + (1 - COMP_GYRO_COEFF) * tmp.roll;
 
-    // save new start time
-    oldTime = newTime;
+    __HAL_TIM_SET_COUNTER(MPU9250_DelayTimer, 0); // rest timer counter
 }
 
