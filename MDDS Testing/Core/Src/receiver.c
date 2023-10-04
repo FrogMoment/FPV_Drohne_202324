@@ -290,7 +290,7 @@ Receiver_Status Receiver_MotorControl(void)
     // pitch (forwards / backwards)
     float pitch = (float)(receiver_ChData[PITCH_CHANNEL] - receiver_Input.min) / receiver_Input.delta;      // get joystick position
     pitch = (pitch < .5) ? (.5 - pitch) * 2 : (pitch - .5) * 2; // get difference from 50%
-    pitch *= PWM_TURN_OFFSET_MAX;                                // get percent of max duty cycle addition
+    pitch *= PWM_TURN_OFFSET_MAX;                               // get percent of max duty cycle addition
 
     // flying backwards, front motors faster
     if(receiver_ChData[PITCH_CHANNEL] < receiver_Input.half)
@@ -328,7 +328,7 @@ Receiver_Status Receiver_MotorControl(void)
     // yaw (rotate left / rotate right)
     float yaw = (float)(receiver_ChData[YAW_CHANNEL] - receiver_Input.min) / receiver_Input.delta;       // get joystick position
     yaw = (yaw < .5) ? (.5 - yaw) * 2 : (yaw - .5) * 2;     // get difference from 50%
-    yaw *= PWM_TURN_OFFSET_MAX;                              // get percent of max duty cycle addition
+    yaw *= PWM_TURN_OFFSET_MAX;                             // get percent of max duty cycle addition
 
     // rotate left, right front and left rear motors faster
     if(receiver_ChData[YAW_CHANNEL] < receiver_Input.half)
