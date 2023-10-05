@@ -345,10 +345,10 @@ Receiver_Status Receiver_MotorControl(void)
 
 
     // check if the value is larger then the max value
-    motor.LF = (motor.LF > throttle + PWM_TURN_OFFSET_MAX) ? throttle + PWM_TURN_OFFSET_MAX : motor.LF;
-    motor.RF = (motor.RF > throttle + PWM_TURN_OFFSET_MAX) ? throttle + PWM_TURN_OFFSET_MAX : motor.RF;
-    motor.LR = (motor.LR > throttle + PWM_TURN_OFFSET_MAX) ? throttle + PWM_TURN_OFFSET_MAX : motor.LR;
-    motor.RR = (motor.RR > throttle + PWM_TURN_OFFSET_MAX) ? throttle + PWM_TURN_OFFSET_MAX : motor.RR;
+    if(motor.LF > throttle + PWM_TURN_OFFSET_MAX) motor.LF = throttle + PWM_TURN_OFFSET_MAX;
+    if(motor.RF > throttle + PWM_TURN_OFFSET_MAX) motor.RF = throttle + PWM_TURN_OFFSET_MAX;
+    if(motor.LR > throttle + PWM_TURN_OFFSET_MAX) motor.LR = throttle + PWM_TURN_OFFSET_MAX;
+    if(motor.RR > throttle + PWM_TURN_OFFSET_MAX) motor.RR = throttle + PWM_TURN_OFFSET_MAX;
     
 
     /** 
@@ -358,10 +358,10 @@ Receiver_Status Receiver_MotorControl(void)
      * channel3 = left rear
      * channel4 = left front
      */
-    __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_1, (uint16_t)(motor.LF * 10));
+    __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_1, (uint16_t)(motor.RR * 10));
     __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_2, (uint16_t)(motor.RF * 10));
     __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_3, (uint16_t)(motor.LR * 10));
-    __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_4, (uint16_t)(motor.RR * 10));
+    __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_4, (uint16_t)(motor.LF * 10));
 
     return RECEIVER_OK;
 }
@@ -472,7 +472,7 @@ Receiver_Status Receiver_SignalLostHandler(void)
  */
 void Receiver_SaveChannelData(void)
 {
-    // TODO fehlerbehebung (einmal error 9 dann immer) (löst nicht richtig aus)
+    // TODO Fehlerbehebung (einmal error 9 dann immer) (löst nicht richtig aus)
 
     if(protocol != IBUS)
         return;
