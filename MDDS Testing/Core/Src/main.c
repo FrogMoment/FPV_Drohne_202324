@@ -34,7 +34,8 @@ typedef enum Sensors
 {
   MPU9250 = 0,
   DS2438 = 1,
-  RECEIVER = 2
+  RECEIVER = 2,
+  DATA_TRANSMIT = 3
 } Sensors;
 /* USER CODE END PTD */
 
@@ -95,6 +96,43 @@ void Sensor_ErrorHandler(Sensors sens, int8_t errorCode);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+/**
+ * @brief This funciton completly stops the program 
+ * @param sens what sensor has the error
+ * @param errorCode 
+ * @retval None
+ */
+void Sensor_ErrorHandler(Sensors sens, int8_t errorCode)
+{
+  char txt[100];
+  switch(sens)
+  {
+    case MPU9250:
+      sprintf(txt, "MPU9250 ERROR | Code: %d\n\r", errorCode);
+      break;
+
+    case DS2438:
+      sprintf(txt, "DS2438 ERROR | Code: %d\n\r", errorCode);
+      break;
+
+    case RECEIVER:
+      sprintf(txt, "RECEIVER ERROR | Code: %d\n\r", errorCode);
+      break;
+
+    case DATA_TRANSMIT:
+      sprintf(txt, "DATA TRANSMIT ERROR | Code: %d\n\r", errorCode);
+      break;
+
+    default:
+      sprintf(txt, "wrong sensor ERROR | Code: %d\n\r", errorCode);
+      break;
+  }
+  HAL_UART_Transmit(&huart1, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
+
+  __disable_irq();
+  while(1);
+}
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
@@ -667,35 +705,6 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-
-/**
- * @brief This funciton completly stops the program 
- * @param sens what sensor has the error
- * @param errorCode 
- * @retval None
- */
-void Sensor_ErrorHandler(Sensors sens, int8_t errorCode)
-{
-  char txt[100];
-  switch(sens)
-  {
-    case MPU9250:
-      sprintf(txt, "MPU9250 ERROR | Code: %d\n\r", errorCode);
-      break;
-
-    case DS2438:
-      sprintf(txt, "DS2438 ERROR | Code: %d\n\r", errorCode);
-      break;
-
-    case RECEIVER:
-      sprintf(txt, "RECEIVER ERROR | Code: %d\n\r", errorCode);
-      break;
-  }
-  HAL_UART_Transmit(&huart1, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
-
-  __disable_irq();
-  while(1);
-}
 
 /* USER CODE END 4 */
 

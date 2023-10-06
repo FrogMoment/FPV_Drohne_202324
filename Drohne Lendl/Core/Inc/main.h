@@ -73,8 +73,8 @@ void Error_Handler(void);
 #define ESC_CH3_GPIO_Port GPIOB
 #define ESC_CH4_Pin GPIO_PIN_1
 #define ESC_CH4_GPIO_Port GPIOB
-#define RECEIVER_Data_Pin GPIO_PIN_14
-#define RECEIVER_Data_GPIO_Port GPIOB
+#define RECEIVER_DATA_Pin GPIO_PIN_14
+#define RECEIVER_DATA_GPIO_Port GPIOB
 #define RECEIVER_PPM_Pin GPIO_PIN_6
 #define RECEIVER_PPM_GPIO_Port GPIOC
 #define MPU9250_SCL_Pin GPIO_PIN_6

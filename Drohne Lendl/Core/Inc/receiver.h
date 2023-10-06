@@ -24,7 +24,7 @@
  ************************************************************************************************/
 
 #include "main.h"
-#include <stm32f1xx_hal.h>
+#include "stm32h7xx_hal.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
