@@ -34,10 +34,10 @@
  ************************************************************************************************/
 
 // duty cycles in various modes (*10 because of value range of 0-1000 / 0.0%-100.0%)
-#define PWM_SAFEMODE_DC_MAX     05      // max duty cycle in safe mode
+#define PWM_SAFEMODE_DC_MAX     10      // max duty cycle in safe mode
 #define PWM_NORMALMODE_DC_MAX   80      // max duty cycle in safe mode
 #define PWM_TURN_OFFSET_MAX     10      // max addition duty cycle speed when turning
-#define PWM_OFFMODE_DC          .1 * 10 // duty cycle when on/off switch is on off
+#define PWM_OFFMODE_DC          5 * 10 // duty cycle when on/off switch is on off
 #define PWM_MOTORTEST_DC        50 * 10 // duty cycle for motor test
 
 #define PWM_HOVER_DC            50 * 10 // duty cycle for hovering
@@ -97,6 +97,7 @@ typedef struct Motor_Position
     double RF, LF, RR, LR;
 } Motor_Position;
 
+
 /************************************************************************************************
 --------------------------------------- GLOBAL VARIABLES ---------------------------------------
 ************************************************************************************************/
@@ -111,7 +112,7 @@ extern uint16_t receiver_ChData[16];    // each channel data
 
 /**
  * @brief This function calibrates and starts uart receive dma with selected protocol
- * @param protocol protocol to use (SBUS / IBUS)
+ * @param proto protocol to use (SBUS / IBUS)
  * @param huart pointer to a UART_HandleTypeDef structure (input usart)
  * @param htim_out pointer to a TIM_HandleTypeDef structure (output pwm timer)
  * @return Receiver_Status

@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "*.excalidraw": "json",
+        "*.excalidrawlib": "json",
+        "stm32h7xx_hal.h": "c"
+    }
+}

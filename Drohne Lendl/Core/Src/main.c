@@ -65,6 +65,7 @@ UART_HandleTypeDef huart3;
 DMA_HandleTypeDef hdma_usart1_rx;
 
 /* USER CODE BEGIN PV */
+
 uint16_t test = 0;
 char txt[100];
 
@@ -75,13 +76,13 @@ int8_t receiver_DataReady = 0;
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_DMA_Init(void);
-static void MX_TIM1_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_UART4_Init(void);
 static void MX_TIM5_Init(void);
+static void MX_TIM1_Init(void);
 static void MX_USART3_UART_Init(void);
 /* USER CODE BEGIN PFP */
 
@@ -174,7 +175,10 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
       }
     }
 
-    Receiver_OutputChValues(&huart4);
+    // Receiver_OutputChValues(&huart4);
+
+    sprintf(txt, "%02x\t%02X\t%02X\t%02X\t%02X\n", receiver_RawData[0], receiver_RawData[1], receiver_RawData[2], receiver_RawData[3], receiver_RawData[4]);
+    HAL_UART_Transmit(&huart4, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
 
     // -----------------------------------------------
   }
@@ -231,13 +235,13 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_DMA_Init();
-  MX_TIM1_Init();
   MX_TIM2_Init();
   MX_I2C1_Init();
   MX_TIM3_Init();
   MX_USART1_UART_Init();
   MX_UART4_Init();
   MX_TIM5_Init();
+  MX_TIM1_Init();
   MX_USART3_UART_Init();
   /* USER CODE BEGIN 2 */
 
@@ -260,10 +264,10 @@ int main(void)
   // errorCode = MPU9250_StartReading();
   // if(errorCode != MPU9250_OK)
   //   Sensor_ErrorHandler(MPU9250, errorCode);
-    
 
+  HAL_TIM_Base_Start(&htim2);
   // initialize receiver reception with DMA
-  errorCode = Receiver_Init(IBUS, &huart1, &htim3);
+  errorCode = Receiver_Init(SBUS, &huart1, &htim3);
   if(errorCode != RECEIVER_OK)
     Sensor_ErrorHandler(RECEIVER, errorCode);
   HAL_UART_Transmit(&huart4, (uint8_t *)"Receiver detected and calibrated\n\r", sizeof("Receiver detected and calibrated\n\r"), HAL_MAX_DELAY);
@@ -281,6 +285,10 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+    // HAL_UART_Receive(&huart1, receiver_RawData, 25, 4);
+    // sprintf(txt, "%02x\t%02X\t%02X\t%02X\t%02X\t%02X\n", receiver_RawData[0], receiver_RawData[1], receiver_RawData[2], receiver_RawData[3], receiver_RawData[4], receiver_RawData[5]);
+    // HAL_UART_Transmit(&huart4, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
+    
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -418,7 +426,7 @@ static void MX_TIM1_Init(void)
   htim1.Instance = TIM1;
   htim1.Init.Prescaler = 28000-1;
   htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim1.Init.Period = 20000-1;
+  htim1.Init.Period = 5000-1;
   htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim1.Init.RepetitionCounter = 0;
   htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
@@ -509,9 +517,9 @@ static void MX_TIM3_Init(void)
 
   /* USER CODE END TIM3_Init 1 */
   htim3.Instance = TIM3;
-  htim3.Init.Prescaler = 7-1;
+  htim3.Init.Prescaler = 10-1;
   htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim3.Init.Period = 1600-1;
+  htim3.Init.Period = 1000-1;
   htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
@@ -621,7 +629,7 @@ static void MX_UART4_Init(void)
 
   /* USER CODE END UART4_Init 1 */
   huart4.Instance = UART4;
-  huart4.Init.BaudRate = 115200;
+  huart4.Init.BaudRate = 250000;
   huart4.Init.WordLength = UART_WORDLENGTH_8B;
   huart4.Init.StopBits = UART_STOPBITS_1;
   huart4.Init.Parity = UART_PARITY_NONE;
@@ -669,16 +677,17 @@ static void MX_USART1_UART_Init(void)
 
   /* USER CODE END USART1_Init 1 */
   huart1.Instance = USART1;
-  huart1.Init.BaudRate = 115200;
-  huart1.Init.WordLength = UART_WORDLENGTH_8B;
-  huart1.Init.StopBits = UART_STOPBITS_1;
-  huart1.Init.Parity = UART_PARITY_NONE;
+  huart1.Init.BaudRate = 100000;
+  huart1.Init.WordLength = UART_WORDLENGTH_9B;
+  huart1.Init.StopBits = UART_STOPBITS_2;
+  huart1.Init.Parity = UART_PARITY_EVEN;
   huart1.Init.Mode = UART_MODE_TX_RX;
   huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
   huart1.Init.OverSampling = UART_OVERSAMPLING_16;
   huart1.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
   huart1.Init.ClockPrescaler = UART_PRESCALER_DIV1;
-  huart1.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+  huart1.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_RXINVERT_INIT;
+  huart1.AdvancedInit.RxPinLevelInvert = UART_ADVFEATURE_RXINV_ENABLE;
   if (HAL_HalfDuplex_Init(&huart1) != HAL_OK)
   {
     Error_Handler();
@@ -756,15 +765,16 @@ static void MX_DMA_Init(void)
 {
 
   /* DMA controller clock enable */
+  __HAL_RCC_DMA2_CLK_ENABLE();
   __HAL_RCC_DMA1_CLK_ENABLE();
 
   /* DMA interrupt init */
   /* DMA1_Stream0_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Stream0_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA1_Stream0_IRQn);
-  /* DMA1_Stream2_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Stream2_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(DMA1_Stream2_IRQn);
+  /* DMA2_Stream6_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA2_Stream6_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA2_Stream6_IRQn);
 
 }
 

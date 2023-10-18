@@ -36,14 +36,13 @@ Receiver_Values receiver_Input = {0};   // max values of receiver input
 uint16_t receiver_OldChData[16] = {0};  // previous channel data
 uint16_t receiver_ChDataCheck = 0;        // counter amount of same channel data after another
 
-
 /************************************************************************************************
 ------------------------------------------- FUNCTIONS -------------------------------------------
 ************************************************************************************************/
 
 /**
  * @brief This function calibrates and starts uart receive dma with selected protocol
- * @param protocol protocol to use (SBUS / IBUS)
+ * @param proto protocol to use (SBUS / IBUS)
  * @param huart pointer to a UART_HandleTypeDef structure (input usart)
  * @param htim_out pointer to a TIM_HandleTypeDef structure (output pwm timer)
  * @return Receiver_Status
@@ -71,7 +70,7 @@ Receiver_Status Receiver_Init(Receiver_Protocol proto, UART_HandleTypeDef *huart
                 return RECEIVER_UART_ERROR;
 
             // check if trnasmitter is connected (ppm signal reception) 
-            uint16_t timeout = 0;
+            uint8_t timeout = 0;
             int8_t tmp_PinState = HAL_GPIO_ReadPin(RECEIVER_PPM_GPIO_Port, RECEIVER_PPM_Pin);
             while(tmp_PinState == HAL_GPIO_ReadPin(RECEIVER_PPM_GPIO_Port, RECEIVER_PPM_Pin))
             {
@@ -86,9 +85,10 @@ Receiver_Status Receiver_Init(Receiver_Protocol proto, UART_HandleTypeDef *huart
             // calibrate reception to begin of protocol
             while(!(tmp[0] == 0x20 && tmp[1] == 0x40))
             {
-                HAL_UART_Receive(receiver_InputUART, tmp, 2, 4);
                 if(timeout++ > 100)
                     return RECEIVER_TIMEOUT;
+
+                HAL_UART_Receive(receiver_InputUART, tmp, 2, 3);
             }
             HAL_Delay(4);
 
@@ -103,7 +103,7 @@ Receiver_Status Receiver_Init(Receiver_Protocol proto, UART_HandleTypeDef *huart
 
         /**
          * 100000 baud
-         * 8 data bits, 2 stop bit, even parity
+         * 9 data bits, 2 stop bit, even parity
          * LSB first, inverted
          * 25 Bytes:
          *      Byte[0]: protocol header, 0x0F
@@ -121,14 +121,26 @@ Receiver_Status Receiver_Init(Receiver_Protocol proto, UART_HandleTypeDef *huart
             if(receiver_InputUART->Init.BaudRate != 100000)
                 return RECEIVER_UART_ERROR;
 
-            uint8_t tmp = 0, timeout = 0;
+            // check if trnasmitter is connected (ppm signal reception) 
+            uint8_t timeout = 0;
+            int8_t tmp_PinState = HAL_GPIO_ReadPin(RECEIVER_PPM_GPIO_Port, RECEIVER_PPM_Pin);
+            while(tmp_PinState == HAL_GPIO_ReadPin(RECEIVER_PPM_GPIO_Port, RECEIVER_PPM_Pin))
+            {
+                if(timeout++ > 10)
+                    return RECEIVER_PPM_ERROR;
+                HAL_Delay(1);
+            }
+
+            uint8_t tmp = 0;
+            timeout = 0;
 
             // calibrate reception to begin of protocol
             while(tmp != 0x0F)
             {
-                HAL_UART_Receive(receiver_InputUART, &tmp, 1, 4);
                 if(timeout++ > 100)
                     return RECEIVER_TIMEOUT;
+
+                HAL_UART_Receive(receiver_InputUART, &tmp, 1, 4);
             }
             HAL_Delay(4);
 
@@ -185,6 +197,15 @@ Receiver_Status Receiver_Decode(void)
     {
         case IBUS:
         {
+            // if reception input start at the last byte -> reorder for correct order (rotate left)
+            if(receiver_RawData[1] == 0x20 && receiver_RawData[2] == 0x40)
+            {
+                uint8_t tmp = receiver_RawData[0];
+                for(int8_t i = 1; i < 32; i++)
+                    receiver_RawData[i - 1] = receiver_RawData[i];
+                receiver_RawData[31] = tmp;
+            }
+
             // check if protocol header is correct
             if(receiver_RawData[0] != 0x20 || receiver_RawData[1] != 0x40)
                 return IBUS_HEADER_ERROR;
@@ -211,6 +232,16 @@ Receiver_Status Receiver_Decode(void)
 
 
         case SBUS:
+        {
+            // if reception input start at the last byte -> reorder for correct order (rotate left)
+            if(receiver_RawData[0] == 0x00 && receiver_RawData[1] == 0x0F)
+            {
+                uint8_t tmp = receiver_RawData[0];
+                for(int8_t i = 1; i < 25; i++)
+                    receiver_RawData[i - 1] = receiver_RawData[i];
+                receiver_RawData[24] = tmp;
+            }
+
             // check if protocol header is correct
             if(receiver_RawData[0] != 0x0F)
                 return SBUS_HEADER_ERROR;
@@ -220,11 +251,11 @@ Receiver_Status Receiver_Decode(void)
                 return SBUS_FOOTER_ERROR;
 
             // check signal lost flags
-            if(receiver_RawData[23] & 0x20)
+            if(receiver_RawData[23] & 0x04)
                 return SBUS_SIGNAL_LOST;
 
             // check signal failsafe flag
-            if(receiver_RawData[23] & 0x10)
+            if(receiver_RawData[23] & 0x08)
                 return SBUS_SIGNAL_FAILSAFE;
 
             // decode channel data (16 channels, 11 bits each, lsb first)
@@ -241,6 +272,7 @@ Receiver_Status Receiver_Decode(void)
             }
 
             break;
+        }
 
 
         case NO_PROTO:
@@ -350,9 +382,9 @@ Receiver_Status Receiver_MotorControl(void)
     if(motor.RF > throttle + PWM_TURN_OFFSET_MAX) motor.RF = throttle + PWM_TURN_OFFSET_MAX;
     if(motor.LR > throttle + PWM_TURN_OFFSET_MAX) motor.LR = throttle + PWM_TURN_OFFSET_MAX;
     if(motor.RR > throttle + PWM_TURN_OFFSET_MAX) motor.RR = throttle + PWM_TURN_OFFSET_MAX;
-    
 
-    /** 
+
+    /**
      * change the duty cycle of the pwm signals
      * channel1 = right rear
      * channel2 = right front
@@ -401,8 +433,8 @@ void Receiver_OutputChValues(UART_HandleTypeDef *huart)
     // convert channel data to string
     for(int8_t i = 0; i < len; i++)
     {
-      sprintf(txt, "%d  ", receiver_ChData[i]);
-      strcat(txt2, txt);
+        sprintf(txt, "%d  ", receiver_ChData[i]);
+        strcat(txt2, txt);
     }
     strcat(txt2, "\n\r");
 
@@ -423,7 +455,7 @@ void Receiver_MotorTest(TIM_HandleTypeDef *htim)
     __HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_2, (uint16_t)(PWM_OFFMODE_DC));
     __HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_3, (uint16_t)(PWM_OFFMODE_DC));
     __HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_4, (uint16_t)(PWM_OFFMODE_DC));
-    
+
     // start pwm output
     HAL_TIM_PWM_Start(htim, TIM_CHANNEL_1);
     HAL_TIM_PWM_Start(htim, TIM_CHANNEL_2);
@@ -475,8 +507,6 @@ Receiver_Status Receiver_SignalLostHandler(void)
  */
 void Receiver_SaveChannelData(void)
 {
-    // TODO Fehlerbehebung (einmal error 9 dann immer) (löst nicht richtig aus)
-
     if(protocol != IBUS)
         return;
 
@@ -490,7 +520,7 @@ void Receiver_SaveChannelData(void)
     {
         // check if the old channel data is not the same as the current
         if(receiver_OldChData[i] != receiver_ChData[i])
-        {    
+        {
             receiver_ChDataCheck = 0; // reset channel data check
             goto save;
         }
@@ -499,7 +529,7 @@ void Receiver_SaveChannelData(void)
     }
 
     // save current channel data
-    save: 
+save:
     for(int8_t i = 0; i < 14; i++)
         receiver_OldChData[i] = receiver_ChData[i];
 }
