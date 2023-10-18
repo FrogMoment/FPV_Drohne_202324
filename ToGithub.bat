@@ -1,9 +1,14 @@
+@echo off
+
 :: Add all changes to the staging area
 git add --all
 
 :: remove folders
 git rm --cached -r "MDDS Testing"/MDK-ARM/"MDDS Testing"
 git rm --cached -r "Drohne Lendl"/MDK-ARM/"Drohne Lendl"
+
+::show status
+git status
 
 :: Prompt for the commit message
 set /p commit_message="Enter your commit message: "
