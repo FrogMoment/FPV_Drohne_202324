@@ -75,7 +75,7 @@ MPU9250_Status MPU9250_Init(I2C_HandleTypeDef *hi2c, bandwidthDLPF dlpf, fullSca
 
     // start timer for us delay (CompFilter)
     MPU9250_DelayTimer = htim;
-    HAL_TIM_Base_Start(MPU9250_DelayTimer);
+    HAL_TIM_Base_Start(MPU9250_DelayTimer); 
 
     return MPU9250_OK;
 }

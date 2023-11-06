@@ -141,17 +141,17 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     // ---------------- MPU9250 ----------------
     // MPU9250 data output
   
-    // sprintf(txt, "accel:\t%.3f  %.3f  %.3f\n\r", accel.x, accel.y, accel.z);
-    // HAL_UART_Transmit(&huart1, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
+    sprintf(txt, "accel:\t%.3f  %.3f  %.3f\n\r", accel.x, accel.y, accel.z);
+    HAL_UART_Transmit(&huart1, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
 
-    // sprintf(txt, "gyro:\t%.3f  %.3f  %.3f\n\r", gyro.x, gyro.y, gyro.z);
-    // HAL_UART_Transmit(&huart1, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
+    sprintf(txt, "gyro:\t%.3f  %.3f  %.3f\n\r", gyro.x, gyro.y, gyro.z);
+    HAL_UART_Transmit(&huart1, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
 
-    // sprintf(txt, "temp:\t%f\n\r", temp);
-    // HAL_UART_Transmit(&huart1, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
+    sprintf(txt, "temp:\t%f\n\r", temp);
+    HAL_UART_Transmit(&huart1, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
 
-    // sprintf(txt, "filter: %.3f  %.3f\n\n\r", fusion.pitch, fusion.roll);
-    // HAL_UART_Transmit(&huart1, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
+    sprintf(txt, "filter: %.3f  %.3f\n\n\r", fusion.pitch, fusion.roll);
+    HAL_UART_Transmit(&huart1, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
 
     // ---------------------------------------------
 
@@ -160,17 +160,17 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     
     // Receiver_OutputChValues(&huart1);
 
-    int8_t tmp = Receiver_MotorControl();
-    if(tmp != RECEIVER_OK)
-    {
-      sprintf(txt, "Receiver Error: %d\n\r", tmp);
-      HAL_UART_Transmit(&huart1, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
+    // int8_t tmp = Receiver_MotorControl();
+    // if(tmp != RECEIVER_OK)
+    // {
+    //   sprintf(txt, "Receiver Error: %d\n\r", tmp);
+    //   HAL_UART_Transmit(&huart1, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
 
-      if(tmp == IBUS_SIGNAL_LOST_ERROR || tmp == SBUS_SIGNAL_LOST || tmp == SBUS_SIGNAL_FAILSAFE)
-      {
-        Receiver_SignalLostHandler();
-      }
-    }
+    //   if(tmp == IBUS_SIGNAL_LOST_ERROR || tmp == SBUS_SIGNAL_LOST || tmp == SBUS_SIGNAL_FAILSAFE)
+    //   {
+    //     Receiver_SignalLostHandler();
+    //   }
+    // }
 
     // -----------------------------------------------
   }
@@ -238,10 +238,10 @@ int main(void)
   int8_t errorCode;
 
   // initialize MPU9250
-  // errorCode = MPU9250_Init(&hi2c1, DLPF_184Hz, GYRO_2000DPS, ACCEL_16G, &htim2);
-  // if(errorCode != MPU9250_OK)
-  //   Sensor_ErrorHandler(MPU9250, errorCode);
-  // HAL_UART_Transmit(&huart1, (uint8_t *)"MPU9250 detected and configured\n\r", sizeof("MPU9250 detected and configured\n\r"), HAL_MAX_DELAY); 
+  errorCode = MPU9250_Init(&hi2c1, DLPF_184Hz, GYRO_2000DPS, ACCEL_16G, &htim2);
+  if(errorCode != MPU9250_OK)
+    Sensor_ErrorHandler(MPU9250, errorCode);
+  HAL_UART_Transmit(&huart1, (uint8_t *)"MPU9250 detected and configured\n\r", sizeof("MPU9250 detected and configured\n\r"), HAL_MAX_DELAY); 
 
   // initliaze DS2438
   // errorCode = DS2438_Init(&htim4);
@@ -250,16 +250,16 @@ int main(void)
   // HAL_UART_Transmit(&huart1, (uint8_t *)"DS2438 detected\n\r", sizeof("DS2438 detected\n\r"), HAL_MAX_DELAY);
 
   // start MPU9250 I2C DMA read cycle
-  // errorCode = MPU9250_StartReading();
-  // if(errorCode != MPU9250_OK)
-  //   Sensor_ErrorHandler(MPU9250, errorCode);
+  errorCode = MPU9250_StartReading();
+  if(errorCode != MPU9250_OK)
+    Sensor_ErrorHandler(MPU9250, errorCode);
     
 
   // initialize receiver reception with DMA
-  errorCode = Receiver_Init(IBUS, &huart2, &htim3);
-  if(errorCode != RECEIVER_OK)
-    Sensor_ErrorHandler(RECEIVER, errorCode);
-  HAL_UART_Transmit(&huart1, (uint8_t *)"Receiver detected and calibrated\n\r", sizeof("Receiver detected and calibrated\n\r"), HAL_MAX_DELAY);
+  // errorCode = Receiver_Init(IBUS, &huart2, &htim3);
+  // if(errorCode != RECEIVER_OK)
+  //   Sensor_ErrorHandler(RECEIVER, errorCode);
+  // HAL_UART_Transmit(&huart1, (uint8_t *)"Receiver detected and calibrated\n\r", sizeof("Receiver detected and calibrated\n\r"), HAL_MAX_DELAY);
 
   // test motors
   // Receiver_MotorTest(&htim3);

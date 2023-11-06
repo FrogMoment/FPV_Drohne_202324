@@ -143,17 +143,17 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     // ---------------- MPU9250 ----------------
     // MPU9250 data output
   
-    // sprintf(txt, "accel:\t%.3f  %.3f  %.3f\n\r", accel.x, accel.y, accel.z);
-    // HAL_UART_Transmit(&huart4, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
+    sprintf(txt, "accel:\t%.3f  %.3f  %.3f\n\r", accel.x, accel.y, accel.z);
+    HAL_UART_Transmit(&huart4, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
 
-    // sprintf(txt, "gyro:\t%.3f  %.3f  %.3f\n\r", gyro.x, gyro.y, gyro.z);
-    // HAL_UART_Transmit(&huart4, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
+    sprintf(txt, "gyro:\t%.3f  %.3f  %.3f\n\r", gyro.x, gyro.y, gyro.z);
+    HAL_UART_Transmit(&huart4, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
 
-    // sprintf(txt, "temp:\t%f\n\r", temp);
-    // HAL_UART_Transmit(&huart4, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
+    sprintf(txt, "temp:\t%f\n\r", temp);
+    HAL_UART_Transmit(&huart4, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
 
-    // sprintf(txt, "filter: %.3f  %.3f\n\n\r", fusion.pitch, fusion.roll);
-    // HAL_UART_Transmit(&huart4, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
+    sprintf(txt, "filter: %.3f  %.3f\n\n\r", fusion.pitch, fusion.roll);
+    HAL_UART_Transmit(&huart4, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
 
     // ---------------------------------------------
 
@@ -163,22 +163,22 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     // Receiver_OutputChValues(&huart1);
 
 
-    int8_t tmp = Receiver_MotorControl();
-    if(tmp != RECEIVER_OK)
-    {
-      sprintf(txt, "Receiver Error: %d\n\r", tmp);
-      HAL_UART_Transmit(&huart4, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
+    // int8_t tmp = Receiver_MotorControl();
+    // if(tmp != RECEIVER_OK)
+    // {
+    //   sprintf(txt, "Receiver Error: %d\n\r", tmp);
+    //   HAL_UART_Transmit(&huart4, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
 
-      if(tmp == IBUS_SIGNAL_LOST_ERROR || tmp == SBUS_SIGNAL_LOST || tmp == SBUS_SIGNAL_FAILSAFE)
-      {
-        Receiver_SignalLostHandler();
-      }
-    }
+    //   if(tmp == IBUS_SIGNAL_LOST_ERROR || tmp == SBUS_SIGNAL_LOST || tmp == SBUS_SIGNAL_FAILSAFE)
+    //   {
+    //     Receiver_SignalLostHandler();
+    //   }
+    // }
 
     // Receiver_OutputChValues(&huart4);
 
-    sprintf(txt, "%02x\t%02X\t%02X\t%02X\t%02X\n", receiver_RawData[0], receiver_RawData[1], receiver_RawData[2], receiver_RawData[3], receiver_RawData[4]);
-    HAL_UART_Transmit(&huart4, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
+    // sprintf(txt, "%02x\t%02X\t%02X\t%02X\t%02X\n", receiver_RawData[0], receiver_RawData[1], receiver_RawData[2], receiver_RawData[3], receiver_RawData[4]);
+    // HAL_UART_Transmit(&huart4, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
 
     // -----------------------------------------------
   }
@@ -187,7 +187,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 // MPU9250 circular dma operation
 void HAL_I2C_MemRxCpltCallback(I2C_HandleTypeDef *hi2c)
 {
-  if(hi2c->Instance == mpu9250_InputI2C->Instance)
+  if(hi2c == mpu9250_InputI2C)
   {
     MPU9250_CalcValues();   // convert raw data in actual data
     MPU9250_CompFilter();   // calculate angles
@@ -247,12 +247,15 @@ int main(void)
 
 
   int8_t errorCode;
+  
 
   // initialize MPU9250
-  // errorCode = MPU9250_Init(&hi2c1, DLPF_184Hz, GYRO_2000DPS, ACCEL_16G, &htim2);
-  // if(errorCode != MPU9250_OK)
-  //   Sensor_ErrorHandler(MPU9250, errorCode);
-  // HAL_UART_Transmit(&huart4, (uint8_t *)"MPU9250 detected and configured\n\r", sizeof("MPU9250 detected and configured\n\r"), HAL_MAX_DELAY); 
+  HAL_Delay(1);
+  errorCode = MPU9250_Init(&hi2c1, DLPF_184Hz, GYRO_2000DPS, ACCEL_16G, &htim2);
+  if(errorCode != MPU9250_OK)
+    Sensor_ErrorHandler(MPU9250, errorCode);
+  HAL_UART_Transmit(&huart4, (uint8_t *)"MPU9250 detected and configured\n\r", sizeof("MPU9250 detected and configured\n\r"), HAL_MAX_DELAY); 
+
 
   // initliaze DS2438
   // errorCode = DS2438_Init(&htim5);
@@ -260,20 +263,22 @@ int main(void)
   //   Sensor_ErrorHandler(DS2438, errorCode);
   // HAL_UART_Transmit(&huart4, (uint8_t *)"DS2438 detected\n\r", sizeof("DS2438 detected\n\r"), HAL_MAX_DELAY);
 
-  // start MPU9250 I2C DMA read cycle
-  // errorCode = MPU9250_StartReading();
-  // if(errorCode != MPU9250_OK)
-  //   Sensor_ErrorHandler(MPU9250, errorCode);
 
-  HAL_TIM_Base_Start(&htim2);
-  // initialize receiver reception with DMA
-  errorCode = Receiver_Init(SBUS, &huart1, &htim3);
-  if(errorCode != RECEIVER_OK)
-    Sensor_ErrorHandler(RECEIVER, errorCode);
-  HAL_UART_Transmit(&huart4, (uint8_t *)"Receiver detected and calibrated\n\r", sizeof("Receiver detected and calibrated\n\r"), HAL_MAX_DELAY);
+  // start MPU9250 I2C DMA read cycle
+  errorCode = MPU9250_StartReading();
+  if(errorCode != MPU9250_OK)
+    Sensor_ErrorHandler(MPU9250, errorCode);
+
+
+  // // initialize receiver reception with DMA
+  // errorCode = Receiver_Init(SBUS, &huart1, &htim3);
+  // if(errorCode != RECEIVER_OK)
+  //   Sensor_ErrorHandler(RECEIVER, errorCode);
+  // HAL_UART_Transmit(&huart4, (uint8_t *)"Receiver detected and calibrated\n\r", sizeof("Receiver detected and calibrated\n\r"), HAL_MAX_DELAY);
 
   // test motors
   // Receiver_MotorTest(&htim3);
+
 
   // start timer 1 counter + interrupt (real time structure)
   HAL_TIM_Base_Start_IT(&htim1);
@@ -284,11 +289,7 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
-  {
-    // HAL_UART_Receive(&huart1, receiver_RawData, 25, 4);
-    // sprintf(txt, "%02x\t%02X\t%02X\t%02X\t%02X\t%02X\n", receiver_RawData[0], receiver_RawData[1], receiver_RawData[2], receiver_RawData[3], receiver_RawData[4], receiver_RawData[5]);
-    // HAL_UART_Transmit(&huart4, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
-    
+  {    
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -373,7 +374,7 @@ static void MX_I2C1_Init(void)
 
   /* USER CODE END I2C1_Init 1 */
   hi2c1.Instance = I2C1;
-  hi2c1.Init.Timing = 0x00D04BFF;
+  hi2c1.Init.Timing = 0x20B0CCFF;
   hi2c1.Init.OwnAddress1 = 0;
   hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
   hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
