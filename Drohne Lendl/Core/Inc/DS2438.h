@@ -28,6 +28,8 @@
 #define DS2438_CONVERT_T 0x44   // Convert Temperature command
 #define DS2438_CONVERT_V 0xB4   // Convert Voltage command
 #define DS2438_READ_SP 0xBE     // read scratchpad command
+#define DS2438_WRITE_SP 0x4E    // write scratchpad command
+#define DS2438_COPY_SP 0x48    // write scratchpad command
 
 #define DS2438_RSENS 0.150      // value of sense resistor [ohm]
 
@@ -69,11 +71,17 @@ void Delay_us(uint32_t us);
 DS2438_Status DS2438_Init(TIM_HandleTypeDef *htim);
 
 /**
+ * @brief This function resets / checks device presence
+ * @return DS2438_Status 
+ */
+DS2438_Status DS2438_Reset(void);
+
+/**
  * @brief This function writes one byte to the DS2438
  * @param byte byte to write
  * @retval None
  */
-void DS2438_WriteByte(int8_t byte);
+void DS2438_WriteByte(uint8_t byte);
 
 /**
  * @brief This function writes one bit to the DS2438
@@ -84,9 +92,9 @@ void DS2438_WriteBit(int8_t bit);
 
 /**
  * @brief This function reads one byte from the DS2438 (LSB first)
- * @return int8_t
+ * @return uint8_t
  */
-int8_t DS2438_ReadByte(void);
+uint8_t DS2438_ReadByte(void);
 
 /**
  * @brief This function reads one bit from the DS2438
@@ -95,12 +103,20 @@ int8_t DS2438_ReadByte(void);
 int8_t DS2438_ReadBit(void);
 
 /**
+ * @brief This function writes the data to one page of the DS2438
+ * @param page page number (0 - 7)
+ * @param pageData data of page
+ * @return DS2438_Status 
+ */
+DS2438_Status DS2438_WritePage(uint8_t page, int16_t *pageData);
+
+/**
  * @brief This function reads the data from one page of the DS2438
  * @param page page number (0 - 7)
  * @param pageData data of page
  * @return DS2438_Status
  */
-DS2438_Status DS2438_ReadPage(uint8_t page, int8_t *pageData);
+DS2438_Status DS2438_ReadPage(uint8_t page, int16_t *pageData);
 
 /**
  * @brief This function starts voltage measurement

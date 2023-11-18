@@ -24,10 +24,8 @@
  ************************************************************************************************/
 
 #include "main.h"
-#include "stm32h7xx_hal.h"
 #include <string.h>
 #include <stdio.h>
-#include <stdlib.h>
 
  /************************************************************************************************
  ---------------------------------------- GLOBAL DEFINES ----------------------------------------
@@ -37,8 +35,8 @@
 #define PWM_SAFEMODE_DC_MAX     10      // max duty cycle in safe mode
 #define PWM_NORMALMODE_DC_MAX   80      // max duty cycle in safe mode
 #define PWM_TURN_OFFSET_MAX     10      // max addition duty cycle speed when turning
-#define PWM_OFFMODE_DC          5 * 10 // duty cycle when on/off switch is on off
-#define PWM_MOTORTEST_DC        50 * 10 // duty cycle for motor test
+#define PWM_OFFMODE_DC          .5 * 10 // duty cycle when on/off switch is on off
+#define PWM_MOTORTEST_DC        10 * 10 // duty cycle for motor test
 
 #define PWM_HOVER_DC            50 * 10 // duty cycle for hovering
 #define PWM_SIGNAL_LOST_OFFSET  10 * 10 // duty cycle offset for landing while receiver disconnected

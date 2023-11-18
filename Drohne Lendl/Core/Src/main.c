@@ -51,6 +51,8 @@ typedef enum Sensors
 
 /* Private variables ---------------------------------------------------------*/
 
+CRC_HandleTypeDef hcrc;
+
 I2C_HandleTypeDef hi2c1;
 DMA_HandleTypeDef hdma_i2c1_rx;
 
@@ -84,6 +86,7 @@ static void MX_UART4_Init(void);
 static void MX_TIM5_Init(void);
 static void MX_TIM1_Init(void);
 static void MX_USART3_UART_Init(void);
+static void MX_CRC_Init(void);
 /* USER CODE BEGIN PFP */
 
 /**
@@ -141,28 +144,38 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   if(htim->Instance == TIM1)
   {
     // ---------------- MPU9250 ----------------
-    // MPU9250 data output
+    // // MPU9250 data output
   
-    sprintf(txt, "accel:\t%.3f  %.3f  %.3f\n\r", accel.x, accel.y, accel.z);
-    HAL_UART_Transmit(&huart4, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
+    // sprintf(txt, "accel:\t%.3f  %.3f  %.3f\n\r", accel.x, accel.y, accel.z);
+    // HAL_UART_Transmit(&huart4, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
 
-    sprintf(txt, "gyro:\t%.3f  %.3f  %.3f\n\r", gyro.x, gyro.y, gyro.z);
-    HAL_UART_Transmit(&huart4, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
+    // sprintf(txt, "gyro:\t%.3f  %.3f  %.3f\n\r", gyro.x, gyro.y, gyro.z);
+    // HAL_UART_Transmit(&huart4, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
 
-    sprintf(txt, "temp:\t%f\n\r", temp);
-    HAL_UART_Transmit(&huart4, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
+    // sprintf(txt, "temp:\t%f\n\r", temp);
+    // HAL_UART_Transmit(&huart4, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
 
-    sprintf(txt, "filter: %.3f  %.3f\n\n\r", fusion.pitch, fusion.roll);
-    HAL_UART_Transmit(&huart4, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
+    // sprintf(txt, "filter: %.3f  %.3f\n\n\r", fusion.pitch, fusion.roll);
+    // HAL_UART_Transmit(&huart4, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
 
     // ---------------------------------------------
+    // DS2438
+    uint8_t status = DS2438_ReadVoltage();
+    if(status != DS2438_OK)
+    {
+      sprintf(txt, "error: %d", status);
+      HAL_UART_Transmit(&huart4, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
+    }
+    else
+    {
+      sprintf(txt, "voltage: %.3f\n\r", ds2438_voltage);
+      HAL_UART_Transmit(&huart4, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
+    }
+
 
 
     // ------------------ RECEIVER ------------------
     
-    // Receiver_OutputChValues(&huart1);
-
-
     // int8_t tmp = Receiver_MotorControl();
     // if(tmp != RECEIVER_OK)
     // {
@@ -174,8 +187,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     //     Receiver_SignalLostHandler();
     //   }
     // }
-
-    // Receiver_OutputChValues(&huart4);
 
     // sprintf(txt, "%02x\t%02X\t%02X\t%02X\t%02X\n", receiver_RawData[0], receiver_RawData[1], receiver_RawData[2], receiver_RawData[3], receiver_RawData[4]);
     // HAL_UART_Transmit(&huart4, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
@@ -243,6 +254,7 @@ int main(void)
   MX_TIM5_Init();
   MX_TIM1_Init();
   MX_USART3_UART_Init();
+  MX_CRC_Init();
   /* USER CODE BEGIN 2 */
 
 
@@ -250,27 +262,27 @@ int main(void)
   
 
   // initialize MPU9250
-  HAL_Delay(1);
-  errorCode = MPU9250_Init(&hi2c1, DLPF_184Hz, GYRO_2000DPS, ACCEL_16G, &htim2);
-  if(errorCode != MPU9250_OK)
-    Sensor_ErrorHandler(MPU9250, errorCode);
-  HAL_UART_Transmit(&huart4, (uint8_t *)"MPU9250 detected and configured\n\r", sizeof("MPU9250 detected and configured\n\r"), HAL_MAX_DELAY); 
+  // HAL_Delay(1);
+  // errorCode = MPU9250_Init(&hi2c1, DLPF_184Hz, GYRO_2000DPS, ACCEL_16G, &htim2);
+  // if(errorCode != MPU9250_OK)
+  //   Sensor_ErrorHandler(MPU9250, errorCode);
+  // HAL_UART_Transmit(&huart4, (uint8_t *)"MPU9250 detected and configured\n\r", sizeof("MPU9250 detected and configured\n\r"), HAL_MAX_DELAY); 
 
 
   // initliaze DS2438
-  // errorCode = DS2438_Init(&htim5);
-  // if(errorCode != DS2438_OK)
-  //   Sensor_ErrorHandler(DS2438, errorCode);
-  // HAL_UART_Transmit(&huart4, (uint8_t *)"DS2438 detected\n\r", sizeof("DS2438 detected\n\r"), HAL_MAX_DELAY);
+  errorCode = DS2438_Init(&htim5);
+  if(errorCode != DS2438_OK)
+    Sensor_ErrorHandler(DS2438, errorCode);
+  HAL_UART_Transmit(&huart4, (uint8_t *)"DS2438 detected\n\r", sizeof("DS2438 detected\n\r"), HAL_MAX_DELAY);
 
 
   // start MPU9250 I2C DMA read cycle
-  errorCode = MPU9250_StartReading();
-  if(errorCode != MPU9250_OK)
-    Sensor_ErrorHandler(MPU9250, errorCode);
+  // errorCode = MPU9250_StartReading();
+  // if(errorCode != MPU9250_OK)
+  //   Sensor_ErrorHandler(MPU9250, errorCode);
 
 
-  // // initialize receiver reception with DMA
+  // initialize receiver reception with DMA
   // errorCode = Receiver_Init(SBUS, &huart1, &htim3);
   // if(errorCode != RECEIVER_OK)
   //   Sensor_ErrorHandler(RECEIVER, errorCode);
@@ -359,6 +371,37 @@ void SystemClock_Config(void)
 }
 
 /**
+  * @brief CRC Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_CRC_Init(void)
+{
+
+  /* USER CODE BEGIN CRC_Init 0 */
+
+  /* USER CODE END CRC_Init 0 */
+
+  /* USER CODE BEGIN CRC_Init 1 */
+
+  /* USER CODE END CRC_Init 1 */
+  hcrc.Instance = CRC;
+  hcrc.Init.DefaultPolynomialUse = DEFAULT_POLYNOMIAL_ENABLE;
+  hcrc.Init.DefaultInitValueUse = DEFAULT_INIT_VALUE_ENABLE;
+  hcrc.Init.InputDataInversionMode = CRC_INPUTDATA_INVERSION_NONE;
+  hcrc.Init.OutputDataInversionMode = CRC_OUTPUTDATA_INVERSION_DISABLE;
+  hcrc.InputDataFormat = CRC_INPUTDATA_FORMAT_BYTES;
+  if (HAL_CRC_Init(&hcrc) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN CRC_Init 2 */
+
+  /* USER CODE END CRC_Init 2 */
+
+}
+
+/**
   * @brief I2C1 Initialization Function
   * @param None
   * @retval None
@@ -374,7 +417,7 @@ static void MX_I2C1_Init(void)
 
   /* USER CODE END I2C1_Init 1 */
   hi2c1.Instance = I2C1;
-  hi2c1.Init.Timing = 0x20B0CCFF;
+  hi2c1.Init.Timing = 0x00D04BFF;
   hi2c1.Init.OwnAddress1 = 0;
   hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
   hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
@@ -798,7 +841,7 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(DS2438_DQ_GPIO_Port, DS2438_DQ_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(DS2438_DQ_GPIO_Port, DS2438_DQ_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pins : PC13 PC1 PC2 PC3
                            PC4 PC5 PC7 PC9

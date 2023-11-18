@@ -1,5 +1,7 @@
 {
     "files.associations": {
+        "*.excalidraw": "json",
+        "*.excalidrawlib": "json",
         "main.h": "c",
         "stdio.h": "c",
         "stm32f1xx_hal.h": "c",
@@ -9,7 +11,8 @@
         "receiver.h": "c",
         "math.h": "c",
         "type_traits": "c",
-        "functional": "c"
+        "functional": "c",
+        "mpu9250v2.h": "c"
     },
     "todo-tree.tree.scanMode": "workspace"
 }

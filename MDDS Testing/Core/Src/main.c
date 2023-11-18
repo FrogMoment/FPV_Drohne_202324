@@ -64,10 +64,7 @@ DMA_HandleTypeDef hdma_usart2_rx;
 
 /* USER CODE BEGIN PV */
 
-uint16_t test = 0;
 char txt[100];
-
-int8_t receiver_DataReady = 0;
 
 /* USER CODE END PV */
 

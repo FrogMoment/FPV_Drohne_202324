@@ -64,18 +64,18 @@ MPU9250_Status MPU9250_Init(I2C_HandleTypeDef *hi2c, bandwidthDLPF dlpf, fullSca
     MPU9250_WriteRegister(PWR_MGMT_1_ADDR, 0x01, 1);
     MPU9250_WriteRegister(SMPLRT_DIV_ADDR, 0x00, 1);
     MPU9250_WriteRegister(CONFIG_ADDR, dlpf, 1);
-    MPU9250_WriteRegister(INT_PIN_CFG_ADDR, 0x02, 1);
+    // MPU9250_WriteRegister(INT_PIN_CFG_ADDR, 0x02, 1);
     // MPU9250_WriteRegister(INT_ENABLE_ADDR, 0x01, 1);
 
     MPU9250_WriteRegister(ACCEL_CONFIG_1_ADDR, accelFS << 3, 1);
-    MPU9250_WriteRegister(GYRO_CONFIG_ADDR, gyroFS << 3, 1);
+    // MPU9250_WriteRegister(GYRO_CONFIG_ADDR, gyroFS << 3, 1);
 
     accelSens = ACCEL_SENS / (1 << accelFS);    // calc sensitivity scale factor of accelerometer
-    gyroSens = GYRO_SENS / (1 << gyroFS);       // calc sensitivity scale factor of gyroscope
+    // gyroSens = GYRO_SENS / (1 << gyroFS);       // calc sensitivity scale factor of gyroscope
 
     // start timer for us delay (CompFilter)
     MPU9250_DelayTimer = htim;
-    HAL_TIM_Base_Start(MPU9250_DelayTimer);
+    HAL_TIM_Base_Start(MPU9250_DelayTimer); 
 
     return MPU9250_OK;
 }

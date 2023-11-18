@@ -461,17 +461,20 @@ void Receiver_MotorTest(TIM_HandleTypeDef *htim)
     HAL_TIM_PWM_Start(htim, TIM_CHANNEL_2);
     HAL_TIM_PWM_Start(htim, TIM_CHANNEL_3);
     HAL_TIM_PWM_Start(htim, TIM_CHANNEL_4);
-    HAL_Delay(3000);
+    HAL_Delay(2000);
 
+    uint32_t waitTime = 2000; // wait time in milliseconds
+ 
     // start motortest
     __HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_1, (uint16_t)(PWM_MOTORTEST_DC));
-    HAL_Delay(2000);
+    // HAL_Delay(waitTime);
     __HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_2, (uint16_t)(PWM_MOTORTEST_DC));
-    HAL_Delay(2000);
+    // HAL_Delay(waitTime);
     __HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_3, (uint16_t)(PWM_MOTORTEST_DC));
-    HAL_Delay(2000);
+    // HAL_Delay(waitTime);
     __HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_4, (uint16_t)(PWM_MOTORTEST_DC));
-    HAL_Delay(2000);
+    // HAL_Delay(waitTime);
+    while(1);
 
     // set std duty cycle
     __HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_1, (uint16_t)(PWM_OFFMODE_DC));
@@ -529,7 +532,7 @@ void Receiver_SaveChannelData(void)
     }
 
     // save current channel data
-save:
+    save:
     for(int8_t i = 0; i < 14; i++)
         receiver_OldChData[i] = receiver_ChData[i];
 }
