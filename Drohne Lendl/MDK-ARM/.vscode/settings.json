@@ -4,6 +4,8 @@
         "*.excalidrawlib": "json",
         "stm32h7xx_hal.h": "c",
         "string.h": "c",
-        "imu_10dof.h": "c"
+        "imu_10dof.h": "c",
+        "mpu9250v3.h": "c",
+        "imu.h": "c"
     }
 }

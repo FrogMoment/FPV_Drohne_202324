@@ -23,9 +23,11 @@
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
 #include <string.h>
-#include "MPU9250V2.h"
+// #include "MPU9250V3.h"
+#include "IMU.h"
 #include "DS2438.h"
 #include "receiver.h"
+// #include "IMU_10DOF.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -35,7 +37,8 @@ typedef enum Sensors
   MPU9250 = 0,
   DS2438 = 1,
   RECEIVER = 2,
-  DATA_TRANSMIT = 3
+  IMU = 3,
+  DATA_TRANSMIT = 4
 } Sensors;
 /* USER CODE END PTD */
 
@@ -50,8 +53,6 @@ typedef enum Sensors
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-
-CRC_HandleTypeDef hcrc;
 
 I2C_HandleTypeDef hi2c1;
 DMA_HandleTypeDef hdma_i2c1_rx;
@@ -72,6 +73,8 @@ uint16_t test = 0;
 char txt[100];
 
 int8_t receiver_DataReady = 0;
+
+IMU_AnglesTypDef angles;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -79,14 +82,13 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_DMA_Init(void);
 static void MX_TIM2_Init(void);
-static void MX_I2C1_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_USART1_UART_Init(void);
-static void MX_UART4_Init(void);
 static void MX_TIM5_Init(void);
 static void MX_TIM1_Init(void);
 static void MX_USART3_UART_Init(void);
-static void MX_CRC_Init(void);
+static void MX_I2C1_Init(void);
+static void MX_UART4_Init(void);
 /* USER CODE BEGIN PFP */
 
 /**
@@ -125,6 +127,10 @@ void Sensor_ErrorHandler(Sensors sens, int8_t errorCode)
       sprintf(txt, "RECEIVER ERROR | Code: %d\n\r", errorCode);
       break;
 
+    case IMU:
+      sprintf(txt, "IMU ERROR | Code: %d\n\r", errorCode);
+      break;
+
     case DATA_TRANSMIT:
       sprintf(txt, "DATA TRANSMIT ERROR | Code: %d\n\r", errorCode);
       break;
@@ -143,9 +149,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
   if(htim->Instance == TIM1)
   {
-    // ---------------- MPU9250 ----------------
-    // // MPU9250 data output
-  
+    // ---------------- MPU9250 ----------------  
     // sprintf(txt, "accel:\t%.3f  %.3f  %.3f\n\r", accel.x, accel.y, accel.z);
     // HAL_UART_Transmit(&huart4, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
 
@@ -158,24 +162,23 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     // sprintf(txt, "filter: %.3f  %.3f\n\n\r", fusion.pitch, fusion.roll);
     // HAL_UART_Transmit(&huart4, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
 
-    // ---------------------------------------------
-    // DS2438
-    uint8_t status = DS2438_ReadVoltage();
-    if(status != DS2438_OK)
-    {
-      sprintf(txt, "error: %d", status);
-      HAL_UART_Transmit(&huart4, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
-    }
-    else
-    {
-      sprintf(txt, "voltage: %.3f\n\r", ds2438_voltage);
-      HAL_UART_Transmit(&huart4, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
-    }
 
+    // ----------------- DS2438 -----------------
+    // DS2438
+    // uint8_t status = DS2438_ReadVoltage();
+    // if(status != DS2438_OK)
+    // {
+    //   sprintf(txt, "error: %d", status);
+    //   HAL_UART_Transmit(&huart4, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
+    // }
+    // else
+    // {
+    //   sprintf(txt, "voltage: %.3f\n\r", ds2438_voltage);
+    //   HAL_UART_Transmit(&huart4, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
+    // }
 
 
     // ------------------ RECEIVER ------------------
-    
     // int8_t tmp = Receiver_MotorControl();
     // if(tmp != RECEIVER_OK)
     // {
@@ -191,20 +194,28 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     // sprintf(txt, "%02x\t%02X\t%02X\t%02X\t%02X\n", receiver_RawData[0], receiver_RawData[1], receiver_RawData[2], receiver_RawData[3], receiver_RawData[4]);
     // HAL_UART_Transmit(&huart4, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
 
-    // -----------------------------------------------
+
+    // ----------------- IMU 10DOF -----------------
+  // MX_MEMS_Process();
+
+    IMU_GetYawPitchRoll(angles);
+    sprintf(txt, "\r\n Pitch: %.2f \t Roll: %.2f \t Yaw: %.2f \r\n", angles.pitch, angles.roll, angles.yaw);
+    HAL_UART_Transmit(&huart4, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
+
+
   }
 }
 
 // MPU9250 circular dma operation
 void HAL_I2C_MemRxCpltCallback(I2C_HandleTypeDef *hi2c)
 {
-  if(hi2c == mpu9250_InputI2C)
-  {
-    MPU9250_CalcValues();   // convert raw data in actual data
-    MPU9250_CompFilter();   // calculate angles
+  // if(hi2c == mpu9250_InputI2C)
+  // {
+  //   MPU9250_CalcValues();   // convert raw data in actual data
+  //   MPU9250_CompFilter();   // calculate angles
 
-    MPU9250_StartReading(); // restart reading
-  }
+  //   MPU9250_StartReading(); // restart reading
+  // }
 }
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
@@ -247,14 +258,13 @@ int main(void)
   MX_GPIO_Init();
   MX_DMA_Init();
   MX_TIM2_Init();
-  MX_I2C1_Init();
   MX_TIM3_Init();
   MX_USART1_UART_Init();
-  MX_UART4_Init();
   MX_TIM5_Init();
   MX_TIM1_Init();
   MX_USART3_UART_Init();
-  MX_CRC_Init();
+  MX_I2C1_Init();
+  MX_UART4_Init();
   /* USER CODE BEGIN 2 */
 
 
@@ -270,10 +280,17 @@ int main(void)
 
 
   // initliaze DS2438
-  errorCode = DS2438_Init(&htim5);
-  if(errorCode != DS2438_OK)
-    Sensor_ErrorHandler(DS2438, errorCode);
-  HAL_UART_Transmit(&huart4, (uint8_t *)"DS2438 detected\n\r", sizeof("DS2438 detected\n\r"), HAL_MAX_DELAY);
+  // errorCode = DS2438_Init(&htim5);
+  // if(errorCode != DS2438_OK)
+  //   Sensor_ErrorHandler(DS2438, errorCode);
+  // HAL_UART_Transmit(&huart4, (uint8_t *)"DS2438 detected\n\r", sizeof("DS2438 detected\n\r"), HAL_MAX_DELAY);
+
+
+  // init IMU 10DOF
+  // errorCode = IMU_Init(&hi2c1);
+  // if(errorCode != IMU_OK)
+  //   Sensor_ErrorHandler(IMU, errorCode);
+  // HAL_UART_Transmit(&huart4, (uint8_t *)"IMU detected\n\r", sizeof("IMU detected\n\r"), HAL_MAX_DELAY);
 
 
   // start MPU9250 I2C DMA read cycle
@@ -291,11 +308,16 @@ int main(void)
   // test motors
   // Receiver_MotorTest(&htim3);
 
+  // MPU from example
+  errorCode = IMU_Init(&hi2c1, DLPF_5Hz, GYRO_1000DPS, ACCEL_2G);
+  if(errorCode != IMU_OK)
+    Sensor_ErrorHandler(MPU9250, errorCode);
+  HAL_UART_Transmit(&huart4, (uint8_t *)"MPU9250 detected and configured\n\r", sizeof("MPU9250 detected and configured\n\r"), HAL_MAX_DELAY); 
 
   // start timer 1 counter + interrupt (real time structure)
   HAL_TIM_Base_Start_IT(&htim1);
 
-
+ 
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -368,37 +390,6 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-}
-
-/**
-  * @brief CRC Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_CRC_Init(void)
-{
-
-  /* USER CODE BEGIN CRC_Init 0 */
-
-  /* USER CODE END CRC_Init 0 */
-
-  /* USER CODE BEGIN CRC_Init 1 */
-
-  /* USER CODE END CRC_Init 1 */
-  hcrc.Instance = CRC;
-  hcrc.Init.DefaultPolynomialUse = DEFAULT_POLYNOMIAL_ENABLE;
-  hcrc.Init.DefaultInitValueUse = DEFAULT_INIT_VALUE_ENABLE;
-  hcrc.Init.InputDataInversionMode = CRC_INPUTDATA_INVERSION_NONE;
-  hcrc.Init.OutputDataInversionMode = CRC_OUTPUTDATA_INVERSION_DISABLE;
-  hcrc.InputDataFormat = CRC_INPUTDATA_FORMAT_BYTES;
-  if (HAL_CRC_Init(&hcrc) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN CRC_Init 2 */
-
-  /* USER CODE END CRC_Init 2 */
-
 }
 
 /**
