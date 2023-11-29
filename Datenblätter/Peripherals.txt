@@ -15,7 +15,7 @@ Drohne Lendl:
 	TIM3 (PA6,PA7,PB0,PB1): PWM output
 	TIM5: us Delay
 	I2C1 (PB7,PB6): MPU9250
-	UART4 (PA0,PA1): Terminal
+	UART4 (PA0): Terminal
 	USART1 (PB14): Receiver_Data
 	GPIO_Output_OD (PC0): DS2438_DQ	
 	PC6: Receiver_PPM

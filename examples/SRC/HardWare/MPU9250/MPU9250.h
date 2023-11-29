@@ -81,20 +81,20 @@ typedef struct
 	int16_t X;
 	int16_t Y;
 	int16_t Z;
-}MPU9250_TypeDef;
+} MPU9250_TypeDef;
 
 typedef struct
 {
 	int16_t X_Off_Err;
 	int16_t Y_Off_Err;
 	int16_t Z_Off_Err;
-}MPU9250_TypeDef_Off;
+} MPU9250_TypeDef_Off;
 
 typedef struct
 {
 	uint8_t Index;
 	int16_t AvgBuffer[8];
-}MPU9250_AvgTypeDef;
+} MPU9250_AvgTypeDef;
 
 extern int16_t magn[3];
 extern int16_t accel[3], gyro[3];

@@ -458,6 +458,13 @@
         </Group>
         <Group>
           <GroupName>IMU_10DOF</GroupName>
+          <Files>
+            <File>
+              <FileName>IMU_10DOF.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Core\Src\IMU_10DOF.c</FilePath>
+            </File>
+          </Files>
         </Group>
         <Group>
           <GroupName>Drivers/STM32H7xx_HAL_Driver</GroupName>

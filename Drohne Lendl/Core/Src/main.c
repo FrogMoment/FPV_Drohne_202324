@@ -24,10 +24,10 @@
 #include <stdio.h>
 #include <string.h>
 // #include "MPU9250V3.h"
-#include "IMU.h"
+// #include "IMU.h"
 #include "DS2438.h"
 #include "receiver.h"
-// #include "IMU_10DOF.h"
+#include "IMU_10DOF.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -305,14 +305,17 @@ int main(void)
   //   Sensor_ErrorHandler(RECEIVER, errorCode);
   // HAL_UART_Transmit(&huart4, (uint8_t *)"Receiver detected and calibrated\n\r", sizeof("Receiver detected and calibrated\n\r"), HAL_MAX_DELAY);
 
+
   // test motors
   // Receiver_MotorTest(&htim3);
+
 
   // MPU from example
   errorCode = IMU_Init(&hi2c1, DLPF_5Hz, GYRO_1000DPS, ACCEL_2G);
   if(errorCode != IMU_OK)
     Sensor_ErrorHandler(MPU9250, errorCode);
   HAL_UART_Transmit(&huart4, (uint8_t *)"MPU9250 detected and configured\n\r", sizeof("MPU9250 detected and configured\n\r"), HAL_MAX_DELAY); 
+
 
   // start timer 1 counter + interrupt (real time structure)
   HAL_TIM_Base_Start_IT(&htim1);

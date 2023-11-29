@@ -6,7 +6,11 @@ git add --all
 :: remove folders
 git rm --cached -r "MDDS Testing"/MDK-ARM/"MDDS Testing"
 git rm --cached -r "Drohne Lendl"/MDK-ARM/"Drohne Lendl"
-git rm --cached -r Rechnungen
+git rm --cached -r Sponsoring/Rechnungen
+git rm --cached -r Praesentationen/"Tag der offenen Tuer"/MPU9150_DEMO_REJ/DEMO_MPU_9150_V2
+git rm --cached -r Praesentationen/"Tag der offenen Tuer"/MPU9150_DEMO_REJ/Grove_IMU_9DOF_9250
+git rm --cached -r Praesentationen/"Tag der offenen Tuer"/MPU9150_DEMO_REJ/MPU9250-master_kriswiner
+git rm --cached -r Praesentationen/"Tag der offenen Tuer"/MPU9150_DEMO_REJ/HTL_Hollabrunn.STD.Pack.3.2.0.pack
 
 ::show status
 git status
