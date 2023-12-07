@@ -81,7 +81,7 @@
           </BeforeMake>
           <AfterMake>
             <RunUserProg1>0</RunUserProg1>
-            <RunUserProg2>0</RunUserProg2>
+            <RunUserProg2>1</RunUserProg2>
             <UserProg1Name></UserProg1Name>
             <UserProg2Name></UserProg2Name>
             <UserProg1Dos16Mode>0</UserProg1Dos16Mode>
@@ -423,18 +423,6 @@
         </Group>
         <Group>
           <GroupName>MPU9250</GroupName>
-          <Files>
-            <File>
-              <FileName>MPU9250V3.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\Core\Src\MPU9250V3.c</FilePath>
-            </File>
-            <File>
-              <FileName>IMU.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\Core\Src\IMU.c</FilePath>
-            </File>
-          </Files>
         </Group>
         <Group>
           <GroupName>DS2438</GroupName>
@@ -453,6 +441,11 @@
               <FileName>receiver.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\Core\Src\receiver.c</FilePath>
+            </File>
+            <File>
+              <FileName>dshot_own.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Core\Src\dshot_own.c</FilePath>
             </File>
           </Files>
         </Group>

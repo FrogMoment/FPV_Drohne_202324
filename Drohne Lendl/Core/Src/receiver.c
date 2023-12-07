@@ -17,6 +17,7 @@
  */
 
 #include "receiver.h"
+#include "dshot_own.h"
 
  /************************************************************************************************
  --------------------------------------- GLOBAL VARIABLES ---------------------------------------
@@ -164,13 +165,14 @@ Receiver_Status Receiver_Init(Receiver_Protocol proto, UART_HandleTypeDef *huart
     receiver_Input.half = (receiver_Input.max + receiver_Input.min) / 2;
 
     // set std duty cycle (0.1%) and start timer pwm
-    pwm_Timer = htim_out;
+    // pwm_Timer = htim_out;
+    DShot_Init(htim_out);
     Receiver_SetStdDC();
 
-    HAL_TIM_PWM_Start(pwm_Timer, TIM_CHANNEL_1);
-    HAL_TIM_PWM_Start(pwm_Timer, TIM_CHANNEL_2);
-    HAL_TIM_PWM_Start(pwm_Timer, TIM_CHANNEL_3);
-    HAL_TIM_PWM_Start(pwm_Timer, TIM_CHANNEL_4);
+    // HAL_TIM_PWM_Start(pwm_Timer, TIM_CHANNEL_1);
+    // HAL_TIM_PWM_Start(pwm_Timer, TIM_CHANNEL_2);
+    // HAL_TIM_PWM_Start(pwm_Timer, TIM_CHANNEL_3);
+    // HAL_TIM_PWM_Start(pwm_Timer, TIM_CHANNEL_4);
 
     return RECEIVER_OK;
 }
@@ -391,10 +393,12 @@ Receiver_Status Receiver_MotorControl(void)
      * channel3 = left rear
      * channel4 = left front
      */
-    __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_1, (uint16_t)(motor.RR * 10));
-    __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_2, (uint16_t)(motor.RF * 10));
-    __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_3, (uint16_t)(motor.LR * 10));
-    __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_4, (uint16_t)(motor.LF * 10));
+    // __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_1, (uint16_t)(motor.RR * 10));
+    // __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_2, (uint16_t)(motor.RF * 10));
+    // __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_3, (uint16_t)(motor.LR * 10));
+    // __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_4, (uint16_t)(motor.LF * 10));
+
+    DShot_SendData(motor.LF, motor.RF, motor.LR, motor.RR);
 
     return RECEIVER_OK;
 }
@@ -405,14 +409,16 @@ Receiver_Status Receiver_MotorControl(void)
  */
 Receiver_Status Receiver_SetStdDC(void)
 {
-    // check if pwm_Timer is set
-    if(pwm_Timer == NULL)
-        return RECEIVER_PWM_ERROR;
+    // // check if pwm_Timer is set
+    // if(pwm_Timer == NULL)
+    //     return RECEIVER_PWM_ERROR;
 
-    __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_1, (uint16_t)(PWM_OFFMODE_DC));
-    __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_2, (uint16_t)(PWM_OFFMODE_DC));
-    __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_3, (uint16_t)(PWM_OFFMODE_DC));
-    __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_4, (uint16_t)(PWM_OFFMODE_DC));
+    // __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_1, (uint16_t)(PWM_OFFMODE_DC));
+    // __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_2, (uint16_t)(PWM_OFFMODE_DC));
+    // __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_3, (uint16_t)(PWM_OFFMODE_DC));
+    // __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_4, (uint16_t)(PWM_OFFMODE_DC));
+
+    DShot_SendData(PWM_OFFMODE_DC, PWM_OFFMODE_DC, PWM_OFFMODE_DC, PWM_OFFMODE_DC);
 
     return RECEIVER_OK;
 }
@@ -450,37 +456,37 @@ void Receiver_OutputChValues(UART_HandleTypeDef *huart)
  */
 void Receiver_MotorTest(TIM_HandleTypeDef *htim)
 {
-    // set std duty cycle
-    __HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_1, (uint16_t)(PWM_OFFMODE_DC));
-    __HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_2, (uint16_t)(PWM_OFFMODE_DC));
-    __HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_3, (uint16_t)(PWM_OFFMODE_DC));
-    __HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_4, (uint16_t)(PWM_OFFMODE_DC));
+    // // set std duty cycle
+    // __HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_1, (uint16_t)(PWM_OFFMODE_DC));
+    // __HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_2, (uint16_t)(PWM_OFFMODE_DC));
+    // __HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_3, (uint16_t)(PWM_OFFMODE_DC));
+    // __HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_4, (uint16_t)(PWM_OFFMODE_DC));
 
-    // start pwm output
-    HAL_TIM_PWM_Start(htim, TIM_CHANNEL_1);
-    HAL_TIM_PWM_Start(htim, TIM_CHANNEL_2);
-    HAL_TIM_PWM_Start(htim, TIM_CHANNEL_3);
-    HAL_TIM_PWM_Start(htim, TIM_CHANNEL_4);
-    HAL_Delay(2000);
+    // // start pwm output
+    // HAL_TIM_PWM_Start(htim, TIM_CHANNEL_1);
+    // HAL_TIM_PWM_Start(htim, TIM_CHANNEL_2);
+    // HAL_TIM_PWM_Start(htim, TIM_CHANNEL_3);
+    // HAL_TIM_PWM_Start(htim, TIM_CHANNEL_4);
+    // HAL_Delay(2000);
 
-    uint32_t waitTime = 2000; // wait time in milliseconds
+    // uint32_t waitTime = 2000; // wait time in milliseconds
  
-    // start motortest
-    __HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_1, (uint16_t)(PWM_MOTORTEST_DC));
-    // HAL_Delay(waitTime);
-    __HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_2, (uint16_t)(PWM_MOTORTEST_DC));
-    // HAL_Delay(waitTime);
-    __HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_3, (uint16_t)(PWM_MOTORTEST_DC));
-    // HAL_Delay(waitTime);
-    __HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_4, (uint16_t)(PWM_MOTORTEST_DC));
-    // HAL_Delay(waitTime);
-    while(1);
+    // // start motortest
+    // __HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_1, (uint16_t)(PWM_MOTORTEST_DC));
+    // // HAL_Delay(waitTime);
+    // __HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_2, (uint16_t)(PWM_MOTORTEST_DC));
+    // // HAL_Delay(waitTime);
+    // __HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_3, (uint16_t)(PWM_MOTORTEST_DC));
+    // // HAL_Delay(waitTime);
+    // __HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_4, (uint16_t)(PWM_MOTORTEST_DC));
+    // // HAL_Delay(waitTime);
+    // while(1);
 
-    // set std duty cycle
-    __HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_1, (uint16_t)(PWM_OFFMODE_DC));
-    __HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_2, (uint16_t)(PWM_OFFMODE_DC));
-    __HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_3, (uint16_t)(PWM_OFFMODE_DC));
-    __HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_4, (uint16_t)(PWM_OFFMODE_DC));
+    // // set std duty cycle
+    // __HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_1, (uint16_t)(PWM_OFFMODE_DC));
+    // __HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_2, (uint16_t)(PWM_OFFMODE_DC));
+    // __HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_3, (uint16_t)(PWM_OFFMODE_DC));
+    // __HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_4, (uint16_t)(PWM_OFFMODE_DC));
 }
 
 /**

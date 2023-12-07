@@ -10,14 +10,22 @@ MDDS Testing:
 	GPIO_Input (PA3): Receiver_PPM
 
 Drohne Lendl:
-	TIM1: real time system
+	TIM1 / GPIO_output (PA8, PA9, PA10, PA11): LEDs
 	TIM2: us Delay
-	TIM3 (PA6,PA7,PB0,PB1): PWM output
+	TIM3 (PA6,PA7,PB0,PB1): ESC output
+	TIM4: real time system	
 	TIM5: us Delay
-	I2C1 (PB7,PB6): MPU9250
-	UART4 (PA0): Terminal
-	USART1 (PB14): Receiver_Data
-	GPIO_Output_OD (PC0): DS2438_DQ	
-	PC6: Receiver_PPM
+	TIM15 (PA2, PA3): HC_SR04
+	
+	I2C1 (PB7,PB6): IMU
+	PB4: GPIO_Input, IMU_INT
+	PB3: TIM2_Ch2, IMU_FSYNC	
+
+	USART1_TX (PB14): Receiver_Data
+	USART3_TX (PB10): Data transmission
+	UART4 (PA0, PA1): Terminal
+	
+	PC0: GPIO_Out_OD, DS2438_DQ	
+	PC6: GPIO_Input, Receiver_PPM
 	
 	
