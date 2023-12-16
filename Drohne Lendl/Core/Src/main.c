@@ -302,7 +302,7 @@ int main(void)
 
 
   // init IMU 10DOF
-  errorCode = IMU_Init(&hi2c1);
+  errorCode = IMU_Init(&hi2c1, GYRO_1000DPS, ACCEL_2G);
   if(errorCode != IMU_OK)
     Sensor_ErrorHandler(IMU, errorCode);
   HAL_UART_Transmit(&huart4, (uint8_t *)"IMU detected\n\r", sizeof("IMU detected\n\r"), HAL_MAX_DELAY);

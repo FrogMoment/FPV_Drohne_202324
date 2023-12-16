@@ -24,10 +24,12 @@ I2C_HandleTypeDef *imu_ComI2C;
 
 /**
  * @brief This function initialzes the 10DOF IMU
- * @param hi2c 
+ * @param hi2c pointer to I2C_HandleTypeDef
+ * @param gyroFS full scale select for gyroscope (GYROGYRO_250DPS / GYRO_500DPS / GYRO_1000DPS / GYRO_2000DPS)
+ * @param accelFS full scale selct for accelerometer (ACCEL_2G / ACCEL_4G / ACCEL_8G / ACCEL_16G)
  * @return IMU_Status 
  */
-IMU_Status IMU_Init(I2C_HandleTypeDef *hi2c)
+IMU_Status IMU_Init(I2C_HandleTypeDef *hi2c, IMU_Fullscale gyroFS, IMU_Fullscale accelFS)
 {
     imu_ComI2C = hi2c;
     if(imu_ComI2C == NULL)
@@ -35,9 +37,26 @@ IMU_Status IMU_Init(I2C_HandleTypeDef *hi2c)
 
     uint8_t errorCode;
 
+    // check if all IMU sensors are connected
     errorCode = IMU_CheckConnection();
     if(errorCode != IMU_OK)
         return errorCode;
+    
+    // config MPU9250
+    IMU_WriteRegister(MPU9250, IMU_MPU_PWR_MGMT_1_ADDR, 0x00, 1);           // reset MPU
+    IMU_WriteRegister(MPU9250, IMU_MPU_SMPLRT_DIV_ADDR, 0x07, 1);           // set sample rate to 125Hz 
+    IMU_WriteRegister(MPU9250, IMU_MPU_CONFIG_ADDR, 0x06, 1);               // set low pass filter to 5Hz
+    IMU_WriteRegister(MPU9250, IMU_MPU_GYRO_CONFIG_ADDR, gyroFS << 3, 1);   // set gyro full scale range
+    IMU_WriteRegister(MPU9250, IMU_MPU_ACCEL_CONFIG_ADDR, accelFS << 3, 1); // set accel full scale range#
+    HAL_Delay(10);
+
+    // TODO read div from full sclale range
+
+    // MAYBE config AK8963
+
+
+    // MAYBE config BMP280
+
 
     return IMU_OK;
 }
@@ -147,7 +166,7 @@ IMU_Status IMU_CheckConnection(void)
         if(sensor[i] == MPU9250)
         {
             // enable bypass mode
-            if(IMU_WriteRegister(MPU9250, IMU_MPU_BYPASS_ADDR, 0x02, 1))
+            if(IMU_WriteRegister(MPU9250, IMU_MPU_INT_PIN_CFG_ADDR, 0x02, 1))
                 return IMU_ADDRESS_ERROR;
             HAL_Delay(10);
         }
@@ -155,8 +174,6 @@ IMU_Status IMU_CheckConnection(void)
 
     return IMU_OK;
 }
-
-
 
 
 
