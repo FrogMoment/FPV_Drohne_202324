@@ -10,16 +10,15 @@ MDDS Testing:
 	GPIO_Input (PA3): Receiver_PPM
 
 Drohne Lendl:
-	TIM1 / GPIO_output (PA8, PA9, PA10, PA11): LEDs
-	TIM2: us Delay
-	TIM3 (PA6,PA7,PB0,PB1): ESC output
-	TIM4: real time system	
-	TIM5: us Delay
-	TIM15 (PA2, PA3): HC_SR04
+	TIM3: (PA6,PA7,PB0,PB1): ESC output
+	TIM4: (PB8, PB9): HC_SR04
+	TIM15: real time system
+	TIM16: us Delay (DS2438)
+	TIM17: us Delay (IMU)
 	
 	I2C1 (PB7,PB6): IMU
-	PB4: GPIO_Input, IMU_INT
-	PB3: TIM2_Ch2, IMU_FSYNC	
+	(?)PB4: GPIO_Input, IMU_INT
+	(?)PB3: TIM2_Ch2, IMU_FSYNC	
 
 	USART1_TX (PB14): Receiver_Data
 	USART3_TX (PB10): Data transmission
@@ -27,5 +26,8 @@ Drohne Lendl:
 	
 	PC0: GPIO_Out_OD, DS2438_DQ	
 	PC6: GPIO_Input, Receiver_PPM
+
+	GPIO_output (PA8, PA9): LEDs
+	extra (PB2, PC5, PC4, PA2, PC3, PC2, PC1, PC13, PA12, PC7, PB15, PB13, PB12)
 	
 	

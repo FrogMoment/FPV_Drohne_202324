@@ -398,7 +398,7 @@ Receiver_Status Receiver_MotorControl(void)
     // __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_3, (uint16_t)(motor.LR * 10));
     // __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_4, (uint16_t)(motor.LF * 10));
 
-    DShot_SendData(motor.LF, motor.RF, motor.LR, motor.RR);
+    DShot_SendThrottle(motor.LF, motor.RF, motor.LR, motor.RR);
 
     return RECEIVER_OK;
 }
@@ -418,7 +418,7 @@ Receiver_Status Receiver_SetStdDC(void)
     // __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_3, (uint16_t)(PWM_OFFMODE_DC));
     // __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_4, (uint16_t)(PWM_OFFMODE_DC));
 
-    DShot_SendData(PWM_OFFMODE_DC, PWM_OFFMODE_DC, PWM_OFFMODE_DC, PWM_OFFMODE_DC);
+    DShot_SendThrottle(PWM_OFFMODE_DC, PWM_OFFMODE_DC, PWM_OFFMODE_DC, PWM_OFFMODE_DC);
 
     return RECEIVER_OK;
 }
@@ -449,47 +449,6 @@ void Receiver_OutputChValues(UART_HandleTypeDef *huart)
 }
 
 /**
- * @brief This function test each motor
- * @param htim pointer to a TIM_HandleTypeDef structure (output pwm timer)
- * @details turn motor 1 for 2 seconds on then next motor etc
- * @retval None
- */
-void Receiver_MotorTest(TIM_HandleTypeDef *htim)
-{
-    // // set std duty cycle
-    // __HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_1, (uint16_t)(PWM_OFFMODE_DC));
-    // __HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_2, (uint16_t)(PWM_OFFMODE_DC));
-    // __HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_3, (uint16_t)(PWM_OFFMODE_DC));
-    // __HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_4, (uint16_t)(PWM_OFFMODE_DC));
-
-    // // start pwm output
-    // HAL_TIM_PWM_Start(htim, TIM_CHANNEL_1);
-    // HAL_TIM_PWM_Start(htim, TIM_CHANNEL_2);
-    // HAL_TIM_PWM_Start(htim, TIM_CHANNEL_3);
-    // HAL_TIM_PWM_Start(htim, TIM_CHANNEL_4);
-    // HAL_Delay(2000);
-
-    // uint32_t waitTime = 2000; // wait time in milliseconds
- 
-    // // start motortest
-    // __HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_1, (uint16_t)(PWM_MOTORTEST_DC));
-    // // HAL_Delay(waitTime);
-    // __HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_2, (uint16_t)(PWM_MOTORTEST_DC));
-    // // HAL_Delay(waitTime);
-    // __HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_3, (uint16_t)(PWM_MOTORTEST_DC));
-    // // HAL_Delay(waitTime);
-    // __HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_4, (uint16_t)(PWM_MOTORTEST_DC));
-    // // HAL_Delay(waitTime);
-    // while(1);
-
-    // // set std duty cycle
-    // __HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_1, (uint16_t)(PWM_OFFMODE_DC));
-    // __HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_2, (uint16_t)(PWM_OFFMODE_DC));
-    // __HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_3, (uint16_t)(PWM_OFFMODE_DC));
-    // __HAL_TIM_SET_COMPARE(htim, TIM_CHANNEL_4, (uint16_t)(PWM_OFFMODE_DC));
-}
-
-/**
  * @brief This function sets the drone motors under the hover duty cycle -> landing
  * @retval Receiver_Status
  */
@@ -514,7 +473,7 @@ Receiver_Status Receiver_SignalLostHandler(void)
  * @brief This function saves the current channel data and check if its the same as before
  * @retval None
  */
-void Receiver_SaveChannelData(void)
+void Receiver_CheckEqChData(void)
 {
     if(protocol != IBUS)
         return;

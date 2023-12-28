@@ -163,14 +163,6 @@ void Receiver_OutputChValues(UART_HandleTypeDef *huart);
  */
 
 /**
- * @brief This function test each motor
- * @param htim pointer to a TIM_HandleTypeDef structure (output pwm timer)
- * @details turn motor 1 for 2 seconds on then next motor etc
- * @retval None
- */
-void Receiver_MotorTest(TIM_HandleTypeDef *htim);
-
-/**
  * @brief This function sets the drone motors under the hover duty cycle -> landing
  * @retval Receiver_Status
  */
@@ -180,6 +172,6 @@ Receiver_Status Receiver_SignalLostHandler(void);
  * @brief This function saves the current channel data and check if its the same as before
  * @retval None
  */
-void Receiver_SaveChannelData(void);
+void Receiver_CheckEqChData(void);
 
 #endif // RECEIVER_H_INCLUDED

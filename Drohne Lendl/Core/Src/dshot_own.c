@@ -6,8 +6,11 @@
  * 
  * @copyright FPV Drohne DA 202324
  * 
- * @brief 
- * 
+ * @brief This file provides functions for:
+ *          - DShot600 output init 
+ *          - DShot600 output special command 
+ *          - DShot600 output throttle 
+ *          - DShot600 ESC / motor test 
  */
 
 #include "dshot_own.h"
@@ -16,57 +19,40 @@
 --------------------------- GLOBAL VARIABLE ---------------------------
 **********************************************************************/
 
-uint16_t data[4] = {0};
-int8_t send = 0;        // sending flag
 uint16_t oneDC, zeroDC;
 
 TIM_HandleTypeDef *DShot_OutputTim = NULL;
 
 /**********************************************************************
-------------------------- FUNCTIONS VARIABLE -------------------------
+------------------------------ FUNCTIONS ------------------------------
 **********************************************************************/
 
 /**
- * @brief Timer PWM Pulse finished callback
- * @param htim timer pointer
+ * @brief This function is the ISR for DMA transmit complete
+ * @param hdma 
  */
-// void HAL_TIM_PWM_PulseFinishedCallback(TIM_HandleTypeDef *htim)
-void DShot_TimPWMPulseFinCallback(TIM_HandleTypeDef *htim)
+static void Dshot_DMA_XferCpltCallback(DMA_HandleTypeDef *hdma)
 {
-    // check pointer and sending flag
-    if(!send || htim != DShot_OutputTim)
-        return;
-
-    static int8_t index = 0;
-    static uint16_t extractingBit = 0x8000;
-
-    // check if bit needs to be extracted
-    if(extractingBit != 0x0000)
-    {
-        // sending bit 1
-        if(data[index] & extractingBit)
-            __HAL_TIM_SET_COMPARE(DShot_OutputTim, index * 4, oneDC);
-        
-        // sending bit 0
-        else
-            __HAL_TIM_SET_COMPARE(DShot_OutputTim, index * 4, zeroDC);
-        
-        extractingBit >>= 1;
-    }
-    else
-    {
-        // set idle value (0%)
-        __HAL_TIM_SET_COMPARE(DShot_OutputTim, index * 4, 0);
-
-        // increment index and check for max value
-        if(index++ >= 4)
-        {
-            index = 0;  // reset index
-            send = 0;   // reset sending flag
-        }
-
-        extractingBit = 0x8000; // reset extracting bit
-    }
+	// get timer HandleTypeDef
+    TIM_HandleTypeDef *htim = (TIM_HandleTypeDef *)((DMA_HandleTypeDef *)hdma)->Parent;
+   
+    // diable DMA to get rid of the delay between channels
+    if(hdma == htim->hdma[TIM_DMA_ID_CC1])
+	{
+		__HAL_TIM_DISABLE_DMA(htim, TIM_DMA_CC1);
+	}
+	else if(hdma == htim->hdma[TIM_DMA_ID_CC2])
+	{
+		__HAL_TIM_DISABLE_DMA(htim, TIM_DMA_CC2);
+	}
+	else if(hdma == htim->hdma[TIM_DMA_ID_CC3])
+	{
+		__HAL_TIM_DISABLE_DMA(htim, TIM_DMA_CC3);
+	}
+	else if(hdma == htim->hdma[TIM_DMA_ID_CC4])
+	{
+		__HAL_TIM_DISABLE_DMA(htim, TIM_DMA_CC4);
+	}
 }
 
 /**
@@ -81,24 +67,23 @@ DShot_Status DShot_Init(TIM_HandleTypeDef *htim)
     if(DShot_OutputTim == NULL)
         return DSHOT_TIM_ERROR;
 
-    oneDC = __HAL_TIM_GET_AUTORELOAD(DShot_OutputTim) * 0.74;   // calculate DC for sending bit 1
-    zeroDC = __HAL_TIM_GET_AUTORELOAD(DShot_OutputTim) * 0.37;  // calculate DC for sending bit 0
+    oneDC = __HAL_TIM_GET_AUTORELOAD(DShot_OutputTim) * 0.74850;   // calculate DC for sending bit 1
+    zeroDC = __HAL_TIM_GET_AUTORELOAD(DShot_OutputTim) * 0.37425;  // calculate DC for sending bit 0
 
-    // set custom callback function
-    HAL_TIM_RegisterCallback(DShot_OutputTim, HAL_TIM_PWM_PULSE_FINISHED_CB_ID, DShot_TimPWMPulseFinCallback);
+    // set custom transfer complete ISR
+	DShot_OutputTim->hdma[ESC_LF_DMA_ID]->XferCpltCallback = Dshot_DMA_XferCpltCallback;
+	DShot_OutputTim->hdma[ESC_RF_DMA_ID]->XferCpltCallback = Dshot_DMA_XferCpltCallback;
+	DShot_OutputTim->hdma[ESC_LR_DMA_ID]->XferCpltCallback = Dshot_DMA_XferCpltCallback;
+	DShot_OutputTim->hdma[ESC_RR_DMA_ID]->XferCpltCallback = Dshot_DMA_XferCpltCallback;
 
-    // set default duty cycle (0%)
-    __HAL_TIM_SET_COMPARE(DShot_OutputTim, TIM_CHANNEL_1, 0);
-    __HAL_TIM_SET_COMPARE(DShot_OutputTim, TIM_CHANNEL_2, 0);
-    __HAL_TIM_SET_COMPARE(DShot_OutputTim, TIM_CHANNEL_3, 0);
-    __HAL_TIM_SET_COMPARE(DShot_OutputTim, TIM_CHANNEL_4, 0);
+    HAL_TIM_PWM_Start(DShot_OutputTim, ESC_LF_TIM_CH);
+  	HAL_TIM_PWM_Start(DShot_OutputTim, ESC_RF_TIM_CH);
+	HAL_TIM_PWM_Start(DShot_OutputTim, ESC_LR_TIM_CH);
+	HAL_TIM_PWM_Start(DShot_OutputTim, ESC_RR_TIM_CH);
 
-    // start output timer channels
-    HAL_TIM_PWM_Start(DShot_OutputTim, TIM_CHANNEL_2);
-    HAL_TIM_PWM_Start(DShot_OutputTim, TIM_CHANNEL_3);
-    HAL_TIM_PWM_Start(DShot_OutputTim, TIM_CHANNEL_4);
-    HAL_TIM_PWM_Start_IT(DShot_OutputTim, TIM_CHANNEL_1); // interrupt for duty cycle change while transmitting
-    
+    DShot_SendCommand(DSHOT_MOTOR_STOP);
+    HAL_Delay(1000);
+
     return DSHOT_OK;
 }
 
@@ -110,39 +95,91 @@ DShot_Status DShot_Init(TIM_HandleTypeDef *htim)
  * @param motorRR percent of throttle value of right rear
  * @retval None
  */
-void DShot_SendData(double motorLF, double motorRF, double motorLR, double motorRR)
+void DShot_SendThrottle(double motorLF, double motorRF, double motorLR, double motorRR)
 {
     // get throttle integar value
     uint16_t throttle[4];
-    throttle[0] = round(motorLF);
-    throttle[1] = round(motorRF);
-    throttle[2] = round(motorLR);
-    throttle[3] = round(motorRR);
+    throttle[0] = 48 + 20 * round(motorLF);
+    throttle[1] = 48 + 20 * round(motorRF);
+    throttle[2] = 48 + 20 * round(motorLR);
+    throttle[3] = 48 + 20 * round(motorRR);
 
-    int telemetry = 0, withoutCS;
-
-    for(int8_t i = 0; i < 4; i++)
-    {
-        throttle[i] = 48 + 20 * throttle[i]; // get value (48 - 2047)
-        if(throttle[i] > 2047) // check max value
-            throttle[i] = 2047;
-
-        // first 12 bits (without Checksum)
-        withoutCS = (throttle[i] << 1) | telemetry; 
-
-        // format whole data frame
-        data[i] = withoutCS << 4 | (withoutCS ^ (withoutCS >> 4) ^ (withoutCS >> 8)) & 0x0F;     
-    }
-
-    DShot_StartSending(); // start sending cycle for all channels
+    DShot_SendData(throttle, 0);
 }
 
 /**
- * @brief This function starts the sending process of the DShot protocol
- * @attention This function sends the data that is stored in data[0-3]
- * @return None 
+ * @brief This function sends a command to the ESC via DShot protocol
+ * @param command 
+ * @retval None
  */
-void DShot_StartSending(void)
-{  
-    send = 1; // set sending flag
+void DShot_SendCommand(DShot_Command command)
+{
+    // get command integar value
+    uint16_t commands[4] = {command};
+
+    DShot_SendData(commands, 0);
 }
+
+/**
+ * @brief This function formats and sends DShot data via PWM DMA
+ * @param throttle Throttle values (0-2047)
+ * @param telemetry telemetry request bit
+ */
+void DShot_SendData(uint16_t *throttle, int8_t telemetry)
+{
+    uint16_t data[4][18] = {0};
+    uint16_t withoutCS, complete, div;
+
+    for(int8_t i = 0; i < 4; i++)
+    {
+        // first 12 bits (without Checksum)
+        withoutCS = (throttle[i] << 1) | telemetry;
+        
+        // format whole data frame
+        complete = withoutCS << 4 | (withoutCS ^ (withoutCS >> 4) ^ (withoutCS >> 8)) & 0x0F;     
+
+        div = 0x8000;
+        for(int8_t j = 0; j < 16; j++)
+        {
+            data[i][j] = (complete & div) ? oneDC : zeroDC;
+            div >>= 1; 
+        }
+    }
+
+    HAL_DMA_Start_IT(DShot_OutputTim->hdma[ESC_LF_DMA_ID], (uint32_t)&data[0][0], ESC_TIM_GET_CCR_ADDR(ESC_LF_TIM_CH), 18);
+	HAL_DMA_Start_IT(DShot_OutputTim->hdma[ESC_RF_DMA_ID], (uint32_t)&data[1][0], ESC_TIM_GET_CCR_ADDR(ESC_RF_TIM_CH), 18);
+	HAL_DMA_Start_IT(DShot_OutputTim->hdma[ESC_LR_DMA_ID], (uint32_t)&data[2][0], ESC_TIM_GET_CCR_ADDR(ESC_LR_TIM_CH), 18);
+	HAL_DMA_Start_IT(DShot_OutputTim->hdma[ESC_RR_DMA_ID], (uint32_t)&data[3][0], ESC_TIM_GET_CCR_ADDR(ESC_RR_TIM_CH), 18);
+
+	__HAL_TIM_ENABLE_DMA(DShot_OutputTim, TIM_DMA_CC1);
+	__HAL_TIM_ENABLE_DMA(DShot_OutputTim, TIM_DMA_CC2);
+	__HAL_TIM_ENABLE_DMA(DShot_OutputTim, TIM_DMA_CC3);
+    __HAL_TIM_ENABLE_DMA(DShot_OutputTim, TIM_DMA_CC4);
+}
+
+/**
+ * @brief This function tests the motors
+ * @retval None
+ */
+void DShot_MotorTest(void)
+{
+    DShot_SendThrottle(0, 0, 0, 0);
+    HAL_Delay(1000);
+    while(1)
+    {
+        DShot_SendThrottle(40, 40, 40, 40);
+        HAL_Delay(1);
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+

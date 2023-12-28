@@ -41,6 +41,8 @@ IMU_Status IMU_Init(I2C_HandleTypeDef *hi2c, IMU_Fullscale gyroFS, IMU_Fullscale
     errorCode = IMU_CheckConnection();
     if(errorCode != IMU_OK)
         return errorCode;
+
+    // errorCode = IMU_MPU_SelfTest(); // MAYBE
     
     // config MPU9250
     IMU_WriteRegister(MPU9250, IMU_MPU_PWR_MGMT_1_ADDR, 0x00, 1);           // reset MPU
