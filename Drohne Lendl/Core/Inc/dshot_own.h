@@ -57,6 +57,16 @@ typedef enum DShot_Status
     DSHOT_TIM_ERROR = 1
 } DShot_Status;
 
+// DShot speeds
+typedef enum ESC_OutputProtocol
+{
+    DSHOT150 = 1860,    // DSHOT150 auto reload register value
+    DSHOT300 = 930,     // DSHOT300 auto reload register value
+    DSHOT600 = 465,     // DSHOT600 auto reload register value
+
+    PWM = 10000         // PWM auto reload register value
+} ESC_OutputProtocol;
+
 // DShot special commands (0-47)
 typedef enum DShot_Command
 {
@@ -76,9 +86,10 @@ typedef enum DShot_Command
 /**
  * @brief This function initializes the output ESC DShot signal
  * @param htim pointer to TIM_HandleTypeDef (output timer)
+ * @param protocol DSHOT150, DSHOT300, DSHOT600 or PWM
  * @return DShot_Status 
  */
-DShot_Status DShot_Init(TIM_HandleTypeDef *htim);
+DShot_Status DShot_Init(TIM_HandleTypeDef *htim, ESC_OutputProtocol protocol);
 
 /**
  * @brief This function formats the motor data for the DShot protocol

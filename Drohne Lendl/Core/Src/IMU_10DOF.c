@@ -17,47 +17,97 @@
 **********************************************************************/
 
 I2C_HandleTypeDef *imu_ComI2C;
+TIM_HandleTypeDef *imu_DelayTIM;
+
+IMU_RegCoordinates gyroReg = {0};
+IMU_Coordinates gyroOffset = {0};
+IMU_BARO_CompensationVal baroCompensation;
+
+float q0, q1, q2, q3;
 
 /**********************************************************************
 ------------------------- FUNCTION PROTOTYPES -------------------------
 **********************************************************************/
 
 /**
+ * @brief This function delay the program in us
+ * @param us time to delay
+ */
+void IMU_DelayUs(uint16_t us)
+{
+    __HAL_TIM_SET_COUNTER(imu_DelayTIM, 0);
+    while(__HAL_TIM_GET_COUNTER(imu_DelayTIM) < us);
+}
+
+/**
  * @brief This function initialzes the 10DOF IMU
- * @param hi2c pointer to I2C_HandleTypeDef
+ * @param hi2c communication I2C, pointer to I2C_HandleTypeDef
  * @param gyroFS full scale select for gyroscope (GYROGYRO_250DPS / GYRO_500DPS / GYRO_1000DPS / GYRO_2000DPS)
  * @param accelFS full scale selct for accelerometer (ACCEL_2G / ACCEL_4G / ACCEL_8G / ACCEL_16G)
+ * @param htim us Delay timer, pointer to TIM_HandleTypeDef
  * @return IMU_Status 
  */
-IMU_Status IMU_Init(I2C_HandleTypeDef *hi2c, IMU_Fullscale gyroFS, IMU_Fullscale accelFS)
+IMU_Status IMU_Init(I2C_HandleTypeDef *hi2c, IMU_Fullscale gyroFS, IMU_Fullscale accelFS, TIM_HandleTypeDef *htim)
 {
     imu_ComI2C = hi2c;
     if(imu_ComI2C == NULL)
-        return IMU_TIMER_ERROR;
+        return IMU_I2C_ERROR;
 
+    imu_DelayTIM = htim;
+    if(imu_DelayTIM == NULL)
+        return IMU_TIM_ERROR;
+
+    
     uint8_t errorCode;
 
     // check if all IMU sensors are connected
     errorCode = IMU_CheckConnection();
     if(errorCode != IMU_OK)
         return errorCode;
-
-    // errorCode = IMU_MPU_SelfTest(); // MAYBE
+    
     
     // config MPU9250
     IMU_WriteRegister(MPU9250, IMU_MPU_PWR_MGMT_1_ADDR, 0x00, 1);           // reset MPU
     IMU_WriteRegister(MPU9250, IMU_MPU_SMPLRT_DIV_ADDR, 0x07, 1);           // set sample rate to 125Hz 
     IMU_WriteRegister(MPU9250, IMU_MPU_CONFIG_ADDR, 0x06, 1);               // set low pass filter to 5Hz
     IMU_WriteRegister(MPU9250, IMU_MPU_GYRO_CONFIG_ADDR, gyroFS << 3, 1);   // set gyro full scale range
-    IMU_WriteRegister(MPU9250, IMU_MPU_ACCEL_CONFIG_ADDR, accelFS << 3, 1); // set accel full scale range#
+    IMU_WriteRegister(MPU9250, IMU_MPU_ACCEL_CONFIG_ADDR, accelFS << 3, 1); // set accel full scale range
     HAL_Delay(10);
 
-    // TODO read div from full sclale range
+    
+    int32_t tempX = 0, tempY = 0, tempZ = 0;
+    
+    
+    // init gyro offset
+    for(int8_t i = 0; i < 32; i++)
+    {
+        IMU_MPU_ReadGyro();
 
-    // MAYBE config AK8963
+        tempX += gyroReg.x;
+        tempY += gyroReg.y;
+        tempZ += gyroReg.z;
+
+        IMU_DelayUs(100);
+    }
+
+    // calculate average value
+    gyroOffset.x = tempX / 32;
+    gyroOffset.y = tempY / 32;
+    gyroOffset.z = tempZ / 32;
 
 
-    // MAYBE config BMP280
+    // config BMP280
+    IMU_WriteRegister(BMP280, IMU_BARO_CTRL_MEAS_ADDR, 0xFF, 1);
+    IMU_WriteRegister(BMP280, IMU_BARO_CONFIG_ADDR, 0x14, 1);
+
+    // read calibration
+    IMU_BARO_ReadCompensationValues();
+    
+
+    q0 = 1.0f;
+    q1 = 0.0f;
+    q2 = 0.0f;
+    q3 = 0.0f;
 
 
     return IMU_OK;
@@ -177,9 +227,45 @@ IMU_Status IMU_CheckConnection(void)
     return IMU_OK;
 }
 
+/**
+ * @brief This function reads the x, y and z axis of the gyroscope -> stored in var gyroReg
+ * @details values get stored in variable "gyroReg"
+ * @retval None
+ */
+void IMU_MPU_ReadGyro(void)
+{
+    uint8_t buffer[6];
+    IMU_ReadRegister(MPU9250, IMU_MPU_GYRO_XOUT_H_ADDR, buffer, 6);
 
+    gyroReg.x = ((buffer[0] << 8) | buffer[1]) - gyroOffset.x;
+    gyroReg.y = ((buffer[2] << 8) | buffer[3]) - gyroOffset.y;
+    gyroReg.z = ((buffer[4] << 8) | buffer[5]) - gyroOffset.z;
+}
 
+/**
+ * @brief This function reads the temperature and pressure compensation values 
+ * @details values get stored in variable "baroCompensation"
+ * @retval None
+ */
+void IMU_BARO_ReadCompensationValues(void)
+{
+    uint8_t buffer[24];
+    IMU_ReadRegister(BMP280, IMU_BARO_DIG_T1_L_ADDR, buffer, 24);
 
+    baroCompensation.T1 = (buffer[1] << 8) | buffer[0];
+    baroCompensation.T2 = (buffer[3] << 8) | buffer[2];
+    baroCompensation.T3 = (buffer[5] << 8) | buffer[4];
+
+    baroCompensation.P1 = (buffer[7] << 8) | buffer[6];
+    baroCompensation.P2 = (buffer[9] << 8) | buffer[8];
+    baroCompensation.P3 = (buffer[11] << 8) | buffer[10];
+    baroCompensation.P4 = (buffer[13] << 8) | buffer[12];
+    baroCompensation.P5 = (buffer[15] << 8) | buffer[14];
+    baroCompensation.P6 = (buffer[17] << 8) | buffer[16];
+    baroCompensation.P7 = (buffer[19] << 8) | buffer[18];
+    baroCompensation.P8 = (buffer[21] << 8) | buffer[20];
+    baroCompensation.P9 = (buffer[23] << 8) | buffer[22];
+}
 
 
 

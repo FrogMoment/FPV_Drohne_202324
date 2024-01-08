@@ -33,56 +33,66 @@ TIM_HandleTypeDef *DShot_OutputTim = NULL;
  */
 static void Dshot_DMA_XferCpltCallback(DMA_HandleTypeDef *hdma)
 {
-	// get timer HandleTypeDef
-    TIM_HandleTypeDef *htim = (TIM_HandleTypeDef *)((DMA_HandleTypeDef *)hdma)->Parent;
-   
     // diable DMA to get rid of the delay between channels
-    if(hdma == htim->hdma[TIM_DMA_ID_CC1])
+    if(hdma == DShot_OutputTim->hdma[TIM_DMA_ID_CC1])
 	{
-		__HAL_TIM_DISABLE_DMA(htim, TIM_DMA_CC1);
+		__HAL_TIM_DISABLE_DMA(DShot_OutputTim, TIM_DMA_CC1);
 	}
-	else if(hdma == htim->hdma[TIM_DMA_ID_CC2])
+	else if(hdma == DShot_OutputTim->hdma[TIM_DMA_ID_CC2])
 	{
-		__HAL_TIM_DISABLE_DMA(htim, TIM_DMA_CC2);
+		__HAL_TIM_DISABLE_DMA(DShot_OutputTim, TIM_DMA_CC2);
 	}
-	else if(hdma == htim->hdma[TIM_DMA_ID_CC3])
+	else if(hdma == DShot_OutputTim->hdma[TIM_DMA_ID_CC3])
 	{
-		__HAL_TIM_DISABLE_DMA(htim, TIM_DMA_CC3);
+		__HAL_TIM_DISABLE_DMA(DShot_OutputTim, TIM_DMA_CC3);
 	}
-	else if(hdma == htim->hdma[TIM_DMA_ID_CC4])
+	else if(hdma == DShot_OutputTim->hdma[TIM_DMA_ID_CC4])
 	{
-		__HAL_TIM_DISABLE_DMA(htim, TIM_DMA_CC4);
+		__HAL_TIM_DISABLE_DMA(DShot_OutputTim, TIM_DMA_CC4);
 	}
 }
 
 /**
  * @brief This function initializes the output ESC DShot signal
  * @param htim pointer to TIM_HandleTypeDef (output timer)
+ * @param protocol DSHOT150, DSHOT300, DSHOT600 or PWM
  * @return DShot_Status 
  */
-DShot_Status DShot_Init(TIM_HandleTypeDef *htim)
+DShot_Status DShot_Init(TIM_HandleTypeDef *htim, ESC_OutputProtocol protocol)
 {
     // set and check timer pointer
     DShot_OutputTim = htim;
     if(DShot_OutputTim == NULL)
         return DSHOT_TIM_ERROR;
 
-    oneDC = __HAL_TIM_GET_AUTORELOAD(DShot_OutputTim) * 0.74850;   // calculate DC for sending bit 1
-    zeroDC = __HAL_TIM_GET_AUTORELOAD(DShot_OutputTim) * 0.37425;  // calculate DC for sending bit 0
+    if(protocol == PWM)
+    {
+        __HAL_TIM_SET_PRESCALER(DShot_OutputTim, 558 - 1);
+        __HAL_TIM_SET_AUTORELOAD(DShot_OutputTim, protocol - 1);
+        __HAL_TIM_SET_COMPARE(DShot_OutputTim, TIM_CHANNEL_1, protocol * 0.05);
+        __HAL_TIM_SET_COMPARE(DShot_OutputTim, TIM_CHANNEL_2, protocol * 0.05);
+        __HAL_TIM_SET_COMPARE(DShot_OutputTim, TIM_CHANNEL_3, protocol * 0.05);
+        __HAL_TIM_SET_COMPARE(DShot_OutputTim, TIM_CHANNEL_4, protocol * 0.05);
+    }
+    else
+    {
+        __HAL_TIM_SET_PRESCALER(DShot_OutputTim, 1 - 1);
+        __HAL_TIM_SET_AUTORELOAD(DShot_OutputTim, protocol - 1);
 
-    // set custom transfer complete ISR
-	DShot_OutputTim->hdma[ESC_LF_DMA_ID]->XferCpltCallback = Dshot_DMA_XferCpltCallback;
-	DShot_OutputTim->hdma[ESC_RF_DMA_ID]->XferCpltCallback = Dshot_DMA_XferCpltCallback;
-	DShot_OutputTim->hdma[ESC_LR_DMA_ID]->XferCpltCallback = Dshot_DMA_XferCpltCallback;
-	DShot_OutputTim->hdma[ESC_RR_DMA_ID]->XferCpltCallback = Dshot_DMA_XferCpltCallback;
+        oneDC = protocol * 0.74850;   // calculate DC for sending bit 1
+        zeroDC = protocol * 0.37425;  // calculate DC for sending bit 0
+
+        // set custom transfer complete ISR
+        DShot_OutputTim->hdma[ESC_LF_DMA_ID]->XferCpltCallback = Dshot_DMA_XferCpltCallback;
+        DShot_OutputTim->hdma[ESC_RF_DMA_ID]->XferCpltCallback = Dshot_DMA_XferCpltCallback;
+        DShot_OutputTim->hdma[ESC_LR_DMA_ID]->XferCpltCallback = Dshot_DMA_XferCpltCallback;
+        DShot_OutputTim->hdma[ESC_RR_DMA_ID]->XferCpltCallback = Dshot_DMA_XferCpltCallback;
+    }
 
     HAL_TIM_PWM_Start(DShot_OutputTim, ESC_LF_TIM_CH);
   	HAL_TIM_PWM_Start(DShot_OutputTim, ESC_RF_TIM_CH);
 	HAL_TIM_PWM_Start(DShot_OutputTim, ESC_LR_TIM_CH);
 	HAL_TIM_PWM_Start(DShot_OutputTim, ESC_RR_TIM_CH);
-
-    DShot_SendCommand(DSHOT_MOTOR_STOP);
-    HAL_Delay(1000);
 
     return DSHOT_OK;
 }
@@ -115,7 +125,7 @@ void DShot_SendThrottle(double motorLF, double motorRF, double motorLR, double m
 void DShot_SendCommand(DShot_Command command)
 {
     // get command integar value
-    uint16_t commands[4] = {command};
+    uint16_t commands[4] = {command, command, command, command};
 
     DShot_SendData(commands, 0);
 }
@@ -136,7 +146,10 @@ void DShot_SendData(uint16_t *throttle, int8_t telemetry)
         withoutCS = (throttle[i] << 1) | telemetry;
         
         // format whole data frame
-        complete = withoutCS << 4 | (withoutCS ^ (withoutCS >> 4) ^ (withoutCS >> 8)) & 0x0F;     
+        complete = withoutCS << 4 | (withoutCS ^ (withoutCS >> 4) ^ (withoutCS >> 8)) & 0x0F;
+
+        sprintf(txt, "%d\n\r", throttle[i]);
+        HAL_UART_Transmit(&huart4, (uint8_t*)&txt, strlen(txt), HAL_MAX_DELAY);     
 
         div = 0x8000;
         for(int8_t j = 0; j < 16; j++)
@@ -145,6 +158,7 @@ void DShot_SendData(uint16_t *throttle, int8_t telemetry)
             div >>= 1; 
         }
     }
+    HAL_UART_Transmit(&huart4, (uint8_t*)"\n\r", strlen("\n\r"), HAL_MAX_DELAY);     
 
     HAL_DMA_Start_IT(DShot_OutputTim->hdma[ESC_LF_DMA_ID], (uint32_t)&data[0][0], ESC_TIM_GET_CCR_ADDR(ESC_LF_TIM_CH), 18);
 	HAL_DMA_Start_IT(DShot_OutputTim->hdma[ESC_RF_DMA_ID], (uint32_t)&data[1][0], ESC_TIM_GET_CCR_ADDR(ESC_RF_TIM_CH), 18);

@@ -16,6 +16,8 @@
  *          - capacity measurement
  */
 
+#ifndef DS2438_H_INCLUDED
+#define DS2438_H_INCLUDED
 
 #include "main.h"
 
@@ -29,7 +31,7 @@
 #define DS2438_CONVERT_V 0xB4   // Convert Voltage command
 #define DS2438_READ_SP 0xBE     // read scratchpad command
 #define DS2438_WRITE_SP 0x4E    // write scratchpad command
-#define DS2438_COPY_SP 0x48    // write scratchpad command
+#define DS2438_COPY_SP 0x48     // write scratchpad command
 
 #define DS2438_RSENS 0.150      // value of sense resistor [ohm]
 
@@ -52,9 +54,9 @@ extern float ds2438_voltage;        // DS2438 voltage value
 extern float ds2438_temperature;    // DS2438 temperature value    
 extern float ds2438_capacity;       // DS2438 capacity value
 
-/******************************************************
------------------ FUNCTION PROTOTYPES -----------------
-******************************************************/
+/************************************************************************************************
+-------------------------------------- FUNCTION PROTOTYPES --------------------------------------
+************************************************************************************************/
 
 /**
  * @brief This function delays the program in us
@@ -166,4 +168,6 @@ DS2438_Status DS2438_ReadCapacity(void);
  * @return DS2438_Status
  */
 DS2438_Status DS2438_ReadAllSensors(void);
+
+#endif
 

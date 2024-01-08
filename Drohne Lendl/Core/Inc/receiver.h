@@ -24,6 +24,7 @@
  ************************************************************************************************/
 
 #include "main.h"
+#include "dshot_own.h"
 #include <string.h>
 #include <stdio.h>
 
@@ -37,6 +38,12 @@
 #define PWM_TURN_OFFSET_MAX     10      // max addition duty cycle speed when turning
 #define PWM_OFFMODE_DC          .5 * 10 // duty cycle when on/off switch is on off
 #define PWM_MOTORTEST_DC        10 * 10 // duty cycle for motor test
+
+#define ESC_SAFEMODE_THR_MAX    10      // max throttle in safe mode
+#define ESC_NORMALMODE_THR_MAX  80      // max throttle in safe mode
+#define ESC_TURN_OFFSET_MAX     10      // max addition throttle speed when turning
+#define ESC_OFFMODE_THR         1       // throttle when on/off switch is on off
+#define ESC_MOTORTEST_THR       30      // throttle for motor test
 
 #define PWM_HOVER_DC            50 * 10 // duty cycle for hovering
 #define PWM_SIGNAL_LOST_OFFSET  10 * 10 // duty cycle offset for landing while receiver disconnected
@@ -113,9 +120,10 @@ extern uint16_t receiver_ChData[16];    // each channel data
  * @param proto protocol to use (SBUS / IBUS)
  * @param huart pointer to a UART_HandleTypeDef structure (input usart)
  * @param htim_out pointer to a TIM_HandleTypeDef structure (output pwm timer)
+ * @param speed_out DSHOT150, DSHOT300 or DSHOT600
  * @return Receiver_Status
  */
-Receiver_Status Receiver_Init(Receiver_Protocol proto, UART_HandleTypeDef *huart, TIM_HandleTypeDef *htim_out);
+Receiver_Status Receiver_Init(Receiver_Protocol proto, UART_HandleTypeDef *huart, TIM_HandleTypeDef *htim_out, ESC_OutputProtocol speed_out);
 
 /**
  * @brief This function decodes the receiver raw data depending on the protocol

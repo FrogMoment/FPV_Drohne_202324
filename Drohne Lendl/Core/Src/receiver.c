@@ -46,9 +46,10 @@ uint16_t receiver_ChDataCheck = 0;        // counter amount of same channel data
  * @param proto protocol to use (SBUS / IBUS)
  * @param huart pointer to a UART_HandleTypeDef structure (input usart)
  * @param htim_out pointer to a TIM_HandleTypeDef structure (output pwm timer)
+ * @param speed_out DSHOT150, DSHOT300 or DSHOT600
  * @return Receiver_Status
  */
-Receiver_Status Receiver_Init(Receiver_Protocol proto, UART_HandleTypeDef *huart, TIM_HandleTypeDef *htim_out)
+Receiver_Status Receiver_Init(Receiver_Protocol proto, UART_HandleTypeDef *huart, TIM_HandleTypeDef *htim_out, ESC_OutputProtocol speed_out)
 {
     receiver_InputUART = huart; // set input uart
     protocol = proto;           // set serial protocol
@@ -122,7 +123,7 @@ Receiver_Status Receiver_Init(Receiver_Protocol proto, UART_HandleTypeDef *huart
             if(receiver_InputUART->Init.BaudRate != 100000)
                 return RECEIVER_UART_ERROR;
 
-            // check if trnasmitter is connected (ppm signal reception) 
+            // check if transmitter is connected (ppm signal reception) 
             uint8_t timeout = 0;
             int8_t tmp_PinState = HAL_GPIO_ReadPin(RECEIVER_PPM_GPIO_Port, RECEIVER_PPM_Pin);
             while(tmp_PinState == HAL_GPIO_ReadPin(RECEIVER_PPM_GPIO_Port, RECEIVER_PPM_Pin))
@@ -166,7 +167,10 @@ Receiver_Status Receiver_Init(Receiver_Protocol proto, UART_HandleTypeDef *huart
 
     // set std duty cycle (0.1%) and start timer pwm
     // pwm_Timer = htim_out;
-    DShot_Init(htim_out);
+    int8_t errorCode;
+    errorCode = DShot_Init(htim_out, speed_out);
+    if(errorCode != DSHOT_OK)
+        return RECEIVER_PWM_ERROR;
     Receiver_SetStdDC();
 
     // HAL_TIM_PWM_Start(pwm_Timer, TIM_CHANNEL_1);
@@ -301,13 +305,22 @@ Receiver_Status Receiver_MotorControl(void)
         return Receiver_SetStdDC();
 
     // check mode select (3 way switch)
-    uint16_t pwm_MaxDutyCycle;
+    // uint16_t pwm_MaxDutyCycle;
+    // if(receiver_ChData[MODESEL_SWTICH_CHANNEL] < receiver_Input.half - 10)
+    //     pwm_MaxDutyCycle = PWM_SAFEMODE_DC_MAX;
+    // else if(receiver_ChData[MODESEL_SWTICH_CHANNEL] >= receiver_Input.half - 10 && receiver_ChData[MODESEL_SWTICH_CHANNEL] <= receiver_Input.half + 10)
+    //     pwm_MaxDutyCycle = PWM_NORMALMODE_DC_MAX;
+    // else
+    //     pwm_MaxDutyCycle = PWM_NORMALMODE_DC_MAX; // MAYBE third flight mode select
+
+    // check mode select (3 way switch)
+    uint16_t esc_MaxThr;
     if(receiver_ChData[MODESEL_SWTICH_CHANNEL] < receiver_Input.half - 10)
-        pwm_MaxDutyCycle = PWM_SAFEMODE_DC_MAX;
+        esc_MaxThr = ESC_SAFEMODE_THR_MAX;
     else if(receiver_ChData[MODESEL_SWTICH_CHANNEL] >= receiver_Input.half - 10 && receiver_ChData[MODESEL_SWTICH_CHANNEL] <= receiver_Input.half + 10)
-        pwm_MaxDutyCycle = PWM_NORMALMODE_DC_MAX;
+        esc_MaxThr = ESC_NORMALMODE_THR_MAX;
     else
-        pwm_MaxDutyCycle = PWM_NORMALMODE_DC_MAX; // MAYBE third flight mode select
+        esc_MaxThr = ESC_NORMALMODE_THR_MAX; // MAYBE third flight mode select
 
 
     Motor_Position motor;
@@ -315,7 +328,8 @@ Receiver_Status Receiver_MotorControl(void)
 
     // throttle (up / down)
     float throttle = (float)(receiver_ChData[THROTTLE_CHANNEL] - receiver_Input.min) / receiver_Input.delta;   // get joystick position
-    throttle *= pwm_MaxDutyCycle;   // get percent of max duty cycle addition
+    // throttle *= pwm_MaxDutyCycle;   // get percent of max duty cycle addition
+    throttle *= esc_MaxThr;   // get percent of max duty cycle addition
     motor.LF = throttle;            // set motor speed to throttle
     motor.RF = throttle;            // set motor speed to throttle
     motor.LR = throttle;            // set motor speed to throttle
@@ -325,7 +339,8 @@ Receiver_Status Receiver_MotorControl(void)
     // pitch (forwards / backwards)
     float pitch = (float)(receiver_ChData[PITCH_CHANNEL] - receiver_Input.min) / receiver_Input.delta;      // get joystick position
     pitch = (pitch < .5) ? (.5 - pitch) * 2 : (pitch - .5) * 2; // get difference from 50%
-    pitch *= PWM_TURN_OFFSET_MAX;                               // get percent of max duty cycle addition
+    // pitch *= PWM_TURN_OFFSET_MAX;                               // get percent of max duty cycle addition
+    pitch *= ESC_TURN_OFFSET_MAX;                               // get percent of max duty cycle addition
 
     // flying backwards, front motors faster
     if(receiver_ChData[PITCH_CHANNEL] < receiver_Input.half)
@@ -344,7 +359,8 @@ Receiver_Status Receiver_MotorControl(void)
     // roll (left / right)
     float roll = (float)(receiver_ChData[ROLL_CHANNEL] - receiver_Input.min) / receiver_Input.delta;       // get joystick position
     roll = (roll < .5) ? (.5 - roll) * 2 : (roll - .5) * 2; // get difference from 50%
-    roll *= PWM_TURN_OFFSET_MAX;                             // get percent of max duty cycle addition
+    // roll *= PWM_TURN_OFFSET_MAX;                             // get percent of max duty cycle addition
+    roll *= ESC_TURN_OFFSET_MAX;                             // get percent of max duty cycle addition
 
     // flying left, right motors faster
     if(receiver_ChData[ROLL_CHANNEL] < receiver_Input.half)
@@ -363,7 +379,8 @@ Receiver_Status Receiver_MotorControl(void)
     // yaw (rotate left / rotate right)
     float yaw = (float)(receiver_ChData[YAW_CHANNEL] - receiver_Input.min) / receiver_Input.delta;       // get joystick position
     yaw = (yaw < .5) ? (.5 - yaw) * 2 : (yaw - .5) * 2;     // get difference from 50%
-    yaw *= PWM_TURN_OFFSET_MAX;                             // get percent of max duty cycle addition
+    // yaw *= PWM_TURN_OFFSET_MAX;                             // get percent of max duty cycle addition
+    yaw *= ESC_TURN_OFFSET_MAX;                             // get percent of max duty cycle addition
 
     // rotate left, right front and left rear motors faster
     if(receiver_ChData[YAW_CHANNEL] < receiver_Input.half)
@@ -379,11 +396,17 @@ Receiver_Status Receiver_MotorControl(void)
     }
 
 
+    // // check if the value is larger then the max value
+    // if(motor.LF > throttle + PWM_TURN_OFFSET_MAX) motor.LF = throttle + PWM_TURN_OFFSET_MAX;
+    // if(motor.RF > throttle + PWM_TURN_OFFSET_MAX) motor.RF = throttle + PWM_TURN_OFFSET_MAX;
+    // if(motor.LR > throttle + PWM_TURN_OFFSET_MAX) motor.LR = throttle + PWM_TURN_OFFSET_MAX;
+    // if(motor.RR > throttle + PWM_TURN_OFFSET_MAX) motor.RR = throttle + PWM_TURN_OFFSET_MAX;
+
     // check if the value is larger then the max value
-    if(motor.LF > throttle + PWM_TURN_OFFSET_MAX) motor.LF = throttle + PWM_TURN_OFFSET_MAX;
-    if(motor.RF > throttle + PWM_TURN_OFFSET_MAX) motor.RF = throttle + PWM_TURN_OFFSET_MAX;
-    if(motor.LR > throttle + PWM_TURN_OFFSET_MAX) motor.LR = throttle + PWM_TURN_OFFSET_MAX;
-    if(motor.RR > throttle + PWM_TURN_OFFSET_MAX) motor.RR = throttle + PWM_TURN_OFFSET_MAX;
+    if(motor.LF > throttle + ESC_TURN_OFFSET_MAX) motor.LF = throttle + ESC_TURN_OFFSET_MAX;
+    if(motor.RF > throttle + ESC_TURN_OFFSET_MAX) motor.RF = throttle + ESC_TURN_OFFSET_MAX;
+    if(motor.LR > throttle + ESC_TURN_OFFSET_MAX) motor.LR = throttle + ESC_TURN_OFFSET_MAX;
+    if(motor.RR > throttle + ESC_TURN_OFFSET_MAX) motor.RR = throttle + ESC_TURN_OFFSET_MAX;
 
 
     /**
@@ -409,16 +432,8 @@ Receiver_Status Receiver_MotorControl(void)
  */
 Receiver_Status Receiver_SetStdDC(void)
 {
-    // // check if pwm_Timer is set
-    // if(pwm_Timer == NULL)
-    //     return RECEIVER_PWM_ERROR;
-
-    // __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_1, (uint16_t)(PWM_OFFMODE_DC));
-    // __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_2, (uint16_t)(PWM_OFFMODE_DC));
-    // __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_3, (uint16_t)(PWM_OFFMODE_DC));
-    // __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_4, (uint16_t)(PWM_OFFMODE_DC));
-
-    DShot_SendThrottle(PWM_OFFMODE_DC, PWM_OFFMODE_DC, PWM_OFFMODE_DC, PWM_OFFMODE_DC);
+    // DShot_SendThrottle(PWM_OFFMODE_DC, PWM_OFFMODE_DC, PWM_OFFMODE_DC, PWM_OFFMODE_DC);
+    DShot_SendThrottle(ESC_OFFMODE_THR, ESC_OFFMODE_THR, ESC_OFFMODE_THR, ESC_OFFMODE_THR);
 
     return RECEIVER_OK;
 }

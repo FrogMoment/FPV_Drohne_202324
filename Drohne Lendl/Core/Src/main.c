@@ -30,19 +30,13 @@
 #include "receiver.h"
 #include "IMU_10DOF.h"
 #include "dshot_own.h"
+#include "status_handling.h"
 
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-typedef enum Sensors
-{
-  // MPU9250 = 0,
-  DS2438 = 1,
-  RECEIVER = 2,
-  IMU = 3,
-  DATA_TRANSMIT = 4
-} Sensors;
+
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -97,59 +91,14 @@ static void MX_TIM16_Init(void);
 static void MX_TIM17_Init(void);
 /* USER CODE BEGIN PFP */
 
-/**
- * @brief This funciton completly stops the program 
- * @param sens what sensor has the error
- * @param errorCode 
- * @retval None
- */
-void Sensor_ErrorHandler(Sensors sens, int8_t errorCode);
+
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-/**
- * @brief This funciton completly stops the program 
- * @param sens what sensor has the error
- * @param errorCode 
- * @retval None
- */
-void Sensor_ErrorHandler(Sensors sens, int8_t errorCode)
-{
-  char txt[100];
-  switch(sens)
-  {
-    // case MPU9250:
-    //   sprintf(txt, "MPU9250 ERROR | Code: %d\n\r", errorCode);
-    //   break;
 
-    case DS2438:
-      sprintf(txt, "DS2438 ERROR | Code: %d\n\r", errorCode);
-      break;
-
-    case RECEIVER:
-      sprintf(txt, "RECEIVER ERROR | Code: %d\n\r", errorCode);
-      break;
-
-    case IMU:
-      sprintf(txt, "IMU ERROR | Code: %d\n\r", errorCode);
-      break;
-
-    case DATA_TRANSMIT:
-      sprintf(txt, "DATA TRANSMIT ERROR | Code: %d\n\r", errorCode);
-      break;
-
-    default:
-      sprintf(txt, "wrong sensor ERROR | Code: %d\n\r", errorCode);
-      break;
-  }
-  HAL_UART_Transmit(&huart4, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
-
-  __disable_irq();
-  while(1);
-}
 
 // real time interrupt service routine
 void RealTimeSystemCallback(TIM_HandleTypeDef *htim)
@@ -184,24 +133,25 @@ void RealTimeSystemCallback(TIM_HandleTypeDef *htim)
 
 
   // ------------------ RECEIVER ------------------
-  // int8_t tmp = Receiver_MotorControl();
-  // if(tmp != RECEIVER_OK)
-  // {
-  //   sprintf(txt, "Receiver Error: %d\n\r", tmp);
-  //   HAL_UART_Transmit(&huart4, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
+  int8_t tmp = Receiver_MotorControl();
+  if(tmp != RECEIVER_OK)
+  {
+    sprintf(txt, "Receiver Error: %d\n\r", tmp);
+    HAL_UART_Transmit(&huart4, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
 
-    // if(tmp == IBUS_SIGNAL_LOST_ERROR || tmp == SBUS_SIGNAL_LOST || tmp == SBUS_SIGNAL_FAILSAFE)
-    // {
-    //   Receiver_SignalLostHandler();
-    // }
-  // }
+    if(tmp == IBUS_SIGNAL_LOST_ERROR || tmp == SBUS_SIGNAL_LOST || tmp == SBUS_SIGNAL_FAILSAFE)
+    {
+      Receiver_SignalLostHandler();
+    }
+  }
+  // Receiver_OutputChValues(&huart4);
 
   // sprintf(txt, "%02x\t%02X\t%02X\t%02X\t%02X\n", receiver_RawData[0], receiver_RawData[1], receiver_RawData[2], receiver_RawData[3], receiver_RawData[4]);
   // HAL_UART_Transmit(&huart4, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
 
   // DShot_SendData(50.0, 50.0, 50.0, 50.0);
 
-  DShot_SendThrottle(50, 50, 50, 50);
+  // DShot_SendThrottle(50, 50, 50, 50);
 
   // ----------------- IMU 10DOF -----------------
 // MX_MEMS_Process();
@@ -267,6 +217,8 @@ int main(void)
 
 
   int8_t errorCode;
+
+  HAL_UART_Transmit(&huart4, (uint8_t*)"Test1\n\r", strlen("Test1\n\r"), HAL_MAX_DELAY);
   
 
   // initialize MPU9250
@@ -298,10 +250,10 @@ int main(void)
 
 
   // initialize receiver reception with DMA
-  // errorCode = Receiver_Init(SBUS, &huart1, &htim3);
-  // if(errorCode != RECEIVER_OK)
-  //   Sensor_ErrorHandler(RECEIVER, errorCode);
-  // HAL_UART_Transmit(&huart4, (uint8_t *)"Receiver detected and calibrated\n\r", sizeof("Receiver detected and calibrated\n\r"), HAL_MAX_DELAY);
+  errorCode = Receiver_Init(SBUS, &huart1, &htim3, DSHOT600);
+  if(errorCode != RECEIVER_OK)
+    Sensor_ErrorHandler(RECEIVER, errorCode);
+  HAL_UART_Transmit(&huart4, (uint8_t *)"Receiver detected and calibrated\n\r", sizeof("Receiver detected and calibrated\n\r"), HAL_MAX_DELAY);
 
 
   // test motors
@@ -315,9 +267,10 @@ int main(void)
   HAL_UART_Transmit(&huart4, (uint8_t *)"MPU9250 detected and configured\n\r", sizeof("MPU9250 detected and configured\n\r"), HAL_MAX_DELAY); 
 */
 
-  DShot_Init(&htim3);
+  // DShot_Init(&htim3, DSHOT600);
+  // while(1);
 
-  DShot_MotorTest();
+  // DShot_MotorTest();
   
 
   // start timer 1 counter + interrupt (real time structure)

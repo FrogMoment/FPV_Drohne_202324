@@ -9,6 +9,7 @@
         "imu.h": "c",
         "dshot_own.h": "c",
         "stdio.h": "c",
-        "main.h": "c"
+        "main.h": "c",
+        "status_handling.h": "c"
     }
 }
