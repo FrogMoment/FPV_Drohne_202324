@@ -18,9 +18,9 @@
 
 #include "DS2438.h"
 
- /************************************************************************************************
- --------------------------------------- GLOBAL VARIABLES ---------------------------------------
- ************************************************************************************************/
+/************************************************************************************************
+--------------------------------------- GLOBAL VARIABLES ---------------------------------------
+************************************************************************************************/
 
 float ds2438_Current = 0;        // DS2438 current value
 float ds2438_Voltage = 0;        // DS2438 voltage value
@@ -45,7 +45,7 @@ void DS2438_DelayUs(uint32_t us)
 }
 
 /**
- * @brief This function initializes the DS2438 
+ * @brief This function initializes the DS2438
  * @param htim pointer to TIM_HandleTypeDef (timer for us delay)
  * @return DS2438_Status
  */
@@ -56,7 +56,7 @@ DS2438_Status DS2438_Init(TIM_HandleTypeDef *htim)
 
     DS2438_DelayTimer = htim;
     HAL_TIM_Base_Start(DS2438_DelayTimer); // start timer for DS2438_DelayUs
-    
+
     if(DS2438_Reset() == DS2438_ERROR)
         return DS2438_ERROR;
 
@@ -77,7 +77,7 @@ DS2438_Status DS2438_Init(TIM_HandleTypeDef *htim)
 
 /**
  * @brief This function resets / checks device presence
- * @return DS2438_Status 
+ * @return DS2438_Status
  */
 DS2438_Status DS2438_Reset(void)
 {
@@ -173,7 +173,7 @@ int8_t DS2438_ReadBit(void)
  * @brief This function writes the data to one page of the DS2438
  * @param page page number (0 - 7)
  * @param pageData data of page
- * @return DS2438_Status 
+ * @return DS2438_Status
  */
 DS2438_Status DS2438_WritePage(uint8_t page, int16_t *pageData)
 {
@@ -188,7 +188,7 @@ DS2438_Status DS2438_WritePage(uint8_t page, int16_t *pageData)
 
     for(uint8_t i = 0; i < 9; i++)
         DS2438_WriteByte(pageData[i]);
-    
+
     // reset + presence pulse
     if(DS2438_Reset() == DS2438_ERROR)
         return DS2438_ERROR;

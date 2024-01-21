@@ -18,9 +18,9 @@
 #include "receiver.h"
 #include "dshot_own.h"
 
- /************************************************************************************************
- --------------------------------------- GLOBAL VARIABLES ---------------------------------------
- ************************************************************************************************/
+/************************************************************************************************
+--------------------------------------- GLOBAL VARIABLES ---------------------------------------
+************************************************************************************************/
 
  // receiver variables
 UART_HandleTypeDef *receiver_InputUART = NULL;          // pointer to UART_HandleTypeDef of input signal
@@ -290,7 +290,7 @@ Receiver_Status Receiver_Decode(void)
 
 /**
  * @brief This function calculates the stick positions according to the receiver input
- * @details 
+ * @details
  * The max throttle values per mode can be changed in receiver.h with:
  *  - ESC_SAFEMODE_THR_MAX
  *  - ESC_NORMALMODE_THR_MAX
@@ -307,7 +307,7 @@ Receiver_Status Receiver_MotorControl(void)
     /**************************************************************************************************************************************
     -------------------------------------------------------- check ON / OFF switch --------------------------------------------------------
     ***************************************************************************************************************************************/
-    
+
     // top position (< half) = off (set standard throttle)
     if(receiver_ChData[RECEIVER_ONOFF_SWITCH_CHANNEL] < receiver_InputLimits.half)
         return Receiver_SetStdDC();
@@ -315,17 +315,17 @@ Receiver_Status Receiver_MotorControl(void)
     /**************************************************************************************************************************************
     ------------------------------------------------ check 3 position switch (mode select) ------------------------------------------------
     ***************************************************************************************************************************************/
-    
+
     uint16_t esc_MaxThr;
 
     // top position (< half) = safemode
     if(receiver_ChData[RECEIVER_MODESEL_SWTICH_CHANNEL] < receiver_InputLimits.half - 10)
         esc_MaxThr = ESC_SAFEMODE_THR_MAX;
-    
+
     // middle position (half +- 10) = normalmode
     else if(receiver_ChData[RECEIVER_MODESEL_SWTICH_CHANNEL] >= receiver_InputLimits.half - 10 && receiver_ChData[RECEIVER_MODESEL_SWTICH_CHANNEL] <= receiver_InputLimits.half + 10)
         esc_MaxThr = ESC_NORMALMODE_THR_MAX;
-    
+
     // down position = extra mode, currenty also normalmode
     else
         esc_MaxThr = ESC_NORMALMODE_THR_MAX; // MAYBE third flight mode select
@@ -333,7 +333,7 @@ Receiver_Status Receiver_MotorControl(void)
     /**************************************************************************************************************************************
     ------------------------------------------------ calculate throttle input (up / down) ------------------------------------------------
     ***************************************************************************************************************************************/
-    
+
     Motor_Position motor;
 
     float throttle = (float)(receiver_ChData[RECEIVER_THROTTLE_CHANNEL] - receiver_InputLimits.min) / receiver_InputLimits.delta; // get joystick position
@@ -346,7 +346,7 @@ Receiver_Status Receiver_MotorControl(void)
     /**************************************************************************************************************************************
     -------------------------------------------- calculate pitch input (forwards / backwards) --------------------------------------------
     ***************************************************************************************************************************************/
-   
+
     float pitch = (float)(receiver_ChData[RECEIVER_PITCH_CHANNEL] - receiver_InputLimits.min) / receiver_InputLimits.delta; // get joystick position
     pitch = (pitch < .5) ? (.5 - pitch) * 2 : (pitch - .5) * 2; // get difference from 50%
     pitch *= ESC_TURN_OFFSET_MAX;                               // get percent of max duty cycle addition
@@ -367,7 +367,7 @@ Receiver_Status Receiver_MotorControl(void)
     /**************************************************************************************************************************************
     ------------------------------------------------- calculate roll input (left / right) -------------------------------------------------
     ***************************************************************************************************************************************/
-    
+
     float roll = (float)(receiver_ChData[RECEIVER_ROLL_CHANNEL] - receiver_InputLimits.min) / receiver_InputLimits.delta; // get joystick position
     roll = (roll < .5) ? (.5 - roll) * 2 : (roll - .5) * 2; // get difference from 50%
     roll *= ESC_TURN_OFFSET_MAX;                            // get percent of max duty cycle addition
@@ -388,7 +388,7 @@ Receiver_Status Receiver_MotorControl(void)
     /**************************************************************************************************************************************
     ------------------------------------------ calculate yaw input (rotate left / rotate right) ------------------------------------------
     ***************************************************************************************************************************************/
-    
+
     float yaw = (float)(receiver_ChData[RECEIVER_YAW_CHANNEL] - receiver_InputLimits.min) / receiver_InputLimits.delta; // get joystick position
     yaw = (yaw < .5) ? (.5 - yaw) * 2 : (yaw - .5) * 2; // get difference from 50%
     yaw *= ESC_TURN_OFFSET_MAX;                         // get percent of max duty cycle addition
@@ -409,7 +409,7 @@ Receiver_Status Receiver_MotorControl(void)
     /**************************************************************************************************************************************
     -------------------------------------------------------- check and send values --------------------------------------------------------
     ***************************************************************************************************************************************/
-    
+
     // check if the value is larger then the max value (throttle + turn offset max)
     if(motor.LF > throttle + ESC_TURN_OFFSET_MAX) motor.LF = throttle + ESC_TURN_OFFSET_MAX;
     if(motor.RF > throttle + ESC_TURN_OFFSET_MAX) motor.RF = throttle + ESC_TURN_OFFSET_MAX;

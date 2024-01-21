@@ -3,14 +3,14 @@
  * @author Maximilian Lendl
  * @date 2023-12-01
  * @version 1
- * 
+ *
  * @copyright FPV Drohne DA 202324
- * 
+ *
  * @brief This file provides functions for:
  *          - DShot init for DShot150, DShot300 or DShot600
- *          - DShot send throttle value 
- *          - DShot send command 
- *          - DShot ESC / motor test 
+ *          - DShot send throttle value
+ *          - DShot send command
+ *          - DShot ESC / motor test
  */
 
 #ifndef DSHOT_H_INCLUDED
@@ -85,7 +85,7 @@ typedef enum DShot_Command
  * @brief This function initializes the output ESC DShot signal
  * @param htim pointer to TIM_HandleTypeDef (output timer)
  * @param protocol DSHOT150, DSHOT300, DSHOT600
- * @return DShot_Status 
+ * @return DShot_Status
  */
 DShot_Status DShot_Init(TIM_HandleTypeDef *htim, ESC_OutputProtocol protocol);
 
@@ -101,7 +101,7 @@ void DShot_SendThrottle(double motorLF, double motorRF, double motorLR, double m
 
 /**
  * @brief This function sends a command to the ESC via DShot protocol
- * @param command 
+ * @param command
  * @retval None
  */
 void DShot_SendCommand(DShot_Command command);

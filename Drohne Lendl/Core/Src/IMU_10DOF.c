@@ -3,11 +3,11 @@
  * @author Maximilian Lendl
  * @date 2023-11-18
  * @version 1
- * 
+ *
  * @copyright FPV Drohne DA 202324
- * 
- * @brief 
- * 
+ *
+ * @brief
+ *
  */
 
 #include "IMU_10DOF.h"
@@ -54,7 +54,7 @@ void IMU_DelayUs(uint16_t us)
  * @param gyroDLPF bandwidth of gyroscope digital low pass filter (GYRO_DLPF_250HZ, GYRO_DLPF_184HZ, GYRO_DLPF_92HZ, GYRO_DLPF_41HZ)
  * @param accelDLPF bandwidth of accelerometer digital low pass filter (ACCEL_DLPF_460HZ, ACCEL_DLPF_184HZ, ACCEL_DLPF_92HZ, ACCEL_DLPF_41HZ)
  * @param htim us Delay timer, pointer to TIM_HandleTypeDef
- * @return IMU_Status 
+ * @return IMU_Status
  */
 IMU_Status IMU_Init(I2C_HandleTypeDef *hi2c, IMU_Fullscale gyroFS, IMU_Fullscale accelFS, IMU_DLPF gyroDLPF, IMU_DLPF accelDLPF, TIM_HandleTypeDef *htim)
 {
@@ -65,10 +65,10 @@ IMU_Status IMU_Init(I2C_HandleTypeDef *hi2c, IMU_Fullscale gyroFS, IMU_Fullscale
     imu_DelayTIM = htim;
     if(imu_DelayTIM == NULL)
         return IMU_TIM_ERROR;
-        
+
     HAL_TIM_Base_Start(imu_DelayTIM); // start delay timer
 
-    
+
     uint8_t errorCode;
 
     // check if all IMU sensors are connected
@@ -132,7 +132,7 @@ IMU_Status IMU_Init(I2C_HandleTypeDef *hi2c, IMU_Fullscale gyroFS, IMU_Fullscale
  * @param regAddr register address
  * @param data data pointer
  * @param rxBytes amount of bytes to read
- * @return IMU_Status 
+ * @return IMU_Status
  */
 IMU_Status IMU_ReadRegister(IMU_Sensor sensor, uint8_t regAddr, uint8_t *data, uint8_t rxBytes)
 {
@@ -148,7 +148,7 @@ IMU_Status IMU_ReadRegister(IMU_Sensor sensor, uint8_t regAddr, uint8_t *data, u
         case MAG:
             devAddress = IMU_MAG_I2C_ADDR;
             break;
-        
+
         case BMP280:
         case BARO:
             devAddress = IMU_BARO_I2C_ADDR;
@@ -169,7 +169,7 @@ IMU_Status IMU_ReadRegister(IMU_Sensor sensor, uint8_t regAddr, uint8_t *data, u
  * @param sensor MPU9250, AK8963 (MAG), BMP280 (BARO)
  * @param regAddr register address
  * @param data data to write
- * @return IMU_Status 
+ * @return IMU_Status
  */
 IMU_Status IMU_WriteRegister(IMU_Sensor sensor, uint8_t regAddr, uint8_t data)
 {
@@ -185,7 +185,7 @@ IMU_Status IMU_WriteRegister(IMU_Sensor sensor, uint8_t regAddr, uint8_t data)
         case MAG:
             devAddress = IMU_MAG_I2C_ADDR;
             break;
-        
+
         case BMP280:
         case BARO:
             devAddress = IMU_BARO_I2C_ADDR;
@@ -204,7 +204,7 @@ IMU_Status IMU_WriteRegister(IMU_Sensor sensor, uint8_t regAddr, uint8_t data)
 /**
  * @brief This function checks the connection of all sensors on the IMU
  * @attention This function enables the bypass mode in the MPU9250
- * @return IMU_Status 
+ * @return IMU_Status
  */
 IMU_Status IMU_CheckConnection(void)
 {
@@ -258,7 +258,7 @@ IMU_RegCoordinates IMU_MPU_ReadGyro(void)
 
 /**
  * @brief This function reads accelerometer register data (x,y,z)
- * @return IMU_RegCoordinates 
+ * @return IMU_RegCoordinates
  */
 IMU_RegCoordinates IMU_MPU_ReadAccel(void)
 {
@@ -275,7 +275,7 @@ IMU_RegCoordinates IMU_MPU_ReadAccel(void)
 
 /**
  * @brief This function reads magnetometer register data (x,y,z)
- * @return IMU_RegCoordinates 
+ * @return IMU_RegCoordinates
  */
 IMU_RegCoordinates IMU_MAG_ReadMag(void)
 {
@@ -325,7 +325,7 @@ void IMU_GetAngles(void)
 
 
 /**
- * @brief This function reads the temperature and pressure compensation values 
+ * @brief This function reads the temperature and pressure compensation values
  * @details values get stored in variable "baroCompensation"
  * @retval None
  */

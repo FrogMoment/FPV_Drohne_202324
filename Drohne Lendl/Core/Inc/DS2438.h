@@ -21,9 +21,9 @@
 
 #include "main.h"
 
- /************************************************************************************************
- ---------------------------------------- GLOBAL DEFINES ----------------------------------------
- ************************************************************************************************/
+/************************************************************************************************
+---------------------------------------- GLOBAL DEFINES ----------------------------------------
+************************************************************************************************/
 
 #define DS2438_SKIP_ROM 0xCC    // Skip ROM function command
 #define DS2438_RECALL_MEM 0xB8  // Recall Memory function command
@@ -35,9 +35,9 @@
 
 #define DS2438_RSENS 0.150      // value of sense resistor [ohm]
 
- /************************************************************************************************
- --------------------------------------- GLOBAL STRUCTURES ---------------------------------------
- ************************************************************************************************/
+/************************************************************************************************
+--------------------------------------- GLOBAL STRUCTURES ---------------------------------------
+************************************************************************************************/
 
 typedef enum DS2438_Status
 {
@@ -68,13 +68,13 @@ void DS2438_DelayUs(uint32_t us);
 /**
  * @brief This function initializes the DS2438 (reset + presence pulse)
  * @param htim pointer to TIM_HandleTypeDef (timer for us delay)
- * @return DS2438_Status 
+ * @return DS2438_Status
  */
 DS2438_Status DS2438_Init(TIM_HandleTypeDef *htim);
 
 /**
  * @brief This function resets / checks device presence
- * @return DS2438_Status 
+ * @return DS2438_Status
  */
 DS2438_Status DS2438_Reset(void);
 
@@ -108,7 +108,7 @@ int8_t DS2438_ReadBit(void);
  * @brief This function writes the data to one page of the DS2438
  * @param page page number (0 - 7)
  * @param pageData data of page
- * @return DS2438_Status 
+ * @return DS2438_Status
  */
 DS2438_Status DS2438_WritePage(uint8_t page, int16_t *pageData);
 

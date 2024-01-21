@@ -134,7 +134,7 @@ Receiver_Status Receiver_Decode(void);
 
 /**
  * @brief This function calculates the stick positions according to the receiver input
- * @details 
+ * @details
  * The max throttle values per mode can be changed in receiver.h with:
  *  - ESC_SAFEMODE_THR_MAX
  *  - ESC_NORMALMODE_THR_MAX

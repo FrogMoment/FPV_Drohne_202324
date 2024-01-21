@@ -3,9 +3,9 @@
  * @author Maximilian Lendl
  * @date 2024-01-03
  * @version 1
- * 
+ *
  * @copyright FPV Drohne DA 202324
- * 
+ *
  * @brief This file provides functions for:
  *          - Sensor error handler
  *          - terminal print
@@ -14,9 +14,9 @@
 #include "status_handling.h"
 
 /**
- * @brief This funciton completly stops the program 
+ * @brief This funciton completly stops the program
  * @param sens what sensor has the error
- * @param errorCode 
+ * @param errorCode
  * @retval None
  */
 void Sensor_ErrorHandler(Sensors sens, int8_t errorCode)
@@ -48,7 +48,7 @@ void Sensor_ErrorHandler(Sensors sens, int8_t errorCode)
 
 /**
  * @brief This function prints a string to the terminal
- * @param string 
+ * @param string
  * @retval none
  */
 void Terminal_Print(char *string)
