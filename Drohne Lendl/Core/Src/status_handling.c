@@ -6,8 +6,9 @@
  * 
  * @copyright FPV Drohne DA 202324
  * 
- * @brief 
- * 
+ * @brief This file provides functions for:
+ *          - Sensor error handler
+ *          - terminal print
  */
 
 #include "status_handling.h"
@@ -23,10 +24,6 @@ void Sensor_ErrorHandler(Sensors sens, int8_t errorCode)
   char txt[100];
   switch(sens)
   {
-    // case MPU9250:
-    //   sprintf(txt, "MPU9250 ERROR | Code: %d\n\r", errorCode);
-    //   break;
-
     case DS2438:
       sprintf(txt, "DS2438 ERROR | Code: %d\n\r", errorCode);
       break;
@@ -39,16 +36,28 @@ void Sensor_ErrorHandler(Sensors sens, int8_t errorCode)
       sprintf(txt, "IMU ERROR | Code: %d\n\r", errorCode);
       break;
 
-    case DATA_TRANSMIT:
-      sprintf(txt, "DATA TRANSMIT ERROR | Code: %d\n\r", errorCode);
-      break;
-
     default:
       sprintf(txt, "wrong sensor ERROR | Code: %d\n\r", errorCode);
       break;
   }
-  HAL_UART_Transmit(&huart4, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
+  Terminal_Print(txt);
 
   __disable_irq();
   while(1);
 }
+
+/**
+ * @brief This function prints a string to the terminal
+ * @param string 
+ * @retval none
+ */
+void Terminal_Print(char *string)
+{
+  HAL_UART_Transmit(TERMINAL_UART, (uint8_t *)string, strlen(string), HAL_MAX_DELAY);
+}
+
+
+
+
+
+

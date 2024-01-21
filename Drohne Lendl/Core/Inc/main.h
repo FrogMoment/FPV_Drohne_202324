@@ -38,7 +38,7 @@ extern "C" {
 /* USER CODE BEGIN ET */
 
 extern UART_HandleTypeDef huart4;
-extern char txt[100];
+extern char txt[1000];
 extern int16_t helpTmp;
 
 /* USER CODE END ET */
@@ -60,14 +60,17 @@ void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
 
+
+
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define ESC_TIM &htim3
-#define RTS_TIM &htim15
-#define HCSR04_TIM &htim4
 #define IMU_TimDelay &htim17
+#define ESC_TIM &htim3
+#define HCSR04_TIM &htim4
 #define DS2438_TimDelay &htim16
+#define RTS_TIM &htim15
+#define TERMINAL_UART &huart4
 #define EXTRA_7_Pin GPIO_PIN_13
 #define EXTRA_7_GPIO_Port GPIOC
 #define DS2438_DQ_Pin GPIO_PIN_0

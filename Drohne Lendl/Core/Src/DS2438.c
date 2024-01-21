@@ -22,10 +22,10 @@
  --------------------------------------- GLOBAL VARIABLES ---------------------------------------
  ************************************************************************************************/
 
-float ds2438_current = 0;        // DS2438 current value
-float ds2438_voltage = 0;        // DS2438 voltage value
-float ds2438_temperature = 0;    // DS2438 temperature value    
-float ds2438_capacity = 0;       // DS2438 capacity value
+float ds2438_Current = 0;        // DS2438 current value
+float ds2438_Voltage = 0;        // DS2438 voltage value
+float ds2438_Temperature = 0;    // DS2438 temperature value    
+float ds2438_Capacity = 0;       // DS2438 capacity value
 
 TIM_HandleTypeDef *DS2438_DelayTimer;
 
@@ -38,7 +38,7 @@ TIM_HandleTypeDef *DS2438_DelayTimer;
  * @param us delay in us
  * @retval None
  */
-void Delay_us(uint32_t us)
+void DS2438_DelayUs(uint32_t us)
 {
     __HAL_TIM_SET_COUNTER(DS2438_DelayTimer, 0);
     while(__HAL_TIM_GET_COUNTER(DS2438_DelayTimer) < us);
@@ -55,7 +55,7 @@ DS2438_Status DS2438_Init(TIM_HandleTypeDef *htim)
         return DS2438_ERROR;
 
     DS2438_DelayTimer = htim;
-    HAL_TIM_Base_Start(DS2438_DelayTimer); // start timer for Delay_us
+    HAL_TIM_Base_Start(DS2438_DelayTimer); // start timer for DS2438_DelayUs
     
     if(DS2438_Reset() == DS2438_ERROR)
         return DS2438_ERROR;
@@ -299,7 +299,7 @@ DS2438_Status DS2438_ReadCurrent(void)
     if(currentMSB & ~0x3)
         tmp *= -1;
 
-    ds2438_current = tmp / (4096 * DS2438_RSENS);
+    ds2438_Current = tmp / (4096 * DS2438_RSENS);
 
     return DS2438_OK;
 }
@@ -325,8 +325,8 @@ DS2438_Status DS2438_ReadVoltage(void)
     int16_t voltageLSB = pageData[3];
     int16_t voltageMSB = pageData[4];
 
-    ds2438_voltage = (((voltageMSB & 0x3) << 8) | (voltageLSB)) / 100.0;
-    // ds2438_voltage *= 2; // because of resistor voltage divider 
+    ds2438_Voltage = (((voltageMSB & 0x3) << 8) | (voltageLSB)) / 100.0;
+    // TODO ds2438_voltage *= 2; // because of resistor voltage divider 
 
     return DS2438_OK;
 }
@@ -352,7 +352,7 @@ DS2438_Status DS2438_ReadTemperature(void)
     if(tempMSB & 0x80)
         tmp *= -1;
 
-    ds2438_temperature = tmp;
+    ds2438_Temperature = tmp;
 
     return DS2438_OK;
 }
@@ -368,7 +368,7 @@ DS2438_Status DS2438_ReadCapacity(void)
     if(DS2438_ReadVICA(&vica) == DS2438_ERROR)
         return DS2438_ERROR;
 
-    ds2438_capacity = vica / (2048 * DS2438_RSENS);
+    ds2438_Capacity = vica / (2048 * DS2438_RSENS);
 
     return DS2438_OK;
 }

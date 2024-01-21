@@ -28,11 +28,15 @@
 #include "Public_StdTypes.h"
 #include "MPU9250.h"
 #include "BMP180.h"
+#include "BMP280.h"
 
 #define M_PI  (float)3.1415926535
+#define IMU_PRES_TYPE_BM180     1
+#define IMU_PRES_TYPE_BM280     2
 
 extern int16_t accel[3], gyro[3];
 extern float angles[3];
+extern uint8_t u8PressureType;
 
 extern void IMU_Init(void); 
 extern void IMU_GetYawPitchRoll(float *Angles) ;

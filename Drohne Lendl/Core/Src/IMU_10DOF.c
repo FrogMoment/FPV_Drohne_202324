@@ -13,17 +13,23 @@
 #include "IMU_10DOF.h"
 
 /**********************************************************************
---------------------------- GLOBAL VARIABLE ---------------------------
+--------------------------- GLOBAL VARIABLES ---------------------------
 **********************************************************************/
 
 I2C_HandleTypeDef *imu_ComI2C;
 TIM_HandleTypeDef *imu_DelayTIM;
 
-IMU_RegCoordinates gyroReg = {0};
+float accelSens = 0;
+float gyroSens = 0;
 IMU_Coordinates gyroOffset = {0};
-IMU_BARO_CompensationVal baroCompensation;
 
-float q0, q1, q2, q3;
+uint8_t magAdjust[3] = {0};
+
+IMU_Coordinates accel = {0};
+IMU_Coordinates gyro = {0};
+IMU_Coordinates mag = {0};
+
+IMU_Angles angle = {0};
 
 /**********************************************************************
 ------------------------- FUNCTION PROTOTYPES -------------------------
@@ -32,6 +38,7 @@ float q0, q1, q2, q3;
 /**
  * @brief This function delay the program in us
  * @param us time to delay
+ * @retval None
  */
 void IMU_DelayUs(uint16_t us)
 {
@@ -44,10 +51,12 @@ void IMU_DelayUs(uint16_t us)
  * @param hi2c communication I2C, pointer to I2C_HandleTypeDef
  * @param gyroFS full scale select for gyroscope (GYROGYRO_250DPS / GYRO_500DPS / GYRO_1000DPS / GYRO_2000DPS)
  * @param accelFS full scale selct for accelerometer (ACCEL_2G / ACCEL_4G / ACCEL_8G / ACCEL_16G)
+ * @param gyroDLPF bandwidth of gyroscope digital low pass filter (GYRO_DLPF_250HZ, GYRO_DLPF_184HZ, GYRO_DLPF_92HZ, GYRO_DLPF_41HZ)
+ * @param accelDLPF bandwidth of accelerometer digital low pass filter (ACCEL_DLPF_460HZ, ACCEL_DLPF_184HZ, ACCEL_DLPF_92HZ, ACCEL_DLPF_41HZ)
  * @param htim us Delay timer, pointer to TIM_HandleTypeDef
  * @return IMU_Status 
  */
-IMU_Status IMU_Init(I2C_HandleTypeDef *hi2c, IMU_Fullscale gyroFS, IMU_Fullscale accelFS, TIM_HandleTypeDef *htim)
+IMU_Status IMU_Init(I2C_HandleTypeDef *hi2c, IMU_Fullscale gyroFS, IMU_Fullscale accelFS, IMU_DLPF gyroDLPF, IMU_DLPF accelDLPF, TIM_HandleTypeDef *htim)
 {
     imu_ComI2C = hi2c;
     if(imu_ComI2C == NULL)
@@ -56,6 +65,8 @@ IMU_Status IMU_Init(I2C_HandleTypeDef *hi2c, IMU_Fullscale gyroFS, IMU_Fullscale
     imu_DelayTIM = htim;
     if(imu_DelayTIM == NULL)
         return IMU_TIM_ERROR;
+        
+    HAL_TIM_Base_Start(imu_DelayTIM); // start delay timer
 
     
     uint8_t errorCode;
@@ -64,51 +75,53 @@ IMU_Status IMU_Init(I2C_HandleTypeDef *hi2c, IMU_Fullscale gyroFS, IMU_Fullscale
     errorCode = IMU_CheckConnection();
     if(errorCode != IMU_OK)
         return errorCode;
-    
-    
-    // config MPU9250
-    IMU_WriteRegister(MPU9250, IMU_MPU_PWR_MGMT_1_ADDR, 0x00, 1);           // reset MPU
-    IMU_WriteRegister(MPU9250, IMU_MPU_SMPLRT_DIV_ADDR, 0x07, 1);           // set sample rate to 125Hz 
-    IMU_WriteRegister(MPU9250, IMU_MPU_CONFIG_ADDR, 0x06, 1);               // set low pass filter to 5Hz
-    IMU_WriteRegister(MPU9250, IMU_MPU_GYRO_CONFIG_ADDR, gyroFS << 3, 1);   // set gyro full scale range
-    IMU_WriteRegister(MPU9250, IMU_MPU_ACCEL_CONFIG_ADDR, accelFS << 3, 1); // set accel full scale range
-    HAL_Delay(10);
 
-    
+    IMU_WriteRegister(MPU9250, IMU_MPU_PWR_MGMT_1_ADDR, 0x00); // reset MPU
+    IMU_DelayUs(10000);
+    IMU_WriteRegister(MPU9250, IMU_MPU_PWR_MGMT_1_ADDR, 0x01);
+    IMU_WriteRegister(MPU9250, IMU_MPU_PWR_MGMT_2_ADDR, 0x00);
+    IMU_WriteRegister(MPU9250, IMU_MPU_ACCEL_CONFIG_ADDR, accelFS << 3);
+    IMU_WriteRegister(MPU9250, IMU_MPU_GYRO_CONFIG_ADDR, gyroFS << 3);
+    IMU_WriteRegister(MPU9250, IMU_MPU_ACCEL_CONFIG_2_ADDR, accelDLPF);
+    IMU_WriteRegister(MPU9250, IMU_MPU_CONFIG_ADDR, gyroDLPF);
+    IMU_WriteRegister(MPU9250, IMU_MPU_SMPLRT_DIV_ADDR, 0x00);
+
+    accelSens = IMU_ACCEL_RES_MAX / (1 << accelFS);
+    gyroSens = IMU_GYRO_RES_MAX / (1 << gyroFS);
+
+    // calibrate gyro
+    uint16_t amount = 1500;
+    IMU_RegCoordinates tempGyro = {0};
     int32_t tempX = 0, tempY = 0, tempZ = 0;
-    
-    
-    // init gyro offset
-    for(int8_t i = 0; i < 32; i++)
+    for(uint16_t i = 0; i < amount; i++)
     {
-        IMU_MPU_ReadGyro();
-
-        tempX += gyroReg.x;
-        tempY += gyroReg.y;
-        tempZ += gyroReg.z;
-
-        IMU_DelayUs(100);
+        tempGyro = IMU_MPU_ReadGyro();
+        tempX += tempGyro.x;
+        tempY += tempGyro.y;
+        tempZ += tempGyro.z;
+        IMU_DelayUs(3000);
     }
 
-    // calculate average value
-    gyroOffset.x = tempX / 32;
-    gyroOffset.y = tempY / 32;
-    gyroOffset.z = tempZ / 32;
+    gyroOffset.x = (float)tempX / (float)amount;
+    gyroOffset.y = (float)tempY / (float)amount;
+    gyroOffset.z = (float)tempZ / (float)amount;
 
+    // AK8963 init
+    IMU_WriteRegister(AK8963, IMU_MAG_CNTL1_ADDR, 0x00);
+    IMU_DelayUs(10000);
+    IMU_WriteRegister(AK8963, IMU_MAG_CNTL2_ADDR, 0x01);
 
-    // config BMP280
-    IMU_WriteRegister(BMP280, IMU_BARO_CTRL_MEAS_ADDR, 0xFF, 1);
-    IMU_WriteRegister(BMP280, IMU_BARO_CONFIG_ADDR, 0x14, 1);
-
-    // read calibration
-    IMU_BARO_ReadCompensationValues();
-    
-
-    q0 = 1.0f;
-    q1 = 0.0f;
-    q2 = 0.0f;
-    q3 = 0.0f;
-
+    // magnetometer calibration
+    IMU_WriteRegister(AK8963, IMU_MAG_CNTL1_ADDR, 0x00);
+    HAL_Delay(100);
+    IMU_WriteRegister(AK8963, IMU_MAG_CNTL1_ADDR, 0x0F);
+    HAL_Delay(100);
+    IMU_ReadRegister(AK8963, IMU_MAG_ASAX_ADDR, magAdjust, 3);
+    IMU_WriteRegister(AK8963, IMU_MAG_CNTL1_ADDR, 0x00);
+    HAL_Delay(100);
+    IMU_WriteRegister(AK8963, IMU_MAG_CNTL1_ADDR, 0x16);
+    HAL_Delay(100);
+    IMU_WriteRegister(MPU9250, IMU_MPU_PWR_MGMT_1_ADDR, 0x01);
 
     return IMU_OK;
 }
@@ -156,10 +169,9 @@ IMU_Status IMU_ReadRegister(IMU_Sensor sensor, uint8_t regAddr, uint8_t *data, u
  * @param sensor MPU9250, AK8963 (MAG), BMP280 (BARO)
  * @param regAddr register address
  * @param data data to write
- * @param txBytes amount of bytes to write
  * @return IMU_Status 
  */
-IMU_Status IMU_WriteRegister(IMU_Sensor sensor, uint8_t regAddr, uint8_t data, uint8_t txBytes)
+IMU_Status IMU_WriteRegister(IMU_Sensor sensor, uint8_t regAddr, uint8_t data)
 {
     // determine the I2C device address
     uint16_t devAddress;
@@ -176,7 +188,7 @@ IMU_Status IMU_WriteRegister(IMU_Sensor sensor, uint8_t regAddr, uint8_t data, u
         
         case BMP280:
         case BARO:
-            devAddress = IMU_MPU_I2C_ADDR;
+            devAddress = IMU_BARO_I2C_ADDR;
             break;
 
         default:
@@ -184,7 +196,7 @@ IMU_Status IMU_WriteRegister(IMU_Sensor sensor, uint8_t regAddr, uint8_t data, u
     }
 
     // read register(s)
-    HAL_I2C_Mem_Write(imu_ComI2C, devAddress, regAddr, I2C_MEMADD_SIZE_8BIT, &data, txBytes, HAL_MAX_DELAY);
+    HAL_I2C_Mem_Write(imu_ComI2C, devAddress, regAddr, I2C_MEMADD_SIZE_8BIT, &data, 1, HAL_MAX_DELAY);
 
     return IMU_OK;
 }
@@ -218,9 +230,9 @@ IMU_Status IMU_CheckConnection(void)
         if(sensor[i] == MPU9250)
         {
             // enable bypass mode
-            if(IMU_WriteRegister(MPU9250, IMU_MPU_INT_PIN_CFG_ADDR, 0x02, 1))
+            if(IMU_WriteRegister(MPU9250, IMU_MPU_INT_PIN_CFG_ADDR, 0x02) != IMU_OK)
                 return IMU_ADDRESS_ERROR;
-            HAL_Delay(10);
+            IMU_DelayUs(10000);
         }
     }
 
@@ -228,26 +240,96 @@ IMU_Status IMU_CheckConnection(void)
 }
 
 /**
- * @brief This function reads the x, y and z axis of the gyroscope -> stored in var gyroReg
- * @details values get stored in variable "gyroReg"
- * @retval None
+ * @brief This function reads gyroscope register data (x,y,z)
+ * @return IMU_RegCoordinates 1
  */
-void IMU_MPU_ReadGyro(void)
+IMU_RegCoordinates IMU_MPU_ReadGyro(void)
 {
-    uint8_t buffer[6];
+    uint8_t buffer[6] = {0};
     IMU_ReadRegister(MPU9250, IMU_MPU_GYRO_XOUT_H_ADDR, buffer, 6);
 
-    gyroReg.x = ((buffer[0] << 8) | buffer[1]) - gyroOffset.x;
-    gyroReg.y = ((buffer[2] << 8) | buffer[3]) - gyroOffset.y;
-    gyroReg.z = ((buffer[4] << 8) | buffer[5]) - gyroOffset.z;
+    IMU_RegCoordinates gyroData = {0};
+    gyroData.x = ((int16_t)buffer[0] << 8) | (int16_t)buffer[1];
+    gyroData.y = ((int16_t)buffer[2] << 8) | (int16_t)buffer[3];
+    gyroData.z = ((int16_t)buffer[4] << 8) | (int16_t)buffer[5];
+
+    return gyroData;
 }
+
+/**
+ * @brief This function reads accelerometer register data (x,y,z)
+ * @return IMU_RegCoordinates 
+ */
+IMU_RegCoordinates IMU_MPU_ReadAccel(void)
+{
+    uint8_t buffer[6] = {0};
+    IMU_ReadRegister(MPU9250, IMU_MPU_ACCEL_XOUT_H_ADDR, buffer, 6);
+
+    IMU_RegCoordinates accelData = {0};
+    accelData.x = ((int16_t)buffer[0] << 8) | (int16_t)buffer[1];
+    accelData.y = ((int16_t)buffer[2] << 8) | (int16_t)buffer[3];
+    accelData.z = ((int16_t)buffer[4] << 8) | (int16_t)buffer[5];
+
+    return accelData;
+}
+
+/**
+ * @brief This function reads magnetometer register data (x,y,z)
+ * @return IMU_RegCoordinates 
+ */
+IMU_RegCoordinates IMU_MAG_ReadMag(void)
+{
+    uint8_t buffer[6] = {0};
+    IMU_ReadRegister(AK8963, IMU_MAG_HXL_ADDR, buffer, 6);
+
+    IMU_RegCoordinates magData = {0};
+    magData.x = ((int16_t)buffer[1] << 8) | (int16_t)buffer[0];
+    magData.y = ((int16_t)buffer[3] << 8) | (int16_t)buffer[2];
+    magData.z = ((int16_t)buffer[5] << 8) | (int16_t)buffer[4];
+
+    return magData;
+}
+
+/**
+ * @brief This function calculates pitch,roll and yaw
+ * @details data gets stored in the global variable 'angle'
+ * @retval None
+ */
+void IMU_GetAngles(void)
+{
+    IMU_RegCoordinates gyroData = IMU_MPU_ReadGyro();
+    IMU_RegCoordinates accelData = IMU_MPU_ReadAccel();
+    IMU_RegCoordinates magData = IMU_MAG_ReadMag();
+
+    gyro.x = (gyroData.x - gyroOffset.x) / gyroSens;
+    gyro.y = (gyroData.y - gyroOffset.y) / gyroSens;
+    gyro.z = (gyroData.z - gyroOffset.z) / gyroSens;
+
+    accel.x = accelData.x / accelSens;
+    accel.y = accelData.y / accelSens;
+    accel.z = accelData.z / accelSens;
+
+    mag.x = (float)magData.x * ((((float)magAdjust[0] - 128.0f) / 256.0f) + 1.0f);
+    mag.y = (float)magData.y * ((((float)magAdjust[1] - 128.0f) / 256.0f) + 1.0f);
+    mag.z = (float)magData.z * ((((float)magAdjust[2] - 128.0f) / 256.0f) + 1.0f);
+
+    // Complementary filter
+    float accelPitch = atan2(accel.y, accel.z) * RAD2DEG;
+    float accelRoll = atan2(accel.x, accel.z) * RAD2DEG;
+    float dt = 0.01f;
+
+    angle.roll = 0.98 * (angle.roll - gyro.y * dt) + (1 - 0.98) * accelRoll;
+    angle.pitch = 0.98 * (angle.pitch + gyro.x * dt) + (1 - 0.98) * accelPitch;
+    angle.yaw += gyro.z * dt;
+}
+
 
 /**
  * @brief This function reads the temperature and pressure compensation values 
  * @details values get stored in variable "baroCompensation"
  * @retval None
  */
-void IMU_BARO_ReadCompensationValues(void)
+/*void IMU_BARO_ReadCompensationValues(void)
 {
     uint8_t buffer[24];
     IMU_ReadRegister(BMP280, IMU_BARO_DIG_T1_L_ADDR, buffer, 24);
@@ -265,7 +347,12 @@ void IMU_BARO_ReadCompensationValues(void)
     baroCompensation.P7 = (buffer[19] << 8) | buffer[18];
     baroCompensation.P8 = (buffer[21] << 8) | buffer[20];
     baroCompensation.P9 = (buffer[23] << 8) | buffer[22];
-}
+}*/
+
+
+
+
+
 
 
 

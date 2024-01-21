@@ -1,5 +1,5 @@
 /**
- * @file DS2438.c
+ * @file DS2438.h
  * @author Maximilian Lendl
  * @date 2023-07-11
  * @version 1
@@ -63,7 +63,7 @@ extern float ds2438_capacity;       // DS2438 capacity value
  * @param us delay in us
  * @retval None
  */
-void Delay_us(uint32_t us);
+void DS2438_DelayUs(uint32_t us);
 
 /**
  * @brief This function initializes the DS2438 (reset + presence pulse)
@@ -169,5 +169,5 @@ DS2438_Status DS2438_ReadCapacity(void);
  */
 DS2438_Status DS2438_ReadAllSensors(void);
 
-#endif
+#endif // DS2438_H_INCLUDED
 

@@ -26,7 +26,7 @@
 //int16_t accel[3], gyro[3];
 float angles[3];
 volatile float q0, q1, q2, q3; 
-
+uint8_t u8PressureType;
 
 /**
   * @brief  invSqrt
@@ -54,9 +54,21 @@ float invSqrt(float x)
   * @retval None
   */
 void IMU_Init(void)
-{	 
+{	
+    uint8_t u8Ret; 
 	MPU9250_Init();
-	BMP180_Init();
+    u8Ret = BMP280_Init();
+    if(u8Ret != BMP280_RET_OK)
+    {
+        u8PressureType = IMU_PRES_TYPE_BM180;
+        printf("\r\nPressure type is BM180\r\n");
+        BMP180_Init();
+    }
+    else
+    {
+        u8PressureType = IMU_PRES_TYPE_BM280;
+        printf("\r\nPressure type is BM280\r\n");
+    }
 	
   	q0 = 1.0f;  
   	q1 = 0.0f;

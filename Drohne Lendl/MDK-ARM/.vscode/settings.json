@@ -10,6 +10,8 @@
         "dshot_own.h": "c",
         "stdio.h": "c",
         "main.h": "c",
-        "status_handling.h": "c"
+        "status_handling.h": "c",
+        "math.h": "c",
+        "ds2438.h": "c"
     }
 }

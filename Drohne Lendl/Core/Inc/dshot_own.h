@@ -7,10 +7,10 @@
  * @copyright FPV Drohne DA 202324
  * 
  * @brief This file provides functions for:
- *          - DShot600 output init 
- *          - DShot600 output special command 
- *          - DShot600 output throttle 
- *          - DShot600 ESC / motor test 
+ *          - DShot init for DShot150, DShot300 or DShot600
+ *          - DShot send throttle value 
+ *          - DShot send command 
+ *          - DShot ESC / motor test 
  */
 
 #ifndef DSHOT_H_INCLUDED
@@ -28,10 +28,10 @@
 -------------------------------------- GLOBAL DEFINES --------------------------------------
 *******************************************************************************************/
 
-#define ESC_LF_TIM_CH TIM_CHANNEL_4 // timer channel for the left front motor
-#define ESC_RF_TIM_CH TIM_CHANNEL_2 // timer channel for the right front motor
-#define ESC_LR_TIM_CH TIM_CHANNEL_3 // timer channel for the left rear motor
-#define ESC_RR_TIM_CH TIM_CHANNEL_1 // timer channel for the right rear motor
+#define ESC_LF_TIM_CH TIM_CHANNEL_4     // timer channel for the left front motor
+#define ESC_RF_TIM_CH TIM_CHANNEL_2     // timer channel for the right front motor
+#define ESC_LR_TIM_CH TIM_CHANNEL_3     // timer channel for the left rear motor
+#define ESC_RR_TIM_CH TIM_CHANNEL_1     // timer channel for the right rear motor
 
 // returns the address of the CCR for the selected channel
 #define ESC_TIM_GET_CCR_ADDR(__CHANNEL__) \
@@ -40,10 +40,10 @@
      (__CHANNEL__ == TIM_CHANNEL_3) ? ((uint32_t)&DShot_OutputTim->Instance->CCR3) : \
      ((uint32_t)&DShot_OutputTim->Instance->CCR4))
 
-#define ESC_LF_DMA_ID (ESC_LF_TIM_CH / 4) + 1 // TIM_DMA_ID_CCX (X depends on the timer channel, what capture compare)
-#define ESC_RF_DMA_ID (ESC_RF_TIM_CH / 4) + 1 // TIM_DMA_ID_CCX (X depends on the timer channel, what capture compare)
-#define ESC_LR_DMA_ID (ESC_LR_TIM_CH / 4) + 1 // TIM_DMA_ID_CCX (X depends on the timer channel, what capture compare)
-#define ESC_RR_DMA_ID (ESC_RR_TIM_CH / 4) + 1 // TIM_DMA_ID_CCX (X depends on the timer channel, what capture compare)
+#define ESC_LF_DMA_ID (ESC_LF_TIM_CH / 4) + 1   // TIM_DMA_ID_CCX (X depends on the timer channel, which capture compare)
+#define ESC_RF_DMA_ID (ESC_RF_TIM_CH / 4) + 1   // TIM_DMA_ID_CCX (X depends on the timer channel, which capture compare)
+#define ESC_LR_DMA_ID (ESC_LR_TIM_CH / 4) + 1   // TIM_DMA_ID_CCX (X depends on the timer channel, which capture compare)
+#define ESC_RR_DMA_ID (ESC_RR_TIM_CH / 4) + 1   // TIM_DMA_ID_CCX (X depends on the timer channel, which capture compare)
 
 /*******************************************************************************************
 ------------------------------------ GLOBAL STRUCTURES ------------------------------------
@@ -62,12 +62,10 @@ typedef enum ESC_OutputProtocol
 {
     DSHOT150 = 1860,    // DSHOT150 auto reload register value
     DSHOT300 = 930,     // DSHOT300 auto reload register value
-    DSHOT600 = 465,     // DSHOT600 auto reload register value
-
-    PWM = 10000         // PWM auto reload register value
+    DSHOT600 = 465      // DSHOT600 auto reload register value
 } ESC_OutputProtocol;
 
-// DShot special commands (0-47)
+// DShot commands (0-47)
 typedef enum DShot_Command
 {
     DSHOT_MOTOR_STOP = 0,   // disarmes motor
@@ -86,17 +84,17 @@ typedef enum DShot_Command
 /**
  * @brief This function initializes the output ESC DShot signal
  * @param htim pointer to TIM_HandleTypeDef (output timer)
- * @param protocol DSHOT150, DSHOT300, DSHOT600 or PWM
+ * @param protocol DSHOT150, DSHOT300, DSHOT600
  * @return DShot_Status 
  */
 DShot_Status DShot_Init(TIM_HandleTypeDef *htim, ESC_OutputProtocol protocol);
 
 /**
  * @brief This function formats the motor data for the DShot protocol
- * @param motorLF percent of throttle value of left front motor
- * @param motorRF percent of throttle value of right front motor
- * @param motorLR percent of throttle value of left rear motor
- * @param motorRR percent of throttle value of right rear
+ * @param motorLF percent of throttle value of left front motor (0-100)
+ * @param motorRF percent of throttle value of right front motor (0-100)
+ * @param motorLR percent of throttle value of left rear motor (0-100)
+ * @param motorRR percent of throttle value of right rear motor (0-100)
  * @retval None
  */
 void DShot_SendThrottle(double motorLF, double motorRF, double motorLR, double motorRR);
@@ -121,5 +119,5 @@ void DShot_SendData(uint16_t *throttle, int8_t telemetry);
  */
 void DShot_MotorTest(void);
 
-#endif
+#endif // DSHOT_H_INCLUDED
 

@@ -8,12 +8,11 @@
  *
  * @brief This file provides functions for:
  *          - receiver init
- *          - I.Bus read
- *          - I.Bus decode
- *          - S.Bus read
- *          - S.Bus decode
- *          - check receiver disconnection
- *          - motor control
+ *          - S.Bus / I.Bus read and decode
+ *          - Motor control via DShot
+ *          - failsafe detection
+ *          - failsafe handler
+ *          - output input data
  */
 
 #ifndef RECEIVER_H_INCLUDED
@@ -27,34 +26,26 @@
 #include "dshot_own.h"
 #include <string.h>
 #include <stdio.h>
+#include "status_handling.h"
 
  /************************************************************************************************
  ---------------------------------------- GLOBAL DEFINES ----------------------------------------
  ************************************************************************************************/
 
-// duty cycles in various modes (*10 because of value range of 0-1000 / 0.0%-100.0%)
-#define PWM_SAFEMODE_DC_MAX     10      // max duty cycle in safe mode
-#define PWM_NORMALMODE_DC_MAX   80      // max duty cycle in safe mode
-#define PWM_TURN_OFFSET_MAX     10      // max addition duty cycle speed when turning
-#define PWM_OFFMODE_DC          .5 * 10 // duty cycle when on/off switch is on off
-#define PWM_MOTORTEST_DC        10 * 10 // duty cycle for motor test
-
 #define ESC_SAFEMODE_THR_MAX    10      // max throttle in safe mode
 #define ESC_NORMALMODE_THR_MAX  80      // max throttle in safe mode
 #define ESC_TURN_OFFSET_MAX     10      // max addition throttle speed when turning
-#define ESC_OFFMODE_THR         1       // throttle when on/off switch is on off
+#define ESC_OFFMODE_THR         0       // throttle when on/off switch is on off
 #define ESC_MOTORTEST_THR       30      // throttle for motor test
-
-#define PWM_HOVER_DC            50 * 10 // duty cycle for hovering
-#define PWM_SIGNAL_LOST_OFFSET  10 * 10 // duty cycle offset for landing while receiver disconnected
+#define ESC_LANDING_THR         50      // throttle to land drone in case of failsafe
 
 // channel indices (-1 because of array indices)
-#define YAW_CHANNEL             1 - 1   // yaw channel index
-#define PITCH_CHANNEL           2 - 1   // pitch channel index
-#define THROTTLE_CHANNEL        3 - 1   // throttle channel index
-#define ROLL_CHANNEL            4 - 1   // roll channel index
-#define ONOFF_SWITCH_CHANNEL    5 - 1   // on/off switch channel index
-#define MODESEL_SWTICH_CHANNEL  6 - 1   // mode select channel index
+#define RECEIVER_YAW_CHANNEL             1 - 1   // yaw channel index
+#define RECEIVER_PITCH_CHANNEL           2 - 1   // pitch channel index
+#define RECEIVER_THROTTLE_CHANNEL        3 - 1   // throttle channel index
+#define RECEIVER_ROLL_CHANNEL            4 - 1   // roll channel index
+#define RECEIVER_ONOFF_SWITCH_CHANNEL    5 - 1   // on/off switch channel index
+#define RECEIVER_MODESEL_SWTICH_CHANNEL  6 - 1   // mode select channel index
 
  /************************************************************************************************
  --------------------------------------- GLOBAL STRUCTURES ---------------------------------------
@@ -90,7 +81,7 @@ typedef enum Receiver_Status
     SBUS_SIGNAL_FAILSAFE = 14       // SBUS signal failsafe flag is set
 } Receiver_Status;
 
-// min and max values of receiver raw data
+// limits of receiver raw data
 typedef struct Receiver_Values
 {
     uint16_t min, max, delta, half;
@@ -101,7 +92,6 @@ typedef struct Motor_Position
 {
     double RF, LF, RR, LR;
 } Motor_Position;
-
 
 /************************************************************************************************
 --------------------------------------- GLOBAL VARIABLES ---------------------------------------
@@ -131,32 +121,38 @@ Receiver_Status Receiver_Init(Receiver_Protocol proto, UART_HandleTypeDef *huart
  * i.bus channel values from 1070 - 1920
  * s.bus channel values from 350 - 1680
  *
- * Ch1: Yaw (rotate left / rotate right)
- * Ch2: Pitch (forwards / backwards)
- * Ch3: Throttle (up / down)
- * Ch4: Roll (left / right)
- * Ch5: on/off switch
- * Ch6: mode select (3 way switch)
- * Ch7: not used
- * Ch8: not used
+ * what channel does what depends on the defines found in receiver.h:
+ *  - RECEIVER_YAW_CHANNEL
+ *  - RECEIVER_PITCH_CHANNEL
+ *  - RECEIVER_THROTTLE_CHANNEL
+ *  - RECEIVER_ROLL_CHANNEL
+ *  - RECEIVER_ONOFF_SWITCH_CHANNEL
+ *  - RECEIVER_MODESEL_SWTICH_CHANNEL
  * @return Receiver_Status
  */
 Receiver_Status Receiver_Decode(void);
 
 /**
- * @brief this function controls the output pwm output signals according to the receiver input
+ * @brief This function calculates the stick positions according to the receiver input
+ * @details 
+ * The max throttle values per mode can be changed in receiver.h with:
+ *  - ESC_SAFEMODE_THR_MAX
+ *  - ESC_NORMALMODE_THR_MAX
+ *  - ESC_OFFMODE_THR
+ *  - ESC_TURN_OFFSET_MAX
  * @return Receiver_Status
  */
 Receiver_Status Receiver_MotorControl(void);
 
 /**
- * @brief This functions sets the duty cycle to the std value 0.1%
+ * @brief This functions sets the throttle values to offmode throttle
+ * @details throttle value can be changed with define 'ESC_OFFMODE_THR' found in receiver.h
  * @return Receiver_Status
  */
 Receiver_Status Receiver_SetStdDC(void);
 
 /**
- * @brief This function output all receiver channels side by side
+ * @brief This function outputs all receiver channels side by side
  * @attention This function uses the global array receiver_ChData[]
  * @param huart pointer to a UART_HandleTypeDef structure (for output)
  * @retval None
@@ -164,22 +160,19 @@ Receiver_Status Receiver_SetStdDC(void);
 void Receiver_OutputChValues(UART_HandleTypeDef *huart);
 
 /**
- * @brief This function test each motor
- * @details
- * turn motor 1 for 2 seconds on then next motor etc
- * @retval None
- */
-
-/**
- * @brief This function sets the drone motors under the hover duty cycle -> landing
+ * @brief This function sets the drone motors to a throttle that slowly lands the drone
  * @retval Receiver_Status
  */
-Receiver_Status Receiver_SignalLostHandler(void);
+Receiver_Status Receiver_FailsafeHandler(void);
 
 /**
  * @brief This function saves the current channel data and check if its the same as before
+ * @param huart pointer to UART_HandleTypeDef
  * @retval None
  */
-void Receiver_CheckEqChData(void);
+void Receiver_CheckEqChData(UART_HandleTypeDef *huart);
 
 #endif // RECEIVER_H_INCLUDED
+
+
+

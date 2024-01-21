@@ -8,12 +8,11 @@
  *
  * @brief This file provides functions for:
  *          - receiver init
- *          - I.Bus read
- *          - I.Bus decode
- *          - S.Bus read
- *          - S.Bus decode
- *          - check receiver disconnection
- *          - motor control
+ *          - S.Bus / I.Bus read and decode
+ *          - Motor control via DShot
+ *          - failsafe detection
+ *          - failsafe handler
+ *          - output input data
  */
 
 #include "receiver.h"
@@ -24,18 +23,17 @@
  ************************************************************************************************/
 
  // receiver variables
-UART_HandleTypeDef *receiver_InputUART = NULL;
-Receiver_Protocol protocol = NO_PROTO;  // selected serial protocol
+UART_HandleTypeDef *receiver_InputUART = NULL;          // pointer to UART_HandleTypeDef of input signal
+TIM_HandleTypeDef *ppm_Timer = NULL;                    // pointer to TIM_HandleTypeDef of input ppm signal
+Receiver_Protocol receiver_SelectedProtocol = NO_PROTO; // selected serial protocol
+
 uint8_t receiver_RawData[32] = {0};     // raw data of receiver communication
 uint16_t receiver_ChData[16] = {0};     // each channel data
-TIM_HandleTypeDef *ppm_Timer;           // pointer to TIM_HandleTypeDef of input ppm signal
+uint16_t receiver_SameDataCounter = 0;  // counter amount of same channel data after another
 
 // pwm output variables
-TIM_HandleTypeDef *pwm_Timer = NULL;    // pointer to TIM_HandleTypeDef of output pwm signal
-Receiver_Values receiver_Input = {0};   // max values of receiver input
-
-uint16_t receiver_OldChData[16] = {0};  // previous channel data
-uint16_t receiver_ChDataCheck = 0;        // counter amount of same channel data after another
+TIM_HandleTypeDef *pwm_Timer = NULL;        // pointer to TIM_HandleTypeDef of output pwm signal
+Receiver_Values receiver_InputLimits = {0}; // input limits dependend on selected protocol
 
 /************************************************************************************************
 ------------------------------------------- FUNCTIONS -------------------------------------------
@@ -52,8 +50,8 @@ uint16_t receiver_ChDataCheck = 0;        // counter amount of same channel data
 Receiver_Status Receiver_Init(Receiver_Protocol proto, UART_HandleTypeDef *huart, TIM_HandleTypeDef *htim_out, ESC_OutputProtocol speed_out)
 {
     receiver_InputUART = huart; // set input uart
-    protocol = proto;           // set serial protocol
-    switch(protocol)
+    receiver_SelectedProtocol = proto;           // set serial protocol
+    switch(receiver_SelectedProtocol)
     {
         /**
          * 115200 baud
@@ -76,10 +74,14 @@ Receiver_Status Receiver_Init(Receiver_Protocol proto, UART_HandleTypeDef *huart
             int8_t tmp_PinState = HAL_GPIO_ReadPin(RECEIVER_PPM_GPIO_Port, RECEIVER_PPM_Pin);
             while(tmp_PinState == HAL_GPIO_ReadPin(RECEIVER_PPM_GPIO_Port, RECEIVER_PPM_Pin))
             {
+                // if the ppm signal doesn't change in 10ms -> error
                 if(timeout++ > 10)
                     return RECEIVER_PPM_ERROR;
                 HAL_Delay(1);
             }
+
+            // set custom reception complete ISR
+            HAL_UART_RegisterCallback(receiver_InputUART, HAL_UART_RX_COMPLETE_CB_ID, Receiver_CheckEqChData);
 
             uint8_t tmp[2] = {0};
             timeout = 0;
@@ -87,19 +89,20 @@ Receiver_Status Receiver_Init(Receiver_Protocol proto, UART_HandleTypeDef *huart
             // calibrate reception to begin of protocol
             while(!(tmp[0] == 0x20 && tmp[1] == 0x40))
             {
+                // if the header is wrong 100x -> error
                 if(timeout++ > 100)
                     return RECEIVER_TIMEOUT;
 
                 HAL_UART_Receive(receiver_InputUART, tmp, 2, 3);
             }
-            HAL_Delay(4);
+            HAL_Delay(4); // wait to sync to next data packet
 
             // start DMA read i.bus signal
             if(HAL_UART_Receive_DMA(receiver_InputUART, receiver_RawData, 32) != HAL_OK)
                 return IBUS_ERROR;
 
-            receiver_Input.min = 1070;  // set min value of receiver input data
-            receiver_Input.max = 1920;  // set max value of receiver input data
+            receiver_InputLimits.min = 1070;  // set min value of receiver input data
+            receiver_InputLimits.max = 1920;  // set max value of receiver input data
             break;
         }
 
@@ -128,6 +131,7 @@ Receiver_Status Receiver_Init(Receiver_Protocol proto, UART_HandleTypeDef *huart
             int8_t tmp_PinState = HAL_GPIO_ReadPin(RECEIVER_PPM_GPIO_Port, RECEIVER_PPM_Pin);
             while(tmp_PinState == HAL_GPIO_ReadPin(RECEIVER_PPM_GPIO_Port, RECEIVER_PPM_Pin))
             {
+                // if the ppm signal doesn't change in 10ms -> error
                 if(timeout++ > 10)
                     return RECEIVER_PPM_ERROR;
                 HAL_Delay(1);
@@ -139,19 +143,20 @@ Receiver_Status Receiver_Init(Receiver_Protocol proto, UART_HandleTypeDef *huart
             // calibrate reception to begin of protocol
             while(tmp != 0x0F)
             {
+                // if the header is wrong 100x -> error
                 if(timeout++ > 100)
                     return RECEIVER_TIMEOUT;
 
                 HAL_UART_Receive(receiver_InputUART, &tmp, 1, 4);
             }
-            HAL_Delay(4);
+            HAL_Delay(4); // wait to sync to next data packet
 
             // start DMA read s.bus signal
             if(HAL_UART_Receive_DMA(receiver_InputUART, receiver_RawData, 25) != HAL_OK)
                 return SBUS_ERROR;
 
-            receiver_Input.min = 350;   // set min value of receiver input data
-            receiver_Input.max = 1680;  // set max value of receiver input data
+            receiver_InputLimits.min = 350;   // set min value of receiver input data
+            receiver_InputLimits.max = 1680;  // set max value of receiver input data
             break;
         }
 
@@ -162,21 +167,15 @@ Receiver_Status Receiver_Init(Receiver_Protocol proto, UART_HandleTypeDef *huart
             break;
     }
 
-    receiver_Input.delta = receiver_Input.max - receiver_Input.min;
-    receiver_Input.half = (receiver_Input.max + receiver_Input.min) / 2;
+    // set value range and half value
+    receiver_InputLimits.delta = receiver_InputLimits.max - receiver_InputLimits.min;
+    receiver_InputLimits.half = (receiver_InputLimits.max + receiver_InputLimits.min) / 2;
 
-    // set std duty cycle (0.1%) and start timer pwm
-    // pwm_Timer = htim_out;
+    // initialize output with DShot
     int8_t errorCode;
     errorCode = DShot_Init(htim_out, speed_out);
     if(errorCode != DSHOT_OK)
         return RECEIVER_PWM_ERROR;
-    Receiver_SetStdDC();
-
-    // HAL_TIM_PWM_Start(pwm_Timer, TIM_CHANNEL_1);
-    // HAL_TIM_PWM_Start(pwm_Timer, TIM_CHANNEL_2);
-    // HAL_TIM_PWM_Start(pwm_Timer, TIM_CHANNEL_3);
-    // HAL_TIM_PWM_Start(pwm_Timer, TIM_CHANNEL_4);
 
     return RECEIVER_OK;
 }
@@ -187,19 +186,18 @@ Receiver_Status Receiver_Init(Receiver_Protocol proto, UART_HandleTypeDef *huart
  * i.bus channel values from 1070 - 1920
  * s.bus channel values from 350 - 1680
  *
- * Ch1: Yaw (rotate left / rotate right)
- * Ch2: Pitch (forwards / backwards)
- * Ch3: Throttle (up / down)
- * Ch4: Roll (left / right)
- * Ch5: on/off switch
- * Ch6: mode select (3 way switch)
- * Ch7: not used
- * Ch8: not used
+ * what channel does what depends on the defines found in receiver.h:
+ *  - RECEIVER_YAW_CHANNEL
+ *  - RECEIVER_PITCH_CHANNEL
+ *  - RECEIVER_THROTTLE_CHANNEL
+ *  - RECEIVER_ROLL_CHANNEL
+ *  - RECEIVER_ONOFF_SWITCH_CHANNEL
+ *  - RECEIVER_MODESEL_SWTICH_CHANNEL
  * @return Receiver_Status
  */
 Receiver_Status Receiver_Decode(void)
 {
-    switch(protocol)
+    switch(receiver_SelectedProtocol)
     {
         case IBUS:
         {
@@ -230,7 +228,7 @@ Receiver_Status Receiver_Decode(void)
                 receiver_ChData[i] = (receiver_RawData[j + 3] << 8) | receiver_RawData[j + 2];
 
             // check disconnection
-            if(receiver_ChDataCheck > 250)
+            if(receiver_SameDataCounter > 250)
                 return IBUS_SIGNAL_LOST_ERROR;
 
             break;
@@ -280,7 +278,7 @@ Receiver_Status Receiver_Decode(void)
             break;
         }
 
-
+        // wrong or no protocol selected
         case NO_PROTO:
         default:
             return PROTOCOL_ERROR;
@@ -291,7 +289,13 @@ Receiver_Status Receiver_Decode(void)
 }
 
 /**
- * @brief this function controls the output pwm output signals according to the receiver input
+ * @brief This function calculates the stick positions according to the receiver input
+ * @details 
+ * The max throttle values per mode can be changed in receiver.h with:
+ *  - ESC_SAFEMODE_THR_MAX
+ *  - ESC_NORMALMODE_THR_MAX
+ *  - ESC_OFFMODE_THR
+ *  - ESC_TURN_OFFSET_MAX
  * @return Receiver_Status
  */
 Receiver_Status Receiver_MotorControl(void)
@@ -300,50 +304,55 @@ Receiver_Status Receiver_MotorControl(void)
     if(status != RECEIVER_OK)
         return status;
 
-    // check on/off switch
-    if(receiver_ChData[ONOFF_SWITCH_CHANNEL] < receiver_Input.half)
+    /**************************************************************************************************************************************
+    -------------------------------------------------------- check ON / OFF switch --------------------------------------------------------
+    ***************************************************************************************************************************************/
+    
+    // top position (< half) = off (set standard throttle)
+    if(receiver_ChData[RECEIVER_ONOFF_SWITCH_CHANNEL] < receiver_InputLimits.half)
         return Receiver_SetStdDC();
 
-    // check mode select (3 way switch)
-    // uint16_t pwm_MaxDutyCycle;
-    // if(receiver_ChData[MODESEL_SWTICH_CHANNEL] < receiver_Input.half - 10)
-    //     pwm_MaxDutyCycle = PWM_SAFEMODE_DC_MAX;
-    // else if(receiver_ChData[MODESEL_SWTICH_CHANNEL] >= receiver_Input.half - 10 && receiver_ChData[MODESEL_SWTICH_CHANNEL] <= receiver_Input.half + 10)
-    //     pwm_MaxDutyCycle = PWM_NORMALMODE_DC_MAX;
-    // else
-    //     pwm_MaxDutyCycle = PWM_NORMALMODE_DC_MAX; // MAYBE third flight mode select
-
-    // check mode select (3 way switch)
+    /**************************************************************************************************************************************
+    ------------------------------------------------ check 3 position switch (mode select) ------------------------------------------------
+    ***************************************************************************************************************************************/
+    
     uint16_t esc_MaxThr;
-    if(receiver_ChData[MODESEL_SWTICH_CHANNEL] < receiver_Input.half - 10)
+
+    // top position (< half) = safemode
+    if(receiver_ChData[RECEIVER_MODESEL_SWTICH_CHANNEL] < receiver_InputLimits.half - 10)
         esc_MaxThr = ESC_SAFEMODE_THR_MAX;
-    else if(receiver_ChData[MODESEL_SWTICH_CHANNEL] >= receiver_Input.half - 10 && receiver_ChData[MODESEL_SWTICH_CHANNEL] <= receiver_Input.half + 10)
+    
+    // middle position (half +- 10) = normalmode
+    else if(receiver_ChData[RECEIVER_MODESEL_SWTICH_CHANNEL] >= receiver_InputLimits.half - 10 && receiver_ChData[RECEIVER_MODESEL_SWTICH_CHANNEL] <= receiver_InputLimits.half + 10)
         esc_MaxThr = ESC_NORMALMODE_THR_MAX;
+    
+    // down position = extra mode, currenty also normalmode
     else
         esc_MaxThr = ESC_NORMALMODE_THR_MAX; // MAYBE third flight mode select
 
-
+    /**************************************************************************************************************************************
+    ------------------------------------------------ calculate throttle input (up / down) ------------------------------------------------
+    ***************************************************************************************************************************************/
+    
     Motor_Position motor;
 
+    float throttle = (float)(receiver_ChData[RECEIVER_THROTTLE_CHANNEL] - receiver_InputLimits.min) / receiver_InputLimits.delta; // get joystick position
+    throttle *= esc_MaxThr; // get percent of max duty cycle addition
+    motor.LF = throttle;    // set motor speed to throttle
+    motor.RF = throttle;    // set motor speed to throttle
+    motor.LR = throttle;    // set motor speed to throttle
+    motor.RR = throttle;    // set motor speed to throttle
 
-    // throttle (up / down)
-    float throttle = (float)(receiver_ChData[THROTTLE_CHANNEL] - receiver_Input.min) / receiver_Input.delta;   // get joystick position
-    // throttle *= pwm_MaxDutyCycle;   // get percent of max duty cycle addition
-    throttle *= esc_MaxThr;   // get percent of max duty cycle addition
-    motor.LF = throttle;            // set motor speed to throttle
-    motor.RF = throttle;            // set motor speed to throttle
-    motor.LR = throttle;            // set motor speed to throttle
-    motor.RR = throttle;            // set motor speed to throttle
-
-
-    // pitch (forwards / backwards)
-    float pitch = (float)(receiver_ChData[PITCH_CHANNEL] - receiver_Input.min) / receiver_Input.delta;      // get joystick position
+    /**************************************************************************************************************************************
+    -------------------------------------------- calculate pitch input (forwards / backwards) --------------------------------------------
+    ***************************************************************************************************************************************/
+   
+    float pitch = (float)(receiver_ChData[RECEIVER_PITCH_CHANNEL] - receiver_InputLimits.min) / receiver_InputLimits.delta; // get joystick position
     pitch = (pitch < .5) ? (.5 - pitch) * 2 : (pitch - .5) * 2; // get difference from 50%
-    // pitch *= PWM_TURN_OFFSET_MAX;                               // get percent of max duty cycle addition
     pitch *= ESC_TURN_OFFSET_MAX;                               // get percent of max duty cycle addition
 
     // flying backwards, front motors faster
-    if(receiver_ChData[PITCH_CHANNEL] < receiver_Input.half)
+    if(receiver_ChData[RECEIVER_PITCH_CHANNEL] < receiver_InputLimits.half)
     {
         motor.LF += pitch;  // add motor speed to left front
         motor.RF += pitch;  // add motor speed to right front
@@ -355,15 +364,16 @@ Receiver_Status Receiver_MotorControl(void)
         motor.RR += pitch;  // add motor speed to right rear
     }
 
-
-    // roll (left / right)
-    float roll = (float)(receiver_ChData[ROLL_CHANNEL] - receiver_Input.min) / receiver_Input.delta;       // get joystick position
+    /**************************************************************************************************************************************
+    ------------------------------------------------- calculate roll input (left / right) -------------------------------------------------
+    ***************************************************************************************************************************************/
+    
+    float roll = (float)(receiver_ChData[RECEIVER_ROLL_CHANNEL] - receiver_InputLimits.min) / receiver_InputLimits.delta; // get joystick position
     roll = (roll < .5) ? (.5 - roll) * 2 : (roll - .5) * 2; // get difference from 50%
-    // roll *= PWM_TURN_OFFSET_MAX;                             // get percent of max duty cycle addition
-    roll *= ESC_TURN_OFFSET_MAX;                             // get percent of max duty cycle addition
+    roll *= ESC_TURN_OFFSET_MAX;                            // get percent of max duty cycle addition
 
     // flying left, right motors faster
-    if(receiver_ChData[ROLL_CHANNEL] < receiver_Input.half)
+    if(receiver_ChData[RECEIVER_ROLL_CHANNEL] < receiver_InputLimits.half)
     {
         motor.RF += roll;   // add motor speed to right front
         motor.RR += roll;   // add motor speed to right rear 
@@ -375,109 +385,97 @@ Receiver_Status Receiver_MotorControl(void)
         motor.LR += roll;   // add motor speed to left rear 
     }
 
-
-    // yaw (rotate left / rotate right)
-    float yaw = (float)(receiver_ChData[YAW_CHANNEL] - receiver_Input.min) / receiver_Input.delta;       // get joystick position
-    yaw = (yaw < .5) ? (.5 - yaw) * 2 : (yaw - .5) * 2;     // get difference from 50%
-    // yaw *= PWM_TURN_OFFSET_MAX;                             // get percent of max duty cycle addition
-    yaw *= ESC_TURN_OFFSET_MAX;                             // get percent of max duty cycle addition
+    /**************************************************************************************************************************************
+    ------------------------------------------ calculate yaw input (rotate left / rotate right) ------------------------------------------
+    ***************************************************************************************************************************************/
+    
+    float yaw = (float)(receiver_ChData[RECEIVER_YAW_CHANNEL] - receiver_InputLimits.min) / receiver_InputLimits.delta; // get joystick position
+    yaw = (yaw < .5) ? (.5 - yaw) * 2 : (yaw - .5) * 2; // get difference from 50%
+    yaw *= ESC_TURN_OFFSET_MAX;                         // get percent of max duty cycle addition
 
     // rotate left, right front and left rear motors faster
-    if(receiver_ChData[YAW_CHANNEL] < receiver_Input.half)
+    if(receiver_ChData[RECEIVER_YAW_CHANNEL] < receiver_InputLimits.half)
     {
-        motor.RF += yaw;    // add motor speed to right front 
-        motor.LR += yaw;    // add motor speed to left rear 
+        motor.LF += yaw;    // add motor speed to right front 
+        motor.RR += yaw;    // add motor speed to left rear 
     }
     // rotate right, left front and right rear motors faster
     else
     {
-        motor.LF += yaw;    // add motor speed to left front 
-        motor.RR += yaw;    // add motor speed to right rear 
+        motor.RF += yaw;    // add motor speed to left front 
+        motor.LR += yaw;    // add motor speed to right rear 
     }
 
-
-    // // check if the value is larger then the max value
-    // if(motor.LF > throttle + PWM_TURN_OFFSET_MAX) motor.LF = throttle + PWM_TURN_OFFSET_MAX;
-    // if(motor.RF > throttle + PWM_TURN_OFFSET_MAX) motor.RF = throttle + PWM_TURN_OFFSET_MAX;
-    // if(motor.LR > throttle + PWM_TURN_OFFSET_MAX) motor.LR = throttle + PWM_TURN_OFFSET_MAX;
-    // if(motor.RR > throttle + PWM_TURN_OFFSET_MAX) motor.RR = throttle + PWM_TURN_OFFSET_MAX;
-
-    // check if the value is larger then the max value
+    /**************************************************************************************************************************************
+    -------------------------------------------------------- check and send values --------------------------------------------------------
+    ***************************************************************************************************************************************/
+    
+    // check if the value is larger then the max value (throttle + turn offset max)
     if(motor.LF > throttle + ESC_TURN_OFFSET_MAX) motor.LF = throttle + ESC_TURN_OFFSET_MAX;
     if(motor.RF > throttle + ESC_TURN_OFFSET_MAX) motor.RF = throttle + ESC_TURN_OFFSET_MAX;
     if(motor.LR > throttle + ESC_TURN_OFFSET_MAX) motor.LR = throttle + ESC_TURN_OFFSET_MAX;
     if(motor.RR > throttle + ESC_TURN_OFFSET_MAX) motor.RR = throttle + ESC_TURN_OFFSET_MAX;
 
+    // check if value is samller then the min value (5)
+    if(motor.LF < 5) motor.LF = 5;
+    if(motor.RF < 5) motor.RF = 5;
+    if(motor.LR < 5) motor.LR = 5;
+    if(motor.RR < 5) motor.RR = 5;
 
-    /**
-     * change the duty cycle of the pwm signals
-     * channel1 = right rear
-     * channel2 = right front
-     * channel3 = left rear
-     * channel4 = left front
-     */
-    // __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_1, (uint16_t)(motor.RR * 10));
-    // __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_2, (uint16_t)(motor.RF * 10));
-    // __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_3, (uint16_t)(motor.LR * 10));
-    // __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_4, (uint16_t)(motor.LF * 10));
-
+    // send values
     DShot_SendThrottle(motor.LF, motor.RF, motor.LR, motor.RR);
 
     return RECEIVER_OK;
 }
 
 /**
- * @brief This functions sets the duty cycle to the std value 0.1%
+ * @brief This functions sets the throttle values to offmode throttle
+ * @details throttle value can be changed with define 'ESC_OFFMODE_THR' found in receiver.h
  * @return Receiver_Status
  */
 Receiver_Status Receiver_SetStdDC(void)
 {
-    // DShot_SendThrottle(PWM_OFFMODE_DC, PWM_OFFMODE_DC, PWM_OFFMODE_DC, PWM_OFFMODE_DC);
     DShot_SendThrottle(ESC_OFFMODE_THR, ESC_OFFMODE_THR, ESC_OFFMODE_THR, ESC_OFFMODE_THR);
 
     return RECEIVER_OK;
 }
 
 /**
- * @brief This function output all receiver channels side by side
+ * @brief This function outputs all receiver channels side by side
  * @attention This function uses the global array receiver_ChData[]
  * @param huart pointer to a UART_HandleTypeDef structure (for output)
  * @retval None
  */
 void Receiver_OutputChValues(UART_HandleTypeDef *huart)
 {
-    char txt[100], txt2[1000];
+    char tmp[100], finalString[1000];
 
     // get amount of channels per protocol
-    int8_t len = (protocol == IBUS) ? 14 : 16;
+    int8_t len = (receiver_SelectedProtocol == IBUS) ? 14 : 16;
 
     // convert channel data to string
     for(int8_t i = 0; i < len; i++)
     {
-        sprintf(txt, "%d  ", receiver_ChData[i]);
-        strcat(txt2, txt);
+        sprintf(tmp, "%d  ", receiver_ChData[i]);
+        strcat(finalString, tmp);
     }
-    strcat(txt2, "\n\r");
+    strcat(finalString, "\n\r");
 
-    // output string 
-    HAL_UART_Transmit(huart, (uint8_t *)&txt2, strlen(txt2), HAL_MAX_DELAY);
+    // output string to terminal
+    Terminal_Print(finalString);
 }
 
 /**
- * @brief This function sets the drone motors under the hover duty cycle -> landing
+ * @brief This function sets the drone motors to a throttle that slowly lands the drone
  * @retval Receiver_Status
  */
-Receiver_Status Receiver_SignalLostHandler(void)
+Receiver_Status Receiver_FailsafeHandler(void)
 {
     // check if pwm_Timer is set
     if(pwm_Timer == NULL)
         return RECEIVER_PWM_ERROR;
 
-    // set motors to less then hover mode -> slowing flying downward
-    __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_1, (uint16_t)(PWM_HOVER_DC - PWM_SIGNAL_LOST_OFFSET));
-    __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_2, (uint16_t)(PWM_HOVER_DC - PWM_SIGNAL_LOST_OFFSET));
-    __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_3, (uint16_t)(PWM_HOVER_DC - PWM_SIGNAL_LOST_OFFSET));
-    __HAL_TIM_SET_COMPARE(pwm_Timer, TIM_CHANNEL_4, (uint16_t)(PWM_HOVER_DC - PWM_SIGNAL_LOST_OFFSET));
+    DShot_SendThrottle(ESC_LANDING_THR, ESC_LANDING_THR, ESC_LANDING_THR, ESC_LANDING_THR);
 
     // MAYBE check IMU for stability
 
@@ -486,33 +484,43 @@ Receiver_Status Receiver_SignalLostHandler(void)
 
 /**
  * @brief This function saves the current channel data and check if its the same as before
+ * @param huart pointer to UART_HandleTypeDef
  * @retval None
  */
-void Receiver_CheckEqChData(void)
+void Receiver_CheckEqChData(UART_HandleTypeDef *huart)
 {
-    if(protocol != IBUS)
+    // only used for IBUS because SBUS does have a signal lost / failsafe flag
+    if(receiver_SelectedProtocol != IBUS)
         return;
 
-    if(receiver_ChData[ONOFF_SWITCH_CHANNEL] < receiver_Input.half)
-    {
-        receiver_ChDataCheck = 0;
-        goto save;
-    }
+    static uint16_t receiver_OldChData[16] = {0};   // previous channel data
 
-    for(int8_t i = 0; i < 14; i++)
+    // when off -> don't check
+    if(receiver_ChData[RECEIVER_ONOFF_SWITCH_CHANNEL] < receiver_InputLimits.half)
     {
-        // check if the old channel data is not the same as the current
-        if(receiver_OldChData[i] != receiver_ChData[i])
+        receiver_SameDataCounter = 0; // reset counter
+    }
+    else
+    {
+        int8_t same = 1; // data is same flag
+        for(int8_t i = 0; i < 14 && same == 1; i++)
         {
-            receiver_ChDataCheck = 0; // reset channel data check
-            goto save;
+            // check if the old channel data is not the same as the current
+            if(receiver_OldChData[i] != receiver_ChData[i])
+            {
+                receiver_SameDataCounter = 0; // reset channel data check
+                same = 0;
+            }
+            else if(i == 14 - 1)
+                receiver_SameDataCounter = (receiver_SameDataCounter == UINT16_MAX - 10) ? 260 : receiver_SameDataCounter + 1; // increment channel data check
         }
-        else if(i == 14 - 1)
-            receiver_ChDataCheck = (receiver_ChDataCheck == UINT16_MAX - 10) ? 260 : receiver_ChDataCheck + 1; // increment channel data check
     }
 
     // save current channel data
-    save:
     for(int8_t i = 0; i < 14; i++)
         receiver_OldChData[i] = receiver_ChData[i];
 }
+
+
+
+

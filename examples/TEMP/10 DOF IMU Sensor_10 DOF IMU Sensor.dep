@@ -1,0 +1,24 @@
+Dependencies for Project '10 DOF IMU Sensor', Target '10 DOF IMU Sensor': (DO NOT MODIFY !)
+CompilerVersion: <unknown>
+F (..\SRC\CMSIS\CoreSupport\core_cm3.c)(0x58452266)(-c --cpu Cortex-M3 -D__MICROLIB -g -O0 --apcs=interwork -I..\SRC\CMSIS\CoreSupport -I..\SRC\CMSIS\DeviceSupport -I..\SRC\HardWare\LED -I..\SRC\HardWare\USART -I..\SRC\HardWare\MPU6050 -I..\SRC\HardWare\HMC5883L -I..\SRC\HardWare\BMP180 -I..\SRC\HardWare\BMP280 -I..\SRC\Public -I..\SRC\STM32F10x_StdPeriph_Driver\inc -I..\SRC\System -I..\SRC\User -I..\SRC\HardWare\I2C -I..\SRC\HardWare\IMU -I..\SRC\HardWare\MPU9250-I D:\Keil_v515\ARM\RV31\INC-I D:\Keil_v515\ARM\CMSIS\Include-I D:\Keil_v515\ARM\Inc\ST\STM32F10x-D__UVISION_VERSION="515" -DSTM32F10X_HD -DUSE_STDPERIPH_DRIVER-o ..\temp\core_cm3.o --omf_browse ..\temp\core_cm3.crf --depend ..\temp\core_cm3.d)
+F (..\SRC\CMSIS\DeviceSupport\startup_stm32f10x_hd.s)(0x58452266)()
+F (..\SRC\HardWare\LED\LED.c)(0x58452266)()
+F (..\SRC\HardWare\USART\USART.c)(0x58452266)()
+F (..\SRC\HardWare\I2C\I2C.c)(0x58452266)()
+F (..\SRC\HardWare\IMU\IMU.c)(0x584D99A5)()
+F (..\SRC\HardWare\BMP180\BMP180.c)(0x58452266)()
+F (..\SRC\HardWare\MPU9250\MPU9250.c)(0x58452266)()
+F (..\SRC\HardWare\BMP280\BMP280.c)(0x584D9C82)()
+F (..\SRC\Public\Public_StdMacros.h)(0x58452266)()
+F (..\SRC\Public\Public_StdTypes.h)(0x58452266)()
+F (..\SRC\STM32F10x_StdPeriph_Driver\src\misc.c)(0x58452266)()
+F (..\SRC\STM32F10x_StdPeriph_Driver\src\stm32f10x_exti.c)(0x58452266)()
+F (..\SRC\STM32F10x_StdPeriph_Driver\src\stm32f10x_gpio.c)(0x58452266)()
+F (..\SRC\STM32F10x_StdPeriph_Driver\src\stm32f10x_rcc.c)(0x58452266)()
+F (..\SRC\STM32F10x_StdPeriph_Driver\src\stm32f10x_tim.c)(0x58452266)()
+F (..\SRC\STM32F10x_StdPeriph_Driver\src\stm32f10x_usart.c)(0x58452266)()
+F (..\SRC\STM32F10x_StdPeriph_Driver\src\stm32f10x_i2c.c)(0x58452266)()
+F (..\SRC\System\System.c)(0x58452266)()
+F (..\SRC\User\main.c)(0x584D99A5)()
+F (..\SRC\User\stm32f10x_it.c)(0x58452266)()
+F (..\SRC\User\system_stm32f10x.c)(0x58452266)()

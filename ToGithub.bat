@@ -13,6 +13,7 @@ git rm --cached -r Praesentationen/"Tag der offenen Tuer"/MPU9150_DEMO_REJ/MPU92
 git rm --cached -r Praesentationen/"Tag der offenen Tuer"/MPU9150_DEMO_REJ/HTL_Hollabrunn.STD.Pack.3.2.0.pack
 git rm --cached -r *.html
 git rm --cached -r *.htm
+git rm --cached "Praesentationen\Praesentation vor Betreuer\Praesentation Betreuer final.pptx"
 
 ::show status
 git status

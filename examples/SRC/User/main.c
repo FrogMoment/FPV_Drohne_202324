@@ -2,10 +2,14 @@
   ******************************************************************************
   * @file    main.c 
   * @author  Waveshare Team
-  * @version V1.0
-  * @date    29-August-2014
+  * @version V1.1
+  * @date    12-December-2016
   * @brief   Main program body.
-  ******************************************************************************
+  * @par     History					
+  *	----------------------------------------------------------------------------
+  * V1.0,   29-August-2014,     Waveshare Team, Initial version  
+  * V1.1,   12-December-2016,   Waveshare Team, Add:BMP280 is supported.  
+  *******************************************************************************
   * @attention
   *
   * THE PRESENT FIRMWARE WHICH IS FOR GUIDANCE ONLY AIMS AT PROVIDING CUSTOMERS
@@ -42,12 +46,12 @@ int main(void)
 	   */ 
 	//float Angle;
 
-	System_Init();	
-	
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO | RCC_APB2Periph_GPIOB, ENABLE);
-  GPIO_PinRemapConfig(GPIO_Remap_SWJ_JTAGDisable,ENABLE);
-  LedGpioConfiguration();
- 	JoystickGpioConfiguration();
+    System_Init();	
+
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO | RCC_APB2Periph_GPIOB , ENABLE);
+    GPIO_PinRemapConfig(GPIO_Remap_SWJ_JTAGDisable,ENABLE);
+    LedGpioConfiguration();
+    JoystickGpioConfiguration();
 	
 	while(1)
 	{	
@@ -64,7 +68,19 @@ int main(void)
 		}
 		if(Press_SampleFlag)
 		{ 				
-			CalTemperatureAndPressureAndAltitude();
+            if(u8PressureType == IMU_PRES_TYPE_BM180)
+            {
+                CalTemperatureAndPressureAndAltitude();
+            }
+            else if(u8PressureType == IMU_PRES_TYPE_BM280)
+            {
+
+                BMP280_CalTemperatureAndPressureAndAltitude(&TemperatureVal, &PressureVal, &AltitudeVal);
+            }
+            else
+            {
+
+            }
 			Press_SampleFlag=0;
 		}
 		if(UART_UpdataFlag)

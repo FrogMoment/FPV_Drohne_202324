@@ -1,13 +1,14 @@
 /**
- * @file status_handling.c
+ * @file status_handling.h
  * @author Maximilian Lendl
  * @date 2024-01-03
  * @version 1
  * 
  * @copyright FPV Drohne DA 202324
  * 
- * @brief 
- * 
+ * @brief This file provides functions for:
+ *          - Sensor error handler
+ *          - terminal print
  */
 
 #ifndef STATUS_HANDLING_H_INCLUDED
@@ -34,5 +35,12 @@ typedef enum Sensors
  */
 void Sensor_ErrorHandler(Sensors sens, int8_t errorCode);
 
-#endif
+/**
+ * @brief This function prints a string to the terminal
+ * @param string 
+ * @retval none
+ */
+void Terminal_Print(char *string);
+
+#endif // STATUS_HANDLING_H_INCLUDED
 

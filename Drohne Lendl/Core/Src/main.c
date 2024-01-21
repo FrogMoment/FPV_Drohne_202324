@@ -24,9 +24,7 @@
 
 #include <stdio.h>
 #include <string.h>
-// #include "MPU9250V3.h"
-// #include "IMU.h"
-//#include "DS2438.h"
+#include "DS2438.h"
 #include "receiver.h"
 #include "IMU_10DOF.h"
 #include "dshot_own.h"
@@ -71,7 +69,7 @@ DMA_HandleTypeDef hdma_usart1_rx;
 
 /* USER CODE BEGIN PV */
 
-char txt[100];
+char txt[1000];
 
 //IMU_AnglesTypDef angles;
 /* USER CODE END PV */
@@ -133,17 +131,17 @@ void RealTimeSystemCallback(TIM_HandleTypeDef *htim)
 
 
   // ------------------ RECEIVER ------------------
-  int8_t tmp = Receiver_MotorControl();
-  if(tmp != RECEIVER_OK)
-  {
-    sprintf(txt, "Receiver Error: %d\n\r", tmp);
-    HAL_UART_Transmit(&huart4, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
+  // int8_t tmp = Receiver_MotorControl();
+  // if(tmp != RECEIVER_OK)
+  // {
+  //   sprintf(txt, "Receiver Error: %d\n\r", tmp);
+  //   HAL_UART_Transmit(&huart4, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
 
-    if(tmp == IBUS_SIGNAL_LOST_ERROR || tmp == SBUS_SIGNAL_LOST || tmp == SBUS_SIGNAL_FAILSAFE)
-    {
-      Receiver_SignalLostHandler();
-    }
-  }
+  //   if(tmp == IBUS_SIGNAL_LOST_ERROR || tmp == SBUS_SIGNAL_LOST || tmp == SBUS_SIGNAL_FAILSAFE)
+  //   {
+  //     Receiver_SignalLostHandler();
+  //   }
+  // }
   // Receiver_OutputChValues(&huart4);
 
   // sprintf(txt, "%02x\t%02X\t%02X\t%02X\t%02X\n", receiver_RawData[0], receiver_RawData[1], receiver_RawData[2], receiver_RawData[3], receiver_RawData[4]);
@@ -160,17 +158,18 @@ void RealTimeSystemCallback(TIM_HandleTypeDef *htim)
   sprintf(txt, "\r\n Pitch: %.2f \t Roll: %.2f \t Yaw: %.2f \r\n", angles.pitch, angles.roll, angles.yaw);
   HAL_UART_Transmit(&huart4, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
 */
+
+  IMU_GetAngles();
+  // sprintf(txt, " \
+  //               accel: X: %.3f \t Y: %.3f \t Z: %.3f \n\r \
+  //               gyro:  X: %.3f \t Y: %.3f \t Z: %.3f \n\r \
+  //               mag:   X: %.3f \t Y: %.3f \t Z: %.3f \n\n\r", \
+  //               accel.x, accel.y, accel.z, gyro.x, gyro.y, gyro.z, mag.x, mag.y, mag.z);
+  sprintf(txt, "%.1f, %.1f, %.1f\n\r", angle.pitch, angle.roll, angle.yaw);
+  Terminal_Print(txt);
   
 
 
-}
-
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
-{
-  if(huart->Instance == receiver_InputUART->Instance)
-  {
-    Receiver_CheckEqChData();
-  }
 }
 
 /* USER CODE END 0 */
@@ -218,7 +217,8 @@ int main(void)
 
   int8_t errorCode;
 
-  HAL_UART_Transmit(&huart4, (uint8_t*)"Test1\n\r", strlen("Test1\n\r"), HAL_MAX_DELAY);
+  Terminal_Print("Start\n\r");
+
   
 
   // initialize MPU9250
@@ -237,10 +237,10 @@ int main(void)
 
 
   // init IMU 10DOF
-  // errorCode = IMU_Init(&hi2c1, GYRO_1000DPS, ACCEL_2G);
-  // if(errorCode != IMU_OK)
-  //   Sensor_ErrorHandler(IMU, errorCode);
-  // HAL_UART_Transmit(&huart4, (uint8_t *)"IMU detected\n\r", sizeof("IMU detected\n\r"), HAL_MAX_DELAY);
+  errorCode = IMU_Init(&hi2c1, GYRO_500DPS, ACCEL_16G, GYRO_DLPF_184HZ, ACCEL_DLPF_184HZ, &htim17);
+  if(errorCode != IMU_OK)
+    Sensor_ErrorHandler(IMU, errorCode);
+  Terminal_Print("IMU detected and configured\n\r");
 
 
   // start MPU9250 I2C DMA read cycle
@@ -250,11 +250,10 @@ int main(void)
 
 
   // initialize receiver reception with DMA
-  errorCode = Receiver_Init(SBUS, &huart1, &htim3, DSHOT600);
-  if(errorCode != RECEIVER_OK)
-    Sensor_ErrorHandler(RECEIVER, errorCode);
-  HAL_UART_Transmit(&huart4, (uint8_t *)"Receiver detected and calibrated\n\r", sizeof("Receiver detected and calibrated\n\r"), HAL_MAX_DELAY);
-
+  // errorCode = Receiver_Init(SBUS, &huart1, &htim3, DSHOT150);
+  // if(errorCode != RECEIVER_OK)
+  //   Sensor_ErrorHandler(RECEIVER, errorCode);
+  // Terminal_Print("Receiver detected and calibrated\n\r");
 
   // test motors
   // Receiver_MotorTest(&htim3);
@@ -267,8 +266,7 @@ int main(void)
   HAL_UART_Transmit(&huart4, (uint8_t *)"MPU9250 detected and configured\n\r", sizeof("MPU9250 detected and configured\n\r"), HAL_MAX_DELAY); 
 */
 
-  // DShot_Init(&htim3, DSHOT600);
-  // while(1);
+  // DShot_Init(&htim3, DSHOT150);
 
   // DShot_MotorTest();
   
@@ -276,7 +274,6 @@ int main(void)
   // start timer 1 counter + interrupt (real time structure)
   // set custom callback function
   HAL_TIM_RegisterCallback(&htim15, HAL_TIM_PERIOD_ELAPSED_CB_ID, RealTimeSystemCallback);
-
   HAL_TIM_Base_Start_IT(&htim15);
 
   /* USER CODE END 2 */
@@ -567,9 +564,9 @@ static void MX_TIM15_Init(void)
 
   /* USER CODE END TIM15_Init 1 */
   htim15.Instance = TIM15;
-  htim15.Init.Prescaler = 10000-1;
+  htim15.Init.Prescaler = 2790-1;
   htim15.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim15.Init.Period = 13950-1;
+  htim15.Init.Period = 1000-1;
   htim15.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim15.Init.RepetitionCounter = 0;
   htim15.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
@@ -674,7 +671,7 @@ static void MX_UART4_Init(void)
 
   /* USER CODE END UART4_Init 1 */
   huart4.Instance = UART4;
-  huart4.Init.BaudRate = 250000;
+  huart4.Init.BaudRate = 115200;
   huart4.Init.WordLength = UART_WORDLENGTH_8B;
   huart4.Init.StopBits = UART_STOPBITS_1;
   huart4.Init.Parity = UART_PARITY_NONE;

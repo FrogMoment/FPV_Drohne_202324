@@ -10,6 +10,9 @@
  * 
  */
 
+#ifndef IMU_10DOF_INCLUDED
+#define IMU_10DOF_INCLUDED
+
 /**********************************************************************************
 ------------------------------------ INCLUDES ------------------------------------
 **********************************************************************************/
@@ -17,38 +20,67 @@
 #include "main.h"
 #include <string.h>
 #include <stdio.h>
+#include "status_handling.h"
+#include <math.h>
 
 /**********************************************************************************
 --------------------------------- GLOBAL DEFINES ---------------------------------
 **********************************************************************************/
 
 // MPU9255 addresses
-#define IMU_MPU_I2C_ADDR            0xD0 // MPU9250 I2C slave address
-#define IMU_MPU_WHOAMI_ADDR         0x75 // MPU9250 WHO AM I register address
-#define IMU_MPU_INT_PIN_CFG_ADDR    0x37 // MPU9250 bypass enable register address
-#define IMU_MPU_PWR_MGMT_1_ADDR     0x6B // MPU9250 power management 1 register address
-#define IMU_MPU_SMPLRT_DIV_ADDR     0x19 // MPU9250 sample rate divider register address
-#define IMU_MPU_CONFIG_ADDR         0x1A // MPU9250 configuration register address
-#define IMU_MPU_GYRO_CONFIG_ADDR    0x1B // MPU9250 gyroscope configuration register address
-#define IMU_MPU_ACCEL_CONFIG_ADDR   0x1C // MPU9250 accelerometer configuration 1 register address
+#define IMU_MPU_I2C_ADDR            0xD0    // MPU9250 I2C slave address
+#define IMU_MPU_WHOAMI_ADDR         0x75    // MPU9250 WHO AM I register address
+#define IMU_MPU_INT_PIN_CFG_ADDR    0x37    // MPU9250 bypass enable register address
+#define IMU_MPU_USER_CTRL_ADDR      0x6A    // MPU9250 user control register address
+#define IMU_MPU_PWR_MGMT_1_ADDR     0x6B    // MPU9250 power management 1 register address
+#define IMU_MPU_PWR_MGMT_2_ADDR     0x6C    // MPU9250 power management 2 register address
+#define IMU_MPU_INT_ENABLE_ADDR     0x38    // MPU9250 interrupt enable register address
+#define IMU_MPU_FIFO_EN_ADDR        0x23    // MPU9250 FIFO enable register address
+#define IMU_MPU_I2C_MST_CTRL_ADDR   0x24    // MPU9250 I2C master control register address
+#define IMU_MPU_SMPLRT_DIV_ADDR     0x19    // MPU9250 sample rate divider register address
+#define IMU_MPU_CONFIG_ADDR         0x1A    // MPU9250 configuration register address
+#define IMU_MPU_GYRO_CONFIG_ADDR    0x1B    // MPU9250 gyroscope configuration register address
+#define IMU_MPU_ACCEL_CONFIG_ADDR   0x1C    // MPU9250 accelerometer configuration 1 register address
+#define IMU_MPU_ACCEL_CONFIG_2_ADDR 0x1D    // MPU9250 accelerometer configuration 2 register address
+#define IMU_MPU_FIFO_COUNTH_ADDR    0x72    // MPU9250 FIFO count registers register address
+#define IMU_MPU_FIFO_R_W_ADDR       0x74    // MPU9250 FIFO read write register address
+#define IMU_MPU_XG_OFFSET_H_ADDR    0x13    // MPU9250 gyro offset X axis high register address
+#define IMU_MPU_XG_OFFSET_L_ADDR    0x14    // MPU9250 gyro offset X axis low register address
+#define IMU_MPU_YG_OFFSET_H_ADDR    0x15    // MPU9250 gyro offset Y axis high register address
+#define IMU_MPU_YG_OFFSET_L_ADDR    0x16    // MPU9250 gyro offset Y axis Low register address
+#define IMU_MPU_ZG_OFFSET_H_ADDR    0x17    // MPU9250 gyro offset Z axis high register address
+#define IMU_MPU_ZG_OFFSET_L_ADDR    0x18    // MPU9250 gyro offset Z axis low register address
+#define IMU_MPU_XA_OFFSET_H_ADDR    0x77    // MPU9250 accel offset X axis high register address
+#define IMU_MPU_XA_OFFSET_L_ADDR    0x78    // MPU9250 accel offset X axis low register address
+#define IMU_MPU_YA_OFFSET_H_ADDR    0x7A    // MPU9250 accel offset Y axis high register address
+#define IMU_MPU_YA_OFFSET_L_ADDR    0x7B    // MPU9250 accel offset Y axis low register address
+#define IMU_MPU_ZA_OFFSET_H_ADDR    0x7D    // MPU9250 accel offset Z axis high register address
+#define IMU_MPU_ZA_OFFSET_L_ADDR    0x7E    // MPU9250 accel offset Z axis low register address
 
 // magnetometer addresses
-#define IMU_MAG_I2C_ADDR    0x18 // magnetometer I2C slave address
-#define IMU_MAG_WHOAMI_ADDR 0x00 // magnetometer WHO AM I register address
+#define IMU_MAG_I2C_ADDR    0x18    // magnetometer I2C slave address
+#define IMU_MAG_WHOAMI_ADDR 0x00    // magnetometer WHO AM I register address
+#define IMU_MAG_CNTL1_ADDR  0x0A    // magnetometer control 1 register address 
+#define IMU_MAG_CNTL2_ADDR  0x0B    // magnetometer control 2 register address 
+#define IMU_MAG_ASAX_ADDR   0x10    // magnetometer sensitivity adjustment register address 
+#define IMU_MAG_HXL_ADDR    0x03    // magnetometer measurement data x axis low register address 
 
 // barometer addresses
-#define IMU_BARO_I2C_ADDR       0xEE // barometer I2C slave address
-#define IMU_BARO_CHIPID_ADDR    0xD0 // barometer CHIP ID register address
-#define IMU_BARO_CTRL_MEAS_ADDR 0xF4 // barometer control measurement register address
-#define IMU_BARO_CONFIG_ADDR    0xF5 // barometer config register address
-#define IMU_BARO_DIG_T1_L_ADDR  0x88 // barometer temperature compensation value T1 low byte (next 24 are all temperture and pressure)
+#define IMU_BARO_I2C_ADDR       0xEE    // barometer I2C slave address
+#define IMU_BARO_CHIPID_ADDR    0xD0    // barometer CHIP ID register address
+#define IMU_BARO_CTRL_MEAS_ADDR 0xF4    // barometer control measurement register address
+#define IMU_BARO_CONFIG_ADDR    0xF5    // barometer config register address
+#define IMU_BARO_DIG_T1_L_ADDR  0x88    // barometer temperature compensation value T1 low byte (next 24 are all temperture and pressure)
 
 // output registers
-#define IMU_MPU_GYRO_XOUT_H_ADDR 0x43 // MPU9250 gyroscope output register X axis high (next 6 are all gyro)
+#define IMU_MPU_GYRO_XOUT_H_ADDR    0x43    // MPU9250 gyroscope output register X axis high
+#define IMU_MPU_ACCEL_XOUT_H_ADDR   0x3B    // MPU9250 accelerometer ouput register X axis high 
+#define IMU_MAG_XOUT_L_ADDR         0x03    // AK8963 output register X axis high
 
-// filter
-#define Kp 4.50f
-#define Ki 1.00f
+// max resolution
+#define IMU_GYRO_RES_MAX 131.0f
+#define IMU_ACCEL_RES_MAX 16384.0f
+#define RAD2DEG 57.29578f
 
 /**********************************************************************************
 -------------------------------- GLOBAL STRUCTURES --------------------------------
@@ -88,9 +120,22 @@ typedef enum IMU_Fullscale
 
     ACCEL_2G = 0,
     ACCEL_4G = 1,
-    ACCEL_8G = 2,
+    ACCEL_8G = 2,   
     ACCEL_16G = 3
 } IMU_Fullscale;
+
+typedef enum IMU_DLPF
+{
+    GYRO_DLPF_250HZ = 0,
+    GYRO_DLPF_184HZ = 1,
+    GYRO_DLPF_92HZ = 2,
+    GYRO_DLPF_41HZ = 3,
+
+    ACCEL_DLPF_460HZ = 0,
+    ACCEL_DLPF_184HZ = 1,
+    ACCEL_DLPF_92HZ = 2,
+    ACCEL_DLPF_41HZ = 3
+} IMU_DLPF;
 
 // x, y, z coordinates for register values
 typedef struct IMU_RegCoordinates
@@ -120,6 +165,22 @@ typedef struct IMU_BARO_CompensationVal
     int16_t P2, P3, P4, P5, P6, P7, P8, P9;
 } IMU_BARO_CompensationVal;
 
+typedef struct IMU_Angles
+{
+    float pitch;
+    float roll;
+    float yaw;
+} IMU_Angles;
+
+/**********************************************************************************
+-------------------------------- GLOBAL VARIABLES --------------------------------
+**********************************************************************************/
+
+extern IMU_Coordinates accel;
+extern IMU_Coordinates gyro;
+extern IMU_Coordinates mag;
+
+extern IMU_Angles angle;
 
 /**********************************************************************************
 ------------------------------- FUNCTION PROTOTYPES -------------------------------
@@ -128,6 +189,7 @@ typedef struct IMU_BARO_CompensationVal
 /**
  * @brief This function delay the program in us
  * @param us time to delay
+ * @retval None
  */
 void IMU_DelayUs(uint16_t us);
 
@@ -136,10 +198,12 @@ void IMU_DelayUs(uint16_t us);
  * @param hi2c communication I2C, pointer to I2C_HandleTypeDef
  * @param gyroFS full scale select for gyroscope (GYROGYRO_250DPS / GYRO_500DPS / GYRO_1000DPS / GYRO_2000DPS)
  * @param accelFS full scale selct for accelerometer (ACCEL_2G / ACCEL_4G / ACCEL_8G / ACCEL_16G)
+ * @param gyroDLPF bandwidth of gyroscope digital low pass filter (GYRO_DLPF_250HZ, GYRO_DLPF_184HZ, GYRO_DLPF_92HZ, GYRO_DLPF_41HZ)
+ * @param accelDLPF bandwidth of accelerometer digital low pass filter (ACCEL_DLPF_460HZ, ACCEL_DLPF_184HZ, ACCEL_DLPF_92HZ, ACCEL_DLPF_41HZ)
  * @param htim us Delay timer, pointer to TIM_HandleTypeDef
  * @return IMU_Status 
  */
-IMU_Status IMU_Init(I2C_HandleTypeDef *hi2c, IMU_Fullscale gyroFS, IMU_Fullscale accelFS, TIM_HandleTypeDef *htim);
+IMU_Status IMU_Init(I2C_HandleTypeDef *hi2c, IMU_Fullscale gyroFS, IMU_Fullscale accelFS, IMU_DLPF gyroDLPF, IMU_DLPF accelDLPF, TIM_HandleTypeDef *htim);
 
 /**
  * @brief This function reads an amount of bytes from registers from the IMU
@@ -156,10 +220,9 @@ IMU_Status IMU_ReadRegister(IMU_Sensor sensor, uint8_t regAddr, uint8_t *data, u
  * @param sensor MPU9250, AK8963 (MAG), BMP280 (BARO)
  * @param regAddr register address
  * @param data data to write
- * @param txBytes amount of bytes to write
  * @return IMU_Status 
  */
-IMU_Status IMU_WriteRegister(IMU_Sensor sensor, uint8_t regAddr, uint8_t data, uint8_t txBytes);
+IMU_Status IMU_WriteRegister(IMU_Sensor sensor, uint8_t regAddr, uint8_t data);
 
 /**
  * @brief This function checks the connection of all sensors on the IMU
@@ -169,20 +232,42 @@ IMU_Status IMU_WriteRegister(IMU_Sensor sensor, uint8_t regAddr, uint8_t data, u
 IMU_Status IMU_CheckConnection(void);
 
 /**
- * @brief This function reads the x, y and z axis of the gyroscope -> stored in var gyroReg
- * @details values get stored in variable "gyroReg"
+ * @brief This function reads gyroscope register data (x,y,z)
+ * @return IMU_RegCoordinates 
+ */
+IMU_RegCoordinates IMU_MPU_ReadGyro(void);
+
+/**
+ * @brief This function reads accelerometer register data (x,y,z)
+ * @return IMU_RegCoordinates 
+ */
+IMU_RegCoordinates IMU_MPU_ReadAccel(void);
+
+/**
+ * @brief This function reads magnetometer register data (x,y,z)
+ * @return IMU_RegCoordinates 
+ */
+IMU_RegCoordinates IMU_MAG_ReadMag(void);
+
+/**
+ * @brief This function calculates pitch,roll and yaw
+ * @details data gets stored in the global variable 'anges'
  * @retval None
  */
-void IMU_MPU_ReadGyro(void);
+void IMU_GetAngles(void);
 
 /**
  * @brief This function reads the temperature and pressure compensation values 
  * @details values get stored in variable "baroCompensation"
  * @retval None
  */
-void IMU_BARO_ReadCompensationValues(void);
+// void IMU_BARO_ReadCompensationValues(void);
 
 
+
+
+
+#endif
 
 
 
