@@ -42,6 +42,9 @@ void Sensor_ErrorHandler(Sensors sens, int8_t errorCode)
   }
   Terminal_Print(txt);
 
+  __HAL_TIM_SET_COMPARE(LED_TIM, LED_RED_CHANNEL, 10000);
+  __HAL_TIM_SET_COMPARE(LED_TIM, LED_BLUE_CHANNEL, 0);
+
   __disable_irq();
   while(1);
 }

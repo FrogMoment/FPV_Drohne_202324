@@ -27,7 +27,9 @@ float ds2438_Voltage = 0;        // DS2438 voltage value
 float ds2438_Temperature = 0;    // DS2438 temperature value    
 float ds2438_Capacity = 0;       // DS2438 capacity value
 
-TIM_HandleTypeDef *DS2438_DelayTimer;
+TIM_HandleTypeDef *DS2438_DelayTimer = NULL;
+GPIO_TypeDef *ds2438_GPIOPort = NULL;
+uint16_t ds2438_GPIOPin;
 
 /************************************************************************************************
 ------------------------------------------- FUNCTIONS -------------------------------------------
@@ -47,15 +49,20 @@ void DS2438_DelayUs(uint32_t us)
 /**
  * @brief This function initializes the DS2438
  * @param htim pointer to TIM_HandleTypeDef (timer for us delay)
+ * @param gpio_Port GPIOx (x dependend on port)
+ * @param gpio_Pin GPIO_PIN_x (x dependend on pin)
  * @return DS2438_Status
  */
-DS2438_Status DS2438_Init(TIM_HandleTypeDef *htim)
+DS2438_Status DS2438_Init(TIM_HandleTypeDef *htim, GPIO_TypeDef *gpio_Port, uint16_t gpio_Pin)
 {
     if(htim == NULL)
         return DS2438_ERROR;
 
     DS2438_DelayTimer = htim;
     HAL_TIM_Base_Start(DS2438_DelayTimer); // start timer for DS2438_DelayUs
+
+    ds2438_GPIOPort = gpio_Port;
+    ds2438_GPIOPin = gpio_Pin;
 
     if(DS2438_Reset() == DS2438_ERROR)
         return DS2438_ERROR;
@@ -66,8 +73,8 @@ DS2438_Status DS2438_Init(TIM_HandleTypeDef *htim)
     if(DS2438_ReadPage(0x00, pageData) == DS2438_ERROR)
         return DS2438_ERROR;
 
-    // pageData[0] |= 0x08;
-    pageData[0] &= 0xF7;
+    pageData[0] |= 0x08;
+    // pageData[0] &= 0xF7;
 
     if(DS2438_WritePage(0x00, pageData) == DS2438_ERROR)
         return DS2438_ERROR;
@@ -82,13 +89,13 @@ DS2438_Status DS2438_Init(TIM_HandleTypeDef *htim)
 DS2438_Status DS2438_Reset(void)
 {
     // reset DS2438
-    HAL_GPIO_WritePin(DS2438_DQ_GPIO_Port, DS2438_DQ_Pin, GPIO_PIN_RESET);  // send reset pulse (min 480us)
-    Delay_us(480);
-    HAL_GPIO_WritePin(DS2438_DQ_GPIO_Port, DS2438_DQ_Pin, GPIO_PIN_SET);    // release line -> change to receive mode
+    HAL_GPIO_WritePin(ds2438_GPIOPort, ds2438_GPIOPin, GPIO_PIN_RESET);  // send reset pulse (min 480us)
+    DS2438_DelayUs(480);
+    HAL_GPIO_WritePin(ds2438_GPIOPort, ds2438_GPIOPin, GPIO_PIN_SET);    // release line -> change to receive mode
 
-    Delay_us(70); // wait until slave sends presence pulse
-    int8_t pin = HAL_GPIO_ReadPin(DS2438_DQ_GPIO_Port, DS2438_DQ_Pin);
-    Delay_us(410);
+    DS2438_DelayUs(70); // wait until slave sends presence pulse
+    int8_t pin = HAL_GPIO_ReadPin(ds2438_GPIOPort, ds2438_GPIOPin);
+    DS2438_DelayUs(410);
 
     // read current pin level (0 -> found, 1 -> not found)
     if(pin == GPIO_PIN_SET)
@@ -120,17 +127,17 @@ void DS2438_WriteBit(int8_t bit)
 {
     if(bit == 1)
     {
-        HAL_GPIO_WritePin(DS2438_DQ_GPIO_Port, DS2438_DQ_Pin, GPIO_PIN_RESET);
-        Delay_us(10);
-        HAL_GPIO_WritePin(DS2438_DQ_GPIO_Port, DS2438_DQ_Pin, GPIO_PIN_SET);
-        Delay_us(70);
+        HAL_GPIO_WritePin(ds2438_GPIOPort, ds2438_GPIOPin, GPIO_PIN_RESET);
+        DS2438_DelayUs(10);
+        HAL_GPIO_WritePin(ds2438_GPIOPort, ds2438_GPIOPin, GPIO_PIN_SET);
+        DS2438_DelayUs(70);
     }
     else
     {
-        HAL_GPIO_WritePin(DS2438_DQ_GPIO_Port, DS2438_DQ_Pin, GPIO_PIN_RESET);
-        Delay_us(60);
-        HAL_GPIO_WritePin(DS2438_DQ_GPIO_Port, DS2438_DQ_Pin, GPIO_PIN_SET);
-        Delay_us(10);
+        HAL_GPIO_WritePin(ds2438_GPIOPort, ds2438_GPIOPin, GPIO_PIN_RESET);
+        DS2438_DelayUs(60);
+        HAL_GPIO_WritePin(ds2438_GPIOPort, ds2438_GPIOPin, GPIO_PIN_SET);
+        DS2438_DelayUs(10);
     }
 }
 
@@ -156,15 +163,15 @@ int8_t DS2438_ReadBit(void)
 {
     int8_t bit = 0;
 
-    HAL_GPIO_WritePin(DS2438_DQ_GPIO_Port, DS2438_DQ_Pin, GPIO_PIN_RESET);
-    Delay_us(10);
-    HAL_GPIO_WritePin(DS2438_DQ_GPIO_Port, DS2438_DQ_Pin, GPIO_PIN_SET);
-    Delay_us(10);
+    HAL_GPIO_WritePin(ds2438_GPIOPort, ds2438_GPIOPin, GPIO_PIN_RESET);
+    DS2438_DelayUs(10);
+    HAL_GPIO_WritePin(ds2438_GPIOPort, ds2438_GPIOPin, GPIO_PIN_SET);
+    DS2438_DelayUs(10);
 
     // read current pin level
-    bit = HAL_GPIO_ReadPin(DS2438_DQ_GPIO_Port, DS2438_DQ_Pin) == GPIO_PIN_SET;
+    bit = HAL_GPIO_ReadPin(ds2438_GPIOPort, ds2438_GPIOPin) == GPIO_PIN_SET;
 
-    Delay_us(60);
+    DS2438_DelayUs(60);
 
     return bit;
 }
@@ -263,48 +270,6 @@ int8_t DS2438_ControlVoltageFlag(void)
 }
 
 /**
- * @brief This function reads vica
- * @param data
- * @return DS2438_Status
- */
-DS2438_Status DS2438_ReadVICA(int8_t *data)
-{
-    int16_t pageData[9] = {0x00};
-
-    if(DS2438_ReadPage(0x01, pageData) == DS2438_ERROR)
-        return DS2438_ERROR;
-
-    *data = pageData[4];
-
-    return DS2438_OK;
-}
-
-/**
- * @brief This function reads the current current value of the DS2438
- * @return DS2438_Status
- */
-DS2438_Status DS2438_ReadCurrent(void)
-{
-    int16_t pageData[9] = {0x00};
-
-    if(DS2438_ReadPage(0x00, pageData) == DS2438_ERROR)
-        return DS2438_ERROR;
-
-    // reading current 
-    int16_t currentLSB = pageData[5];
-    int16_t currentMSB = pageData[6];
-
-    int8_t tmp = (((currentMSB & 0x3) << 8) | (currentLSB));
-
-    if(currentMSB & ~0x3)
-        tmp *= -1;
-
-    ds2438_Current = tmp / (4096 * DS2438_RSENS);
-
-    return DS2438_OK;
-}
-
-/**
  * @brief This function reads the current voltage value of the DS2438
  * @return DS2438_Status
  */
@@ -326,7 +291,7 @@ DS2438_Status DS2438_ReadVoltage(void)
     int16_t voltageMSB = pageData[4];
 
     ds2438_Voltage = (((voltageMSB & 0x3) << 8) | (voltageLSB)) / 100.0;
-    // TODO ds2438_voltage *= 2; // because of resistor voltage divider 
+    // TODO ds2438_Voltage *= 2; // because of resistor voltage divider 
 
     return DS2438_OK;
 }
@@ -357,33 +322,5 @@ DS2438_Status DS2438_ReadTemperature(void)
     return DS2438_OK;
 }
 
-/**
- * @brief This function reads the current capacity value of the DS2438
- * @return DS2438_Status
- */
-DS2438_Status DS2438_ReadCapacity(void)
-{
-    int8_t vica = 0;
 
-    if(DS2438_ReadVICA(&vica) == DS2438_ERROR)
-        return DS2438_ERROR;
-
-    ds2438_Capacity = vica / (2048 * DS2438_RSENS);
-
-    return DS2438_OK;
-}
-
-/**
- * @brief This function reads current, voltage, temperature and capacity of the DS2438
- * @return DS2438_Status
- */
-DS2438_Status DS2438_ReadAllSensors(void)
-{
-    DS2438_ReadCurrent();
-    DS2438_ReadVoltage();
-    DS2438_ReadTemperature();
-    DS2438_ReadCapacity();
-
-    return DS2438_OK;
-}
 

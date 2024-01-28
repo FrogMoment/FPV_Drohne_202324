@@ -18,16 +18,23 @@
 
 I2C_HandleTypeDef *imu_ComI2C;
 TIM_HandleTypeDef *imu_DelayTIM;
+float dt = 0;
 
 float accelSens = 0;
 float gyroSens = 0;
 IMU_Coordinates gyroOffset = {0};
 
 uint8_t magAdjust[3] = {0};
+IMU_BARO_CompensationVal baroCompensation = {0};
 
 IMU_Coordinates accel = {0};
 IMU_Coordinates gyro = {0};
 IMU_Coordinates mag = {0};
+
+float baroTemperature = 0;
+float baroPressure = 0;
+float baroAltitude = 0;
+float baroAltitudeOffset = 0;
 
 IMU_Angles angle = {0};
 
@@ -47,24 +54,21 @@ void IMU_DelayUs(uint16_t us)
 }
 
 /**
- * @brief This function initialzes the 10DOF IMU
- * @param hi2c communication I2C, pointer to I2C_HandleTypeDef
- * @param gyroFS full scale select for gyroscope (GYROGYRO_250DPS / GYRO_500DPS / GYRO_1000DPS / GYRO_2000DPS)
- * @param accelFS full scale selct for accelerometer (ACCEL_2G / ACCEL_4G / ACCEL_8G / ACCEL_16G)
- * @param gyroDLPF bandwidth of gyroscope digital low pass filter (GYRO_DLPF_250HZ, GYRO_DLPF_184HZ, GYRO_DLPF_92HZ, GYRO_DLPF_41HZ)
- * @param accelDLPF bandwidth of accelerometer digital low pass filter (ACCEL_DLPF_460HZ, ACCEL_DLPF_184HZ, ACCEL_DLPF_92HZ, ACCEL_DLPF_41HZ)
- * @param htim us Delay timer, pointer to TIM_HandleTypeDef
- * @return IMU_Status
+ * @brief This function initialzes the 10DOF IMU (accelerometer, gyroscope, magnetometer, barometer
+ * @param imuInit pointer to IMU_InitTypeDef
+ * @return IMU_Status 
  */
-IMU_Status IMU_Init(I2C_HandleTypeDef *hi2c, IMU_Fullscale gyroFS, IMU_Fullscale accelFS, IMU_DLPF gyroDLPF, IMU_DLPF accelDLPF, TIM_HandleTypeDef *htim)
+IMU_Status IMU_Init(IMU_InitTypeDef *imuInit)
 {
-    imu_ComI2C = hi2c;
+    imu_ComI2C = imuInit->hi2c;
     if(imu_ComI2C == NULL)
         return IMU_I2C_ERROR;
 
-    imu_DelayTIM = htim;
+    imu_DelayTIM = imuInit->htim;
     if(imu_DelayTIM == NULL)
         return IMU_TIM_ERROR;
+
+    dt = imuInit->dt;
 
     HAL_TIM_Base_Start(imu_DelayTIM); // start delay timer
 
@@ -76,21 +80,24 @@ IMU_Status IMU_Init(I2C_HandleTypeDef *hi2c, IMU_Fullscale gyroFS, IMU_Fullscale
     if(errorCode != IMU_OK)
         return errorCode;
 
+    /*************************************************************************************
+    ------------------------------- MPU9250 initialization -------------------------------
+    *************************************************************************************/
     IMU_WriteRegister(MPU9250, IMU_MPU_PWR_MGMT_1_ADDR, 0x00); // reset MPU
     IMU_DelayUs(10000);
     IMU_WriteRegister(MPU9250, IMU_MPU_PWR_MGMT_1_ADDR, 0x01);
     IMU_WriteRegister(MPU9250, IMU_MPU_PWR_MGMT_2_ADDR, 0x00);
-    IMU_WriteRegister(MPU9250, IMU_MPU_ACCEL_CONFIG_ADDR, accelFS << 3);
-    IMU_WriteRegister(MPU9250, IMU_MPU_GYRO_CONFIG_ADDR, gyroFS << 3);
-    IMU_WriteRegister(MPU9250, IMU_MPU_ACCEL_CONFIG_2_ADDR, accelDLPF);
-    IMU_WriteRegister(MPU9250, IMU_MPU_CONFIG_ADDR, gyroDLPF);
+    IMU_WriteRegister(MPU9250, IMU_MPU_ACCEL_CONFIG_ADDR, imuInit->accelFS << 3);
+    IMU_WriteRegister(MPU9250, IMU_MPU_GYRO_CONFIG_ADDR, imuInit->gyroFS << 3);
+    IMU_WriteRegister(MPU9250, IMU_MPU_ACCEL_CONFIG_2_ADDR, imuInit->accelDLPF);
+    IMU_WriteRegister(MPU9250, IMU_MPU_CONFIG_ADDR, imuInit->gyroDLPF);
     IMU_WriteRegister(MPU9250, IMU_MPU_SMPLRT_DIV_ADDR, 0x00);
 
-    accelSens = IMU_ACCEL_RES_MAX / (1 << accelFS);
-    gyroSens = IMU_GYRO_RES_MAX / (1 << gyroFS);
+    accelSens = IMU_ACCEL_RES_MAX / (1 << imuInit->accelFS);
+    gyroSens = IMU_GYRO_RES_MAX / (1 << imuInit->gyroFS);
 
     // calibrate gyro
-    uint16_t amount = 1500;
+    uint16_t amount = 2000;
     IMU_RegCoordinates tempGyro = {0};
     int32_t tempX = 0, tempY = 0, tempZ = 0;
     for(uint16_t i = 0; i < amount; i++)
@@ -106,7 +113,9 @@ IMU_Status IMU_Init(I2C_HandleTypeDef *hi2c, IMU_Fullscale gyroFS, IMU_Fullscale
     gyroOffset.y = (float)tempY / (float)amount;
     gyroOffset.z = (float)tempZ / (float)amount;
 
-    // AK8963 init
+    /*************************************************************************************
+    ------------------------------- AK8963 initialization -------------------------------
+    *************************************************************************************/
     IMU_WriteRegister(AK8963, IMU_MAG_CNTL1_ADDR, 0x00);
     IMU_DelayUs(10000);
     IMU_WriteRegister(AK8963, IMU_MAG_CNTL2_ADDR, 0x01);
@@ -114,7 +123,7 @@ IMU_Status IMU_Init(I2C_HandleTypeDef *hi2c, IMU_Fullscale gyroFS, IMU_Fullscale
     // magnetometer calibration
     IMU_WriteRegister(AK8963, IMU_MAG_CNTL1_ADDR, 0x00);
     HAL_Delay(100);
-    IMU_WriteRegister(AK8963, IMU_MAG_CNTL1_ADDR, 0x0F);
+    IMU_WriteRegister(AK8963, IMU_MAG_CNTL1_ADDR, 0x1F);
     HAL_Delay(100);
     IMU_ReadRegister(AK8963, IMU_MAG_ASAX_ADDR, magAdjust, 3);
     IMU_WriteRegister(AK8963, IMU_MAG_CNTL1_ADDR, 0x00);
@@ -122,6 +131,40 @@ IMU_Status IMU_Init(I2C_HandleTypeDef *hi2c, IMU_Fullscale gyroFS, IMU_Fullscale
     IMU_WriteRegister(AK8963, IMU_MAG_CNTL1_ADDR, 0x16);
     HAL_Delay(100);
     IMU_WriteRegister(MPU9250, IMU_MPU_PWR_MGMT_1_ADDR, 0x01);
+
+    /*************************************************************************************
+    ------------------------------- BMP280 initialization -------------------------------
+    *************************************************************************************/
+    IMU_WriteRegister(BMP280, IMU_BARO_RESET_ADDR, 0xB6); // rest barometer
+
+    uint8_t timeout = 0, status = 1;
+    while(status != 0x00)
+    {
+        IMU_ReadRegister(BMP280, IMU_BARO_STATUS_ADDR, &status, 1);
+        if(timeout++ > 100)
+            return IMU_BARO_INIT_ERROR;
+    }
+
+    IMU_BARO_ReadCompensationValues();
+    uint8_t config = ((imuInit->baroSBT << 5) | (imuInit->baroCoeff << 2));
+    IMU_WriteRegister(BMP280, IMU_BARO_CONFIG_ADDR, config);
+
+    if(imuInit->baroMode == BARO_MODE_FORCE)
+        imuInit->baroMode = BARO_MODE_SLEEP;
+    uint8_t ctrl = (imuInit->baroTempOS << 5) | (imuInit->baroPressOS << 2) | imuInit->baroMode;
+    IMU_WriteRegister(BMP280, IMU_BARO_CTRL_MEAS_ADDR, ctrl);
+
+    // get current altitude level
+    IMU_DelayUs(UINT16_MAX);
+    float baroSum = 0;
+    for(uint16_t i = 0; i < amount; i++)
+    {
+        IMU_BARO_ReadBaro();
+        baroSum += baroAltitude;
+        IMU_DelayUs(1000);
+    }
+    baroAltitudeOffset =  baroSum /= amount;
+
 
     return IMU_OK;
 }
@@ -145,12 +188,10 @@ IMU_Status IMU_ReadRegister(IMU_Sensor sensor, uint8_t regAddr, uint8_t *data, u
             break;
 
         case AK8963:
-        case MAG:
             devAddress = IMU_MAG_I2C_ADDR;
             break;
 
         case BMP280:
-        case BARO:
             devAddress = IMU_BARO_I2C_ADDR;
             break;
 
@@ -159,7 +200,7 @@ IMU_Status IMU_ReadRegister(IMU_Sensor sensor, uint8_t regAddr, uint8_t *data, u
     }
 
     // read register(s)
-    HAL_I2C_Mem_Read(imu_ComI2C, devAddress, regAddr, I2C_MEMADD_SIZE_8BIT, data, rxBytes, HAL_MAX_DELAY);
+    HAL_I2C_Mem_Read(imu_ComI2C, devAddress, regAddr, I2C_MEMADD_SIZE_8BIT, data, rxBytes, 1000);
 
     return IMU_OK;
 }
@@ -182,12 +223,10 @@ IMU_Status IMU_WriteRegister(IMU_Sensor sensor, uint8_t regAddr, uint8_t data)
             break;
 
         case AK8963:
-        case MAG:
             devAddress = IMU_MAG_I2C_ADDR;
             break;
 
         case BMP280:
-        case BARO:
             devAddress = IMU_BARO_I2C_ADDR;
             break;
 
@@ -196,7 +235,7 @@ IMU_Status IMU_WriteRegister(IMU_Sensor sensor, uint8_t regAddr, uint8_t data)
     }
 
     // read register(s)
-    HAL_I2C_Mem_Write(imu_ComI2C, devAddress, regAddr, I2C_MEMADD_SIZE_8BIT, &data, 1, HAL_MAX_DELAY);
+    HAL_I2C_Mem_Write(imu_ComI2C, devAddress, regAddr, I2C_MEMADD_SIZE_8BIT, &data, 1, 1000);
 
     return IMU_OK;
 }
@@ -212,7 +251,7 @@ IMU_Status IMU_CheckConnection(void)
     uint8_t regAddr[3] = {IMU_MPU_WHOAMI_ADDR, IMU_MAG_WHOAMI_ADDR, IMU_BARO_CHIPID_ADDR};
     uint8_t sensor[3] = {MPU9250, MAG, BARO};
     uint8_t timeout;
-    uint8_t data;
+    uint8_t data = 0x00;
 
     for(uint8_t i = 0; i < 3; i++)
     {
@@ -279,6 +318,14 @@ IMU_RegCoordinates IMU_MPU_ReadAccel(void)
  */
 IMU_RegCoordinates IMU_MAG_ReadMag(void)
 {
+    uint8_t check = 0x00;
+    do
+    {
+        IMU_ReadRegister(AK8963, IMU_MAG_ST1_ADDR, &check, 1);
+    }
+    while(!(check & 0x01));
+
+
     uint8_t buffer[6] = {0};
     IMU_ReadRegister(AK8963, IMU_MAG_HXL_ADDR, buffer, 6);
 
@@ -299,37 +346,35 @@ void IMU_GetAngles(void)
 {
     IMU_RegCoordinates gyroData = IMU_MPU_ReadGyro();
     IMU_RegCoordinates accelData = IMU_MPU_ReadAccel();
-    IMU_RegCoordinates magData = IMU_MAG_ReadMag();
+    // IMU_RegCoordinates magData = IMU_MAG_ReadMag();
 
     gyro.x = (gyroData.x - gyroOffset.x) / gyroSens;
     gyro.y = (gyroData.y - gyroOffset.y) / gyroSens;
     gyro.z = (gyroData.z - gyroOffset.z) / gyroSens;
 
-    accel.x = accelData.x / accelSens;
-    accel.y = accelData.y / accelSens;
-    accel.z = accelData.z / accelSens;
+    accel.x = (accelData.x / accelSens) - 0.020f;
+    accel.y = (accelData.y / accelSens) - 0.021f;
+    accel.z = ((accelData.z) / accelSens) - 0.140f; // -1 because of mounting upside down
 
-    mag.x = (float)magData.x * ((((float)magAdjust[0] - 128.0f) / 256.0f) + 1.0f);
-    mag.y = (float)magData.y * ((((float)magAdjust[1] - 128.0f) / 256.0f) + 1.0f);
-    mag.z = (float)magData.z * ((((float)magAdjust[2] - 128.0f) / 256.0f) + 1.0f);
+    // mag.x = (float)magData.x * ((((float)magAdjust[0] - 128.0f) / 256.0f) + 1.0f);
+    // mag.y = (float)magData.y * ((((float)magAdjust[1] - 128.0f) / 256.0f) + 1.0f);
+    // mag.z = (float)magData.z * ((((float)magAdjust[2] - 128.0f) / 256.0f) + 1.0f);
 
     // Complementary filter
     float accelPitch = atan2(accel.y, accel.z) * RAD2DEG;
     float accelRoll = atan2(accel.x, accel.z) * RAD2DEG;
-    float dt = 0.01f;
 
     angle.roll = 0.98 * (angle.roll - gyro.y * dt) + (1 - 0.98) * accelRoll;
     angle.pitch = 0.98 * (angle.pitch + gyro.x * dt) + (1 - 0.98) * accelPitch;
     angle.yaw += gyro.z * dt;
 }
 
-
 /**
  * @brief This function reads the temperature and pressure compensation values
  * @details values get stored in variable "baroCompensation"
  * @retval None
  */
-/*void IMU_BARO_ReadCompensationValues(void)
+void IMU_BARO_ReadCompensationValues(void)
 {
     uint8_t buffer[24];
     IMU_ReadRegister(BMP280, IMU_BARO_DIG_T1_L_ADDR, buffer, 24);
@@ -347,7 +392,80 @@ void IMU_GetAngles(void)
     baroCompensation.P7 = (buffer[19] << 8) | buffer[18];
     baroCompensation.P8 = (buffer[21] << 8) | buffer[20];
     baroCompensation.P9 = (buffer[23] << 8) | buffer[22];
-}*/
+}
+
+/**
+ * @brief This function reads the barometer values and calculates temperature, pressure and altitude
+ * @details values gets stored in global variables 'baroTemperature', 'baroPressure' and 'baroAltitude'
+ * @retval None
+ */
+void IMU_BARO_ReadBaro(void)
+{
+    uint8_t buffer[6] = {0};
+    IMU_ReadRegister(BMP280, IMU_BARO_PRESS_ADDR, buffer, 6);
+
+    int32_t adcPress = ((int32_t)buffer[0] << 12) | ((int32_t)buffer[1] << 4) | ((int32_t)buffer[2] >> 4);
+    int32_t adcTemp = ((int32_t)buffer[3] << 12) | ((int32_t)buffer[4] << 4) | ((int32_t)buffer[5] >> 4);
+
+    int32_t fineTemp;
+    int32_t temp = IMU_BARO_CompensateTemp(adcTemp, &fineTemp);
+    uint32_t press = IMU_BARO_CompensatePress(adcPress, fineTemp);
+
+    baroTemperature = (float)temp / 100.0;
+    baroPressure = (float)press / 256.0;
+
+    // convert pressure to altitude according to datasheet
+    float presshPa = baroPressure / 100;
+    baroAltitude = (44330.0 * (1.0 - pow(presshPa / 1013.25, 1.0 / 5.255))) - baroAltitudeOffset;
+}
+
+/**
+ * @brief This function compensates the temperature according to the datasheet
+ * @details
+ * Returns temperature in DegC, resolution is 0.01 DegC. Output value of “5123” equals 51.23 DegC.
+ * @param adcTemp measured temperature
+ * @param fineTemp
+ * @return int32_t (temperature)
+ */
+int32_t IMU_BARO_CompensateTemp(int32_t adcTemp, int32_t *fineTemp)
+{
+    int32_t var1, var2, T;
+    var1 = ((((adcTemp >> 3) - ((int32_t)baroCompensation.T1 << 1))) * ((int32_t)baroCompensation.T2)) >> 11;
+    var2 = (((((adcTemp >> 4) - ((int32_t)baroCompensation.T1)) * ((adcTemp >> 4) - ((int32_t)baroCompensation.T1))) >> 12) * ((int32_t)baroCompensation.T3)) >> 14;
+    *fineTemp = var1 + var2;
+    T = (*fineTemp * 5 + 128) >> 8;
+    return T;
+}
+
+/**
+ * @brief This function compensates the pressure according to the datasheet
+ * @details
+ * Returns pressure in Pa as unsigned 32 bit integer in Q24.8 format (24 integer bits and 8 fractional bits).
+ * Output value of “24674867” represents 24674867/256 = 96386.2 Pa = 963.862 hPa
+ * @param adcPress measured pressure
+ * @param fineTemp
+ * @return uint32_t (pressure)
+ */
+uint32_t IMU_BARO_CompensatePress(int32_t adcPress, int32_t fineTemp)
+{
+    int64_t var1, var2, p;
+    var1 = ((int64_t)fineTemp) - 128000;
+    var2 = var1 * var1 * (int64_t)baroCompensation.P6;
+    var2 = var2 + ((var1 * (int64_t)baroCompensation.P5) << 17);
+    var2 = var2 + (((int64_t)baroCompensation.P4) << 35);
+    var1 = ((var1 * var1 * (int64_t)baroCompensation.P3) >> 8) + ((var1 * (int64_t)baroCompensation.P2) << 12);
+    var1 = (((((int64_t)1) << 47) + var1)) * ((int64_t)baroCompensation.P1) >> 33;
+    if(var1 == 0)
+    {
+        return 0; // avoid exception caused by division by zero
+    }
+    p = 1048576 - adcPress;
+    p = (((p << 31) - var2) * 3125) / var1;
+    var1 = (((int64_t)baroCompensation.P9) * (p >> 13) * (p >> 13)) >> 25;
+    var2 = (((int64_t)baroCompensation.P8) * p) >> 19;
+    p = ((p + var1 + var2) >> 8) + (((int64_t)baroCompensation.P7) << 4);
+    return (uint32_t)p;
+}
 
 
 

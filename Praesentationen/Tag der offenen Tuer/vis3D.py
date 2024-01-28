@@ -23,15 +23,17 @@ sideArrow =  arrow(length=8, shaftwidth=.3, color=color.yellow,  axis=vector(0, 
 IMUBoard = box(length=6, width=6, height=6, opacity=.8, pos=vector(0,0,0))
 myObj = compound([IMUBoard])
 
-with serial.Serial('COM7', baudrate=115200) as ser: 
+with serial.Serial('COM6', baudrate=115200) as ser: 
     while True:
         while(ser.inWaiting() == 0):
             pass
         text = str(ser.readline())
         text = text.split(",")
+        # print(text)
 
-        pitch = float(text[0][2:]) * toRad
-        roll = float(text[1][:-6]) * toRad
+        pitch = float(text[0]) * toRad
+        print(pitch)
+        roll = float(text[1]) * toRad
         yaw = 0
 
         print("Roll=",roll*toDeg," Pitch=",pitch*toDeg,"Yaw=",yaw*toDeg)

@@ -40,6 +40,7 @@ extern "C" {
 extern UART_HandleTypeDef huart4;
 extern char txt[1000];
 extern int16_t helpTmp;
+extern TIM_HandleTypeDef htim1;
 
 /* USER CODE END ET */
 
@@ -71,6 +72,9 @@ void Error_Handler(void);
 #define DS2438_TimDelay &htim16
 #define RTS_TIM &htim15
 #define TERMINAL_UART &huart4
+#define LED_TIM &htim1
+#define LED_BLUE_CHANNEL TIM_CHANNEL_2
+#define LED_RED_CHANNEL TIM_CHANNEL_1
 #define EXTRA_7_Pin GPIO_PIN_13
 #define EXTRA_7_GPIO_Port GPIOC
 #define DS2438_DQ_Pin GPIO_PIN_0
@@ -115,10 +119,6 @@ void Error_Handler(void);
 #define RECEIVER_PPM_GPIO_Port GPIOC
 #define EXTRA_9_Pin GPIO_PIN_7
 #define EXTRA_9_GPIO_Port GPIOC
-#define LED_1_Pin GPIO_PIN_8
-#define LED_1_GPIO_Port GPIOA
-#define LED_0_Pin GPIO_PIN_9
-#define LED_0_GPIO_Port GPIOA
 #define EXTRA_8_Pin GPIO_PIN_12
 #define EXTRA_8_GPIO_Port GPIOA
 #define IMU_F_SYNC_Pin GPIO_PIN_3

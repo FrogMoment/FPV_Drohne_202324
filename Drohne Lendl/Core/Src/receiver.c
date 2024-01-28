@@ -17,6 +17,7 @@
 
 #include "receiver.h"
 #include "dshot_own.h"
+#include "PID.h"
 
 /************************************************************************************************
 --------------------------------------- GLOBAL VARIABLES ---------------------------------------
@@ -34,6 +35,8 @@ uint16_t receiver_SameDataCounter = 0;  // counter amount of same channel data a
 // pwm output variables
 TIM_HandleTypeDef *pwm_Timer = NULL;        // pointer to TIM_HandleTypeDef of output pwm signal
 Receiver_Values receiver_InputLimits = {0}; // input limits dependend on selected protocol
+
+uint8_t failsafeFlag = 0;
 
 /************************************************************************************************
 ------------------------------------------- FUNCTIONS -------------------------------------------
@@ -289,7 +292,7 @@ Receiver_Status Receiver_Decode(void)
 }
 
 /**
- * @brief This function calculates the stick positions according to the receiver input
+ * @brief This function convert the input from the receiver to throttle percentage
  * @details
  * The max throttle values per mode can be changed in receiver.h with:
  *  - ESC_SAFEMODE_THR_MAX
@@ -298,7 +301,7 @@ Receiver_Status Receiver_Decode(void)
  *  - ESC_TURN_OFFSET_MAX
  * @return Receiver_Status
  */
-Receiver_Status Receiver_MotorControl(void)
+Receiver_Status Receiver_ConvertInput(void)
 {
     Receiver_Status status = Receiver_Decode();
     if(status != RECEIVER_OK)
@@ -317,6 +320,7 @@ Receiver_Status Receiver_MotorControl(void)
     ***************************************************************************************************************************************/
 
     uint16_t esc_MaxThr;
+    uint8_t hoverMode = 0;
 
     // top position (< half) = safemode
     if(receiver_ChData[RECEIVER_MODESEL_SWTICH_CHANNEL] < receiver_InputLimits.half - 10)
@@ -326,10 +330,9 @@ Receiver_Status Receiver_MotorControl(void)
     else if(receiver_ChData[RECEIVER_MODESEL_SWTICH_CHANNEL] >= receiver_InputLimits.half - 10 && receiver_ChData[RECEIVER_MODESEL_SWTICH_CHANNEL] <= receiver_InputLimits.half + 10)
         esc_MaxThr = ESC_NORMALMODE_THR_MAX;
 
-    // down position = extra mode, currenty also normalmode
+    // down position = extra mode hover mode
     else
-        esc_MaxThr = ESC_NORMALMODE_THR_MAX; // MAYBE third flight mode select
-
+        hoverMode = 1;
     /**************************************************************************************************************************************
     ------------------------------------------------ calculate throttle input (up / down) ------------------------------------------------
     ***************************************************************************************************************************************/
@@ -337,31 +340,37 @@ Receiver_Status Receiver_MotorControl(void)
     Motor_Position motor;
 
     float throttle = (float)(receiver_ChData[RECEIVER_THROTTLE_CHANNEL] - receiver_InputLimits.min) / receiver_InputLimits.delta; // get joystick position
-    throttle *= esc_MaxThr; // get percent of max duty cycle addition
-    motor.LF = throttle;    // set motor speed to throttle
-    motor.RF = throttle;    // set motor speed to throttle
-    motor.LR = throttle;    // set motor speed to throttle
-    motor.RR = throttle;    // set motor speed to throttle
+    if(!hoverMode && !failsafeFlag)
+    {
+        throttle *= esc_MaxThr; // get percent of max duty cycle addition
+        motor.LF = throttle;    // set motor speed to throttle
+        motor.RF = throttle;    // set motor speed to throttle
+        motor.LR = throttle;    // set motor speed to throttle
+        motor.RR = throttle;    // set motor speed to throttle
+    }
 
     /**************************************************************************************************************************************
     -------------------------------------------- calculate pitch input (forwards / backwards) --------------------------------------------
     ***************************************************************************************************************************************/
 
     float pitch = (float)(receiver_ChData[RECEIVER_PITCH_CHANNEL] - receiver_InputLimits.min) / receiver_InputLimits.delta; // get joystick position
-    pitch = (pitch < .5) ? (.5 - pitch) * 2 : (pitch - .5) * 2; // get difference from 50%
-    pitch *= ESC_TURN_OFFSET_MAX;                               // get percent of max duty cycle addition
-
-    // flying backwards, front motors faster
-    if(receiver_ChData[RECEIVER_PITCH_CHANNEL] < receiver_InputLimits.half)
+    if(!hoverMode && !failsafeFlag)
     {
-        motor.LF += pitch;  // add motor speed to left front
-        motor.RF += pitch;  // add motor speed to right front
-    }
-    // flying forward, rear motors faster
-    else
-    {
-        motor.LR += pitch;  // add motor speed to left rear
-        motor.RR += pitch;  // add motor speed to right rear
+        pitch = (pitch < .5) ? (.5 - pitch) * 2 : (pitch - .5) * 2; // get difference from 50%
+        pitch *= ESC_TURN_OFFSET_MAX;                               // get percent of max duty cycle addition
+        
+        // flying backwards, front motors faster
+        if(receiver_ChData[RECEIVER_PITCH_CHANNEL] < receiver_InputLimits.half)
+        {
+            motor.LF += pitch;  // add motor speed to left front
+            motor.RF += pitch;  // add motor speed to right front
+        }
+        // flying forward, rear motors faster
+        else
+        {
+            motor.LR += pitch;  // add motor speed to left rear
+            motor.RR += pitch;  // add motor speed to right rear
+        }
     }
 
     /**************************************************************************************************************************************
@@ -369,20 +378,23 @@ Receiver_Status Receiver_MotorControl(void)
     ***************************************************************************************************************************************/
 
     float roll = (float)(receiver_ChData[RECEIVER_ROLL_CHANNEL] - receiver_InputLimits.min) / receiver_InputLimits.delta; // get joystick position
-    roll = (roll < .5) ? (.5 - roll) * 2 : (roll - .5) * 2; // get difference from 50%
-    roll *= ESC_TURN_OFFSET_MAX;                            // get percent of max duty cycle addition
+    if(!hoverMode && !failsafeFlag)
+    {
+        roll = (roll < .5) ? (.5 - roll) * 2 : (roll - .5) * 2; // get difference from 50%
+        roll *= ESC_TURN_OFFSET_MAX;                            // get percent of max duty cycle addition
 
-    // flying left, right motors faster
-    if(receiver_ChData[RECEIVER_ROLL_CHANNEL] < receiver_InputLimits.half)
-    {
-        motor.RF += roll;   // add motor speed to right front
-        motor.RR += roll;   // add motor speed to right rear 
-    }
-    // flying right, left motors faster
-    else
-    {
-        motor.LF += roll;   // add motor speed to left front 
-        motor.LR += roll;   // add motor speed to left rear 
+        // flying left, right motors faster
+        if(receiver_ChData[RECEIVER_ROLL_CHANNEL] < receiver_InputLimits.half)
+        {
+            motor.RF += roll;   // add motor speed to right front
+            motor.RR += roll;   // add motor speed to right rear 
+        }
+        // flying right, left motors faster
+        else
+        {
+            motor.LF += roll;   // add motor speed to left front 
+            motor.LR += roll;   // add motor speed to left rear 
+        }
     }
 
     /**************************************************************************************************************************************
@@ -390,40 +402,48 @@ Receiver_Status Receiver_MotorControl(void)
     ***************************************************************************************************************************************/
 
     float yaw = (float)(receiver_ChData[RECEIVER_YAW_CHANNEL] - receiver_InputLimits.min) / receiver_InputLimits.delta; // get joystick position
-    yaw = (yaw < .5) ? (.5 - yaw) * 2 : (yaw - .5) * 2; // get difference from 50%
-    yaw *= ESC_TURN_OFFSET_MAX;                         // get percent of max duty cycle addition
+    if(!hoverMode && !failsafeFlag)
+    {
+        yaw = (yaw < .5) ? (.5 - yaw) * 2 : (yaw - .5) * 2; // get difference from 50%
+        yaw *= ESC_TURN_OFFSET_MAX;                         // get percent of max duty cycle addition
 
-    // rotate left, right front and left rear motors faster
-    if(receiver_ChData[RECEIVER_YAW_CHANNEL] < receiver_InputLimits.half)
-    {
-        motor.LF += yaw;    // add motor speed to right front 
-        motor.RR += yaw;    // add motor speed to left rear 
-    }
-    // rotate right, left front and right rear motors faster
-    else
-    {
-        motor.RF += yaw;    // add motor speed to left front 
-        motor.LR += yaw;    // add motor speed to right rear 
+        // rotate left, right front and left rear motors faster
+        if(receiver_ChData[RECEIVER_YAW_CHANNEL] < receiver_InputLimits.half)
+        {
+            motor.LF += yaw;    // add motor speed to right front 
+            motor.RR += yaw;    // add motor speed to left rear 
+        }
+        // rotate right, left front and right rear motors faster
+        else
+        {
+            motor.RF += yaw;    // add motor speed to left front 
+            motor.LR += yaw;    // add motor speed to right rear 
+        }
     }
 
     /**************************************************************************************************************************************
     -------------------------------------------------------- check and send values --------------------------------------------------------
     ***************************************************************************************************************************************/
 
-    // check if the value is larger then the max value (throttle + turn offset max)
-    if(motor.LF > throttle + ESC_TURN_OFFSET_MAX) motor.LF = throttle + ESC_TURN_OFFSET_MAX;
-    if(motor.RF > throttle + ESC_TURN_OFFSET_MAX) motor.RF = throttle + ESC_TURN_OFFSET_MAX;
-    if(motor.LR > throttle + ESC_TURN_OFFSET_MAX) motor.LR = throttle + ESC_TURN_OFFSET_MAX;
-    if(motor.RR > throttle + ESC_TURN_OFFSET_MAX) motor.RR = throttle + ESC_TURN_OFFSET_MAX;
+    if(!hoverMode && !failsafeFlag)
+    {
+        // check if the value is larger then the max value (throttle + turn offset max)
+        if(motor.LF > throttle + ESC_TURN_OFFSET_MAX) motor.LF = throttle + ESC_TURN_OFFSET_MAX;
+        if(motor.RF > throttle + ESC_TURN_OFFSET_MAX) motor.RF = throttle + ESC_TURN_OFFSET_MAX;
+        if(motor.LR > throttle + ESC_TURN_OFFSET_MAX) motor.LR = throttle + ESC_TURN_OFFSET_MAX;
+        if(motor.RR > throttle + ESC_TURN_OFFSET_MAX) motor.RR = throttle + ESC_TURN_OFFSET_MAX;
 
-    // check if value is samller then the min value (5)
-    if(motor.LF < 5) motor.LF = 5;
-    if(motor.RF < 5) motor.RF = 5;
-    if(motor.LR < 5) motor.LR = 5;
-    if(motor.RR < 5) motor.RR = 5;
+        // check if value is samller then the min value (5)
+        if(motor.LF < 5) motor.LF = 5;
+        if(motor.RF < 5) motor.RF = 5;
+        if(motor.LR < 5) motor.LR = 5;
+        if(motor.RR < 5) motor.RR = 5;
 
-    // send values
-    DShot_SendThrottle(motor.LF, motor.RF, motor.LR, motor.RR);
+        // send values
+        DShot_SendThrottle(motor.LF, motor.RF, motor.LR, motor.RR);
+    }
+    else
+        PID_Hover(throttle);
 
     return RECEIVER_OK;
 }

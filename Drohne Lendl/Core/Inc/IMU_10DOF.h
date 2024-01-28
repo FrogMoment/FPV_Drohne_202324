@@ -64,13 +64,17 @@
 #define IMU_MAG_CNTL2_ADDR  0x0B    // magnetometer control 2 register address 
 #define IMU_MAG_ASAX_ADDR   0x10    // magnetometer sensitivity adjustment register address 
 #define IMU_MAG_HXL_ADDR    0x03    // magnetometer measurement data x axis low register address 
+#define IMU_MAG_ST1_ADDR    0x02    // magnetometer status 1 register
 
 // barometer addresses
 #define IMU_BARO_I2C_ADDR       0xEE    // barometer I2C slave address
 #define IMU_BARO_CHIPID_ADDR    0xD0    // barometer CHIP ID register address
+#define IMU_BARO_RESET_ADDR     0xE0    // barometer reset resgister address
+#define IMU_BARO_STATUS_ADDR    0xF3    // barometer reset resgister address
 #define IMU_BARO_CTRL_MEAS_ADDR 0xF4    // barometer control measurement register address
 #define IMU_BARO_CONFIG_ADDR    0xF5    // barometer config register address
 #define IMU_BARO_DIG_T1_L_ADDR  0x88    // barometer temperature compensation value T1 low byte (next 24 are all temperture and pressure)
+#define IMU_BARO_PRESS_ADDR     0xF7    // barometer pressure measurements register address
 
 // output registers
 #define IMU_MPU_GYRO_XOUT_H_ADDR    0x43    // MPU9250 gyroscope output register X axis high
@@ -96,18 +100,19 @@ typedef enum IMU_Status
 
     IMU_MPU_WHOAMI_ERROR = 10,
     IMU_MAG_WHOAMI_ERROR = 11,
-    IMU_BARO_CHIPID_ERROR = 12
+    IMU_BARO_CHIPID_ERROR = 12,
+
+    IMU_BARO_INIT_ERROR = 13
 } IMU_Status;
 
 // all IMU sensors
 typedef enum IMU_Sensor
 {
     MPU9250 = 0,
-    // MPU = 1,
-    AK8963 = 2,
-    MAG = 3,
-    BMP280 = 4,
-    BARO = 5
+    AK8963 = 1,
+    MAG = 1,
+    BMP280 = 2,
+    BARO = 2
 } IMU_Sensor;
 
 // full scale range values
@@ -130,11 +135,18 @@ typedef enum IMU_DLPF
     GYRO_DLPF_184HZ = 1,
     GYRO_DLPF_92HZ = 2,
     GYRO_DLPF_41HZ = 3,
+    GYRO_DLPF_20HZ = 4,
+    GYRO_DLPF_10HZ = 5,
+    GYRO_DLPF_5HZ = 6,
+    GYRO_DLPF_3600HZ = 7,
 
-    ACCEL_DLPF_460HZ = 0,
-    ACCEL_DLPF_184HZ = 1,
-    ACCEL_DLPF_92HZ = 2,
-    ACCEL_DLPF_41HZ = 3
+    ACCEL_DLPF_218HZ = 1,
+    ACCEL_DLPF_99HZ = 2,
+    ACCEL_DLPF_44HZ = 3,
+    ACCEL_DLPF_21HZ = 4,
+    ACCEL_DLPF_10HZ = 5,
+    ACCEL_DLPF_5HZ = 6,
+    ACCEL_DLPF_420HZ = 7
 } IMU_DLPF;
 
 // x, y, z coordinates for register values
@@ -156,7 +168,7 @@ typedef struct IMU_Coordinates
 // BMP280 compensation values
 typedef struct IMU_BARO_CompensationVal
 {
-    // tempertature compensation values
+    // temperature compensation values
     uint16_t T1;
     int16_t T2, T3;
 
@@ -165,12 +177,78 @@ typedef struct IMU_BARO_CompensationVal
     int16_t P2, P3, P4, P5, P6, P7, P8, P9;
 } IMU_BARO_CompensationVal;
 
+typedef enum IMU_BARO_StandByTime
+{
+    BARO_STANDBY_0P5MS = 0,
+    BARO_STANDBY_62P5MS = 1,
+    BARO_STANDBY_125MS = 2,
+    BARO_STANDBY_250MS = 3,
+    BARO_STANDBY_500MS = 4,
+    BARO_STANDBY_1000MS = 5,
+    BARO_STANDBY_2000MS = 6,
+    BARO_STANDBY_4000MS = 7
+} IMU_BARO_StandByTime;
+
+typedef enum IMU_BARO_IIRFilterCoefficient
+{
+    IMU_BARO_FILTER_OFF = 0,
+    IMU_BARO_FILTER_COEFF_2 = 1,
+    IMU_BARO_FILTER_COEFF_4 = 2,
+    IMU_BARO_FILTER_COEFF_8 = 3,
+    IMU_BARO_FILTER_COEFF_16 = 5
+} IMU_BARO_IIRFilterCoefficient;
+
 typedef struct IMU_Angles
 {
     float pitch;
     float roll;
     float yaw;
 } IMU_Angles;
+
+typedef enum IMU_BARO_Oversampling
+{
+    BARO_TEMP_OS_SKIP = 0,
+    BARO_TEMP_OS_1X = 1,
+    BARO_TEMP_OS_2X = 2,
+    BARO_TEMP_OS_4X = 3,
+    BARO_TEMP_OS_8X = 4,
+    BARO_TEMP_OS_16X = 5,
+
+    BARO_PRESS_OS_SKIP = 0,
+    BARO_PRESS_OS_1X = 1,
+    BARO_PRESS_OS_2X = 2,
+    BARO_PRESS_OS_4X = 3,
+    BARO_PRESS_OS_8X = 4,
+    BARO_PRESS_OS_16X = 5
+
+} IMU_BARO_Oversampling;
+
+typedef enum IMU_BARO_Mode
+{
+    BARO_MODE_SLEEP = 0,
+    BARO_MODE_FORCE = 1,
+    BARO_MODE_NORMAL = 3
+} IMU_BARO_Mode;
+
+typedef struct IMU_InitTypeDef
+{
+    I2C_HandleTypeDef *hi2c;
+
+    IMU_Fullscale gyroFS;
+    IMU_Fullscale accelFS;
+
+    IMU_DLPF gyroDLPF;
+    IMU_DLPF accelDLPF;
+
+    IMU_BARO_StandByTime baroSBT;
+    IMU_BARO_IIRFilterCoefficient baroCoeff;
+    IMU_BARO_Oversampling baroTempOS;
+    IMU_BARO_Oversampling baroPressOS;
+    IMU_BARO_Mode baroMode;
+
+    TIM_HandleTypeDef *htim; // timer for us delay
+    float dt; // time between measurements 
+} IMU_InitTypeDef;
 
 /**********************************************************************************
 -------------------------------- GLOBAL VARIABLES --------------------------------
@@ -181,6 +259,10 @@ extern IMU_Coordinates gyro;
 extern IMU_Coordinates mag;
 
 extern IMU_Angles angle;
+
+extern float baroTemperature;
+extern float baroPressure;
+extern float baroAltitude;
 
 /**********************************************************************************
 ------------------------------- FUNCTION PROTOTYPES -------------------------------
@@ -194,16 +276,11 @@ extern IMU_Angles angle;
 void IMU_DelayUs(uint16_t us);
 
 /**
- * @brief This function initialzes the 10DOF IMU
- * @param hi2c communication I2C, pointer to I2C_HandleTypeDef
- * @param gyroFS full scale select for gyroscope (GYROGYRO_250DPS / GYRO_500DPS / GYRO_1000DPS / GYRO_2000DPS)
- * @param accelFS full scale selct for accelerometer (ACCEL_2G / ACCEL_4G / ACCEL_8G / ACCEL_16G)
- * @param gyroDLPF bandwidth of gyroscope digital low pass filter (GYRO_DLPF_250HZ, GYRO_DLPF_184HZ, GYRO_DLPF_92HZ, GYRO_DLPF_41HZ)
- * @param accelDLPF bandwidth of accelerometer digital low pass filter (ACCEL_DLPF_460HZ, ACCEL_DLPF_184HZ, ACCEL_DLPF_92HZ, ACCEL_DLPF_41HZ)
- * @param htim us Delay timer, pointer to TIM_HandleTypeDef
- * @return IMU_Status
+ * @brief This function initialzes the 10DOF IMU (accelerometer, gyroscope, magnetometer, barometer
+ * @param imuInit pointer to IMU_InitTypeDef
+ * @return IMU_Status 
  */
-IMU_Status IMU_Init(I2C_HandleTypeDef *hi2c, IMU_Fullscale gyroFS, IMU_Fullscale accelFS, IMU_DLPF gyroDLPF, IMU_DLPF accelDLPF, TIM_HandleTypeDef *htim);
+IMU_Status IMU_Init(IMU_InitTypeDef *imuInit);
 
 /**
  * @brief This function reads an amount of bytes from registers from the IMU
@@ -261,13 +338,41 @@ void IMU_GetAngles(void);
  * @details values get stored in variable "baroCompensation"
  * @retval None
  */
-// void IMU_BARO_ReadCompensationValues(void);
+void IMU_BARO_ReadCompensationValues(void);
+
+/**
+ * @brief This function reads the barometer values and calculates temperature, pressure and altitude
+ * @details values gets stored in global variables 'baroTemperature', 'baroPressure' and 'baroAltitude'
+ * @retval None
+ */
+void IMU_BARO_ReadBaro(void);
+
+/**
+ * @brief This function compensates the temperature according to the datasheet
+ * @details
+ * Returns temperature in DegC, resolution is 0.01 DegC. Output value of “5123” equals 51.23 DegC.
+ * @param adcTemp measured temperature
+ * @param fineTemp
+ * @return int32_t (temperature)
+ */
+int32_t IMU_BARO_CompensateTemp(int32_t adcTemp, int32_t *fineTemp);
+
+/**
+ * @brief This function compensates the pressure according to the datasheet
+ * @details
+ * Returns pressure in Pa as unsigned 32 bit integer in Q24.8 format (24 integer bits and 8 fractional bits).
+ * Output value of “24674867” represents 24674867/256 = 96386.2 Pa = 963.862 hPa
+ * @param adcPress measured pressure
+ * @param fineTemp
+ * @return uint32_t (pressure)
+ */
+uint32_t IMU_BARO_CompensatePress(int32_t adcPress, int32_t fineTemp);
 
 
 
 
 
-#endif
+#endif // IMU_10DOF_INCLUDED
 
 
 

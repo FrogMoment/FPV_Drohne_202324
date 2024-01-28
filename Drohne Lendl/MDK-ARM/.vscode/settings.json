@@ -12,6 +12,7 @@
         "main.h": "c",
         "status_handling.h": "c",
         "math.h": "c",
-        "ds2438.h": "c"
+        "ds2438.h": "c",
+        "pid.h": "c"
     }
 }

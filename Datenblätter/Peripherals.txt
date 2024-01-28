@@ -12,6 +12,7 @@ MDDS Testing:
 Drohne Lendl:
 	TIM3: (PA6,PA7,PB0,PB1): ESC output
 	TIM4: (PB8, PB9): HC_SR04
+TODO	TIM14: DShot output every 1ms
 	TIM15: real time system
 	TIM16: us Delay (DS2438)
 	TIM17: us Delay (IMU)

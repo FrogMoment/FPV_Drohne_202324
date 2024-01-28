@@ -185,18 +185,18 @@ void DShot_MotorTest(void)
         HAL_Delay(1);
     }
 
-    // constantly send a specific throttle
+    for(uint64_t i = 0; i < 2000; i++)
+    {
+        DShot_SendThrottle(5,5,5,5);
+        HAL_Delay(1);
+    }
+
     while(1)
     {
-        DShot_SendThrottle(5, 5, 5, 5);
+        DShot_SendThrottle(0,0,0,0);
         HAL_Delay(1);
     }
 }
-
-
-
-
-
 
 
 

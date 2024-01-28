@@ -439,11 +439,6 @@
               <FileType>1</FileType>
               <FilePath>..\Core\Src\receiver.c</FilePath>
             </File>
-            <File>
-              <FileName>dshot_own.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\Core\Src\dshot_own.c</FilePath>
-            </File>
           </Files>
         </Group>
         <Group>
@@ -1483,6 +1478,36 @@
               <FileName>status_handling.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\Core\Src\status_handling.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>PID</GroupName>
+          <Files>
+            <File>
+              <FileName>PID.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Core\Src\PID.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>DShot</GroupName>
+          <Files>
+            <File>
+              <FileName>dshot_own.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Core\Src\dshot_own.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>Data Transmission</GroupName>
+          <Files>
+            <File>
+              <FileName>datatransmission.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Core\Src\datatransmission.c</FilePath>
             </File>
           </Files>
         </Group>

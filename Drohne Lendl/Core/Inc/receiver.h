@@ -101,6 +101,8 @@ extern UART_HandleTypeDef *receiver_InputUART;
 extern uint8_t receiver_RawData[32];    // raw data of receiver communication
 extern uint16_t receiver_ChData[16];    // each channel data
 
+extern uint8_t failsafeFlag;
+
 /************************************************************************************************
 -------------------------------------- FUNCTION PROTOTYPES --------------------------------------
 ************************************************************************************************/
@@ -133,7 +135,7 @@ Receiver_Status Receiver_Init(Receiver_Protocol proto, UART_HandleTypeDef *huart
 Receiver_Status Receiver_Decode(void);
 
 /**
- * @brief This function calculates the stick positions according to the receiver input
+ * @brief This function convert the input from the receiver to throttle percentage
  * @details
  * The max throttle values per mode can be changed in receiver.h with:
  *  - ESC_SAFEMODE_THR_MAX
@@ -142,7 +144,9 @@ Receiver_Status Receiver_Decode(void);
  *  - ESC_TURN_OFFSET_MAX
  * @return Receiver_Status
  */
-Receiver_Status Receiver_MotorControl(void);
+Receiver_Status Receiver_ConvertInput(void);
+
+Receiver_Status Receiver_GetAnglesPercent(float *throttle, float *pitch, float *roll, float *yaw);
 
 /**
  * @brief This functions sets the throttle values to offmode throttle

@@ -49,10 +49,10 @@ typedef enum DS2438_Status
 --------------------------------------- GLOBAL VARIABLES ---------------------------------------
 ************************************************************************************************/
 
-extern float ds2438_current;        // DS2438 current value
-extern float ds2438_voltage;        // DS2438 voltage value
-extern float ds2438_temperature;    // DS2438 temperature value    
-extern float ds2438_capacity;       // DS2438 capacity value
+extern float ds2438_Current;        // DS2438 current value
+extern float ds2438_Voltage;        // DS2438 voltage value
+extern float ds2438_Temperature;    // DS2438 temperature value    
+extern float ds2438_Capacity;       // DS2438 capacity value
 
 /************************************************************************************************
 -------------------------------------- FUNCTION PROTOTYPES --------------------------------------
@@ -66,11 +66,13 @@ extern float ds2438_capacity;       // DS2438 capacity value
 void DS2438_DelayUs(uint32_t us);
 
 /**
- * @brief This function initializes the DS2438 (reset + presence pulse)
+ * @brief This function initializes the DS2438
  * @param htim pointer to TIM_HandleTypeDef (timer for us delay)
+ * @param gpio_Port GPIOx (x dependend on port)
+ * @param gpio_Pin GPIO_PIN_x (x dependend on pin)
  * @return DS2438_Status
  */
-DS2438_Status DS2438_Init(TIM_HandleTypeDef *htim);
+DS2438_Status DS2438_Init(TIM_HandleTypeDef *htim, GPIO_TypeDef *gpio_Port, uint16_t gpio_Pin);
 
 /**
  * @brief This function resets / checks device presence
