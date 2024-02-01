@@ -79,6 +79,12 @@ DShot_Status DShot_Init(TIM_HandleTypeDef *htim, ESC_OutputProtocol protocol)
     DShot_OutputTim->hdma[ESC_LR_DMA_ID]->XferCpltCallback = Dshot_DMA_XferCpltCallback;
     DShot_OutputTim->hdma[ESC_RR_DMA_ID]->XferCpltCallback = Dshot_DMA_XferCpltCallback;
 
+    // set output low
+    __HAL_TIM_SET_COMPARE(DShot_OutputTim, ESC_LF_TIM_CH, 0);
+    __HAL_TIM_SET_COMPARE(DShot_OutputTim, ESC_RF_TIM_CH, 0);
+    __HAL_TIM_SET_COMPARE(DShot_OutputTim, ESC_LR_TIM_CH, 0);
+    __HAL_TIM_SET_COMPARE(DShot_OutputTim, ESC_RR_TIM_CH, 0);
+    
     // start all timers in pwm output mode
     HAL_TIM_PWM_Start(DShot_OutputTim, ESC_LF_TIM_CH);
     HAL_TIM_PWM_Start(DShot_OutputTim, ESC_RF_TIM_CH);
@@ -157,7 +163,6 @@ void DShot_SendData(uint16_t *throttle, int8_t telemetry)
     }
 
     // reset counter to get rid of delay between channels
-    __HAL_TIM_SET_COUNTER(DShot_OutputTim, 0);
 
     // start dma transfer to the capture compare register
     HAL_DMA_Start_IT(DShot_OutputTim->hdma[ESC_LF_DMA_ID], (uint32_t)&data[0][0], ESC_TIM_GET_CCR_ADDR(ESC_LF_TIM_CH), 18);
@@ -166,6 +171,7 @@ void DShot_SendData(uint16_t *throttle, int8_t telemetry)
     HAL_DMA_Start_IT(DShot_OutputTim->hdma[ESC_RR_DMA_ID], (uint32_t)&data[3][0], ESC_TIM_GET_CCR_ADDR(ESC_RR_TIM_CH), 18);
 
     // enable dma
+    __HAL_TIM_SET_COUNTER(DShot_OutputTim, 0);
     __HAL_TIM_ENABLE_DMA(DShot_OutputTim, TIM_DMA_CC1);
     __HAL_TIM_ENABLE_DMA(DShot_OutputTim, TIM_DMA_CC2);
     __HAL_TIM_ENABLE_DMA(DShot_OutputTim, TIM_DMA_CC3);
@@ -181,7 +187,7 @@ void DShot_MotorTest(void)
     // for 5s send command 0 every 1ms
     for(uint64_t i = 0; i < 5000; i++)
     {
-        DShot_SendCommand(0);
+        DShot_SendThrottle(0, 0, 0, 0);
         HAL_Delay(1);
     }
 

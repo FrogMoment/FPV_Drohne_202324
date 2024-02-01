@@ -37,6 +37,7 @@ TIM_HandleTypeDef *pwm_Timer = NULL;        // pointer to TIM_HandleTypeDef of o
 Receiver_Values receiver_InputLimits = {0}; // input limits dependend on selected protocol
 
 uint8_t failsafeFlag = 0;
+uint8_t droneOffModeFlag = 1;
 
 /************************************************************************************************
 ------------------------------------------- FUNCTIONS -------------------------------------------
@@ -84,7 +85,7 @@ Receiver_Status Receiver_Init(Receiver_Protocol proto, UART_HandleTypeDef *huart
             }
 
             // set custom reception complete ISR
-            HAL_UART_RegisterCallback(receiver_InputUART, HAL_UART_RX_COMPLETE_CB_ID, Receiver_CheckEqChData);
+            HAL_UART_RegisterCallback(receiver_InputUART, HAL_UART_RX_COMPLETE_CB_ID, Receiver_IBusFailsafeCheck);
 
             uint8_t tmp[2] = {0};
             timeout = 0;
@@ -315,12 +316,17 @@ Receiver_Status Receiver_ConvertInput(void)
     if(receiver_ChData[RECEIVER_ONOFF_SWITCH_CHANNEL] < receiver_InputLimits.half)
         return Receiver_SetStdDC();
 
+    if(droneOffModeFlag == 1 && receiver_ChData[RECEIVER_THROTTLE_CHANNEL] > receiver_InputLimits.min + 10)
+        return Receiver_SetStdDC();
+
+    droneOffModeFlag = 0;
+
     /**************************************************************************************************************************************
     ------------------------------------------------ check 3 position switch (mode select) ------------------------------------------------
     ***************************************************************************************************************************************/
 
     uint16_t esc_MaxThr;
-    uint8_t hoverMode = 0;
+    uint8_t hoverModeFlag = 0;
 
     // top position (< half) = safemode
     if(receiver_ChData[RECEIVER_MODESEL_SWTICH_CHANNEL] < receiver_InputLimits.half - 10)
@@ -332,7 +338,7 @@ Receiver_Status Receiver_ConvertInput(void)
 
     // down position = extra mode hover mode
     else
-        hoverMode = 1;
+        hoverModeFlag = 1;
     /**************************************************************************************************************************************
     ------------------------------------------------ calculate throttle input (up / down) ------------------------------------------------
     ***************************************************************************************************************************************/
@@ -340,7 +346,7 @@ Receiver_Status Receiver_ConvertInput(void)
     Motor_Position motor;
 
     float throttle = (float)(receiver_ChData[RECEIVER_THROTTLE_CHANNEL] - receiver_InputLimits.min) / receiver_InputLimits.delta; // get joystick position
-    if(!hoverMode && !failsafeFlag)
+    if(!hoverModeFlag && !failsafeFlag)
     {
         throttle *= esc_MaxThr; // get percent of max duty cycle addition
         motor.LF = throttle;    // set motor speed to throttle
@@ -354,7 +360,7 @@ Receiver_Status Receiver_ConvertInput(void)
     ***************************************************************************************************************************************/
 
     float pitch = (float)(receiver_ChData[RECEIVER_PITCH_CHANNEL] - receiver_InputLimits.min) / receiver_InputLimits.delta; // get joystick position
-    if(!hoverMode && !failsafeFlag)
+    if(!hoverModeFlag && !failsafeFlag)
     {
         pitch = (pitch < .5) ? (.5 - pitch) * 2 : (pitch - .5) * 2; // get difference from 50%
         pitch *= ESC_TURN_OFFSET_MAX;                               // get percent of max duty cycle addition
@@ -378,7 +384,7 @@ Receiver_Status Receiver_ConvertInput(void)
     ***************************************************************************************************************************************/
 
     float roll = (float)(receiver_ChData[RECEIVER_ROLL_CHANNEL] - receiver_InputLimits.min) / receiver_InputLimits.delta; // get joystick position
-    if(!hoverMode && !failsafeFlag)
+    if(!hoverModeFlag && !failsafeFlag)
     {
         roll = (roll < .5) ? (.5 - roll) * 2 : (roll - .5) * 2; // get difference from 50%
         roll *= ESC_TURN_OFFSET_MAX;                            // get percent of max duty cycle addition
@@ -402,7 +408,7 @@ Receiver_Status Receiver_ConvertInput(void)
     ***************************************************************************************************************************************/
 
     float yaw = (float)(receiver_ChData[RECEIVER_YAW_CHANNEL] - receiver_InputLimits.min) / receiver_InputLimits.delta; // get joystick position
-    if(!hoverMode && !failsafeFlag)
+    if(!hoverModeFlag && !failsafeFlag)
     {
         yaw = (yaw < .5) ? (.5 - yaw) * 2 : (yaw - .5) * 2; // get difference from 50%
         yaw *= ESC_TURN_OFFSET_MAX;                         // get percent of max duty cycle addition
@@ -425,7 +431,7 @@ Receiver_Status Receiver_ConvertInput(void)
     -------------------------------------------------------- check and send values --------------------------------------------------------
     ***************************************************************************************************************************************/
 
-    if(!hoverMode && !failsafeFlag)
+    if(!hoverModeFlag && !failsafeFlag)
     {
         // check if the value is larger then the max value (throttle + turn offset max)
         if(motor.LF > throttle + ESC_TURN_OFFSET_MAX) motor.LF = throttle + ESC_TURN_OFFSET_MAX;
@@ -455,6 +461,7 @@ Receiver_Status Receiver_ConvertInput(void)
  */
 Receiver_Status Receiver_SetStdDC(void)
 {
+    droneOffModeFlag = 1;
     DShot_SendThrottle(ESC_OFFMODE_THR, ESC_OFFMODE_THR, ESC_OFFMODE_THR, ESC_OFFMODE_THR);
 
     return RECEIVER_OK;
@@ -507,7 +514,7 @@ Receiver_Status Receiver_FailsafeHandler(void)
  * @param huart pointer to UART_HandleTypeDef
  * @retval None
  */
-void Receiver_CheckEqChData(UART_HandleTypeDef *huart)
+void Receiver_IBusFailsafeCheck(UART_HandleTypeDef *huart)
 {
     // only used for IBUS because SBUS does have a signal lost / failsafe flag
     if(receiver_SelectedProtocol != IBUS)

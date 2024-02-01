@@ -89,8 +89,6 @@ void Error_Handler(void);
 #define TERMINAL_TX_GPIO_Port GPIOA
 #define TERMINAL_RX_Pin GPIO_PIN_1
 #define TERMINAL_RX_GPIO_Port GPIOA
-#define EXTRA_3_Pin GPIO_PIN_2
-#define EXTRA_3_GPIO_Port GPIOA
 #define ESC_CH1_Pin GPIO_PIN_6
 #define ESC_CH1_GPIO_Port GPIOA
 #define ESC_CH2_Pin GPIO_PIN_7

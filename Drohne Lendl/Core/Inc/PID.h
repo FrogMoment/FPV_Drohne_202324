@@ -15,7 +15,6 @@
 
 #include "main.h"
 #include "IMU_10DOF.h"
-#include "receiver.h"
 #include "dshot_own.h"
 
 typedef enum PID_Status

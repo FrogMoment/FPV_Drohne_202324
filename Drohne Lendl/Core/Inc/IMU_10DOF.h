@@ -264,6 +264,9 @@ extern float baroTemperature;
 extern float baroPressure;
 extern float baroAltitude;
 
+extern IMU_Coordinates gyroOffset;
+extern float gyroSens;
+
 /**********************************************************************************
 ------------------------------- FUNCTION PROTOTYPES -------------------------------
 **********************************************************************************/

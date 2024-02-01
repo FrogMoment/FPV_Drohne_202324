@@ -12,90 +12,82 @@
 
 #include "PID.h"
 
-#define PID_MAX_VALUE 100
-#define PID_MAX_TURN 0.2
+#define PID_MAX_TURN 5
 
-#define KP_ROLL  PID_MAX_TURN / 180.0
-#define KP_PITCH PID_MAX_TURN / 180.0
-#define KP_YAW   PID_MAX_TURN / 180.0
-
+#define KP_ROLL  0
 #define KI_ROLL  0
-#define KI_PITCH 0
-#define KI_YAW   0
-
 #define KD_ROLL  0
-#define KD_PITCH 0
+
+#define KP_PITCH KP_ROLL
+#define KI_PITCH KI_ROLL
+#define KD_PITCH KD_ROLL
+
+#define KP_YAW   0
+#define KI_YAW   0
 #define KD_YAW   0
 
 PID_Status PID_Hover(float inputThrottle)
 {
     float dt = 0.01f;
-    // float kr = 0.1f;
-    // float Tn = 0.001f;
-    // float Tv = 0.005f;
     float inputPitch = 0.0f, inputRoll = 0.0f, inputYaw = 0.0f;
 
-    IMU_GetAngles();
+    IMU_RegCoordinates gyroData = IMU_MPU_ReadGyro();
+
+    gyro.x = (gyroData.x - gyroOffset.x) / gyroSens;
+    gyro.y = (gyroData.y - gyroOffset.y) / gyroSens;
+    gyro.z = (gyroData.z - gyroOffset.z) / gyroSens;
     
-    float errorPitch = inputPitch - angle.pitch;
-    float errorRoll = inputRoll - angle.roll;
-    float errorYaw = inputYaw - angle.yaw;
-
-    // static float pitchOutPrev = 0.0f, rollOutPrev = 0.0f, yawOutPrev = 0.0f;
-    // static float errorPitchPrev[2] = {0}, errorRollPrev[2] = {0}, errorYawPrev[2] = {0};
-
-    // float pitchOut = pitchOutPrev + kr * (errorPitch - errorPitchPrev[0] + dt/Tn * errorPitch + Tv/dt * (errorPitch - 2 * errorPitchPrev[0] + errorPitchPrev[1]));
-    // float rollOut = rollOutPrev + kr * (errorRoll - errorRollPrev[0] + dt/Tn * errorRoll + Tv/dt * (errorRoll - 2 * errorRollPrev[0] + errorRollPrev[1]));
-    // float yawOut = yawOutPrev + kr * (errorYaw - errorYawPrev[0] + dt/Tn * errorYaw + Tv/dt * (errorYaw - 2 * errorYawPrev[0] + errorYawPrev[1]));
+    // roll
+    float errorRoll = inputRoll - gyro.y;
     
-    // // save previos data
-    // pitchOutPrev = pitchOut;
-    // rollOutPrev = rollOut;
-    // yawOutPrev = yawOut;
+    static float I_Roll = 0, errorRollPrev = 0;
+    I_Roll += errorRoll * KI_ROLL;
 
-    // errorPitchPrev[1] = errorPitchPrev[0];
-    // errorPitchPrev[0] = errorPitch;
-    // errorRollPrev[1] = errorRollPrev[0];
-    // errorRollPrev[0] = errorRoll;
-    // errorYawPrev[1] = errorYawPrev[0];
-    // errorYawPrev[0] = errorYaw;
+    if(I_Roll > PID_MAX_TURN) I_Roll = PID_MAX_TURN;
+    else if(I_Roll < -PID_MAX_TURN) I_Roll = -PID_MAX_TURN;
 
-    // if(rollOut > PID_MAX_VALUE) rollOut = PID_MAX_VALUE;
-    // else if(rollOut < -PID_MAX_VALUE) rollOut = -PID_MAX_VALUE;
+    float rollOutput = KP_ROLL * errorRoll + I_Roll + KD_ROLL * (errorRoll - errorRollPrev);
+    if(rollOutput > PID_MAX_TURN) rollOutput = PID_MAX_TURN;
+    else if(rollOutput < -PID_MAX_TURN) rollOutput = -PID_MAX_TURN;
 
-    float P_Pitch = errorPitch * KP_PITCH;
-    float P_Roll = errorRoll * KP_ROLL;
-    float P_Yaw = errorYaw * KP_YAW;
+    errorRollPrev = errorRoll;
 
-    static float I_Pitch = 0, I_Roll = 0, I_Yaw = 0;
-    I_Pitch += errorPitch * dt;
-    I_Roll += errorRoll * dt;
-    I_Yaw += errorYaw * dt;
+    // pitch
+    float errorPitch = inputPitch - gyro.x;
 
-    if(I_Pitch > 100) I_Pitch = 100; 
-    else if(I_Pitch < 0) I_Pitch = 0;
-    if(I_Roll > 100) I_Roll = 100; 
-    else if(I_Roll < 0) I_Roll = 0;
-    if(I_Yaw > 100) I_Yaw = 100; 
-    else if(I_Yaw < 0) I_Yaw = 0; 
+    static float I_Pitch = 0, errorPitchPrev = 0;
+    I_Pitch += errorPitch * KI_PITCH;
 
-    static float prevErrorPitch = 0, prevErrorRoll = 0, prevErrorYaw = 0;
-    float D_Pitch = (errorPitch - prevErrorPitch) / dt;
-    float D_Roll = (errorRoll - prevErrorRoll) / dt;
-    float D_Yaw = (errorYaw - prevErrorYaw) / dt;
-    prevErrorPitch = errorPitch;
-    prevErrorRoll = errorRoll;
-    prevErrorYaw = errorYaw;
+    if(I_Pitch > PID_MAX_TURN) I_Pitch = PID_MAX_TURN;
+    else if(I_Pitch < -PID_MAX_TURN) I_Pitch = -PID_MAX_TURN;
 
-    float pitchOut = P_Pitch + I_Pitch * KI_PITCH + D_Pitch * KD_PITCH;
-    float rollOut = P_Roll + I_Roll * KI_ROLL + D_Roll * KD_ROLL;
-    float yawOut = P_Yaw + I_Yaw * KI_YAW + D_Yaw * KD_YAW;
+    float pitchOutput = KP_PITCH * errorPitch + I_Pitch + KD_PITCH * (errorPitch - errorPitchPrev);
+    if(pitchOutput > PID_MAX_TURN) pitchOutput = PID_MAX_TURN;
+    else if(pitchOutput < -PID_MAX_TURN) pitchOutput = -PID_MAX_TURN;
 
-    Motor_Position motor = {0};
+    errorPitchPrev = errorPitch;
 
-    // sprintf(txt, "IMU: %.2f  Stell: %.2f\n\r", angle.pitch, pitchOut);
-    sprintf(txt, "%.1f, %.1f, %.1f\n\r", angle.pitch, angle.roll, angle.yaw);
-    Terminal_Print(txt);
+    // yaw
+    float errorYaw = inputYaw - gyro.z;
+    static float I_Yaw = 0, errorYawPrev = 0;
+    I_Yaw += errorYaw * KI_YAW;
+
+    if(I_Yaw > PID_MAX_TURN) I_Yaw = PID_MAX_TURN;
+    else if(I_Yaw < -PID_MAX_TURN) I_Yaw = -PID_MAX_TURN;
+
+    float yawOutput = KP_YAW * errorYaw + I_Yaw + KD_YAW * (errorYaw - errorYawPrev);
+    if(yawOutput > PID_MAX_TURN) yawOutput = PID_MAX_TURN;
+    else if(yawOutput < -PID_MAX_TURN) yawOutput = -PID_MAX_TURN;
+
+    errorYawPrev = errorYaw;
+
+    // output
+    float motorLF = inputThrottle - pitchOutput + rollOutput - yawOutput;
+    float motorRF = inputThrottle - pitchOutput - rollOutput + yawOutput;
+    float motorLR = inputThrottle + pitchOutput + rollOutput + yawOutput;
+    float motorRR = inputThrottle + pitchOutput - rollOutput - yawOutput;
+
+    DShot_SendThrottle(motorLF, motorRF, motorLR, motorRR);
 
     return PID_OK;
 }

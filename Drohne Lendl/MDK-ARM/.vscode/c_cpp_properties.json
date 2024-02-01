@@ -4,21 +4,21 @@
             "name": "Drohne Lendl",
             "includePath": [
                 "c:\\Users\\Max\\OneDrive\\Schule\\DA\\Drohne Lendl\\Core\\Inc",
-                "C:\\Users\\Max\\STM32Cube\\Repository\\STM32Cube_FW_H7_V1.11.1\\Drivers\\STM32H7xx_HAL_Driver\\Inc",
-                "C:\\Users\\Max\\STM32Cube\\Repository\\STM32Cube_FW_H7_V1.11.1\\Drivers\\STM32H7xx_HAL_Driver\\Inc\\Legacy",
-                "C:\\Users\\Max\\STM32Cube\\Repository\\STM32Cube_FW_H7_V1.11.1\\Drivers\\CMSIS\\Device\\ST\\STM32H7xx\\Include",
-                "C:\\Users\\Max\\STM32Cube\\Repository\\STM32Cube_FW_H7_V1.11.1\\Drivers\\CMSIS\\Include",
                 "C:\\Users\\Max\\STM32Cube\\Repository\\Packs\\STMicroelectronics\\X-CUBE-MEMS1\\10.0.0\\Drivers\\BSP\\Components\\lsm6dso",
                 "C:\\Users\\Max\\STM32Cube\\Repository\\Packs\\STMicroelectronics\\X-CUBE-MEMS1\\10.0.0\\Drivers\\BSP\\Components\\lis2mdl",
                 "C:\\Users\\Max\\STM32Cube\\Repository\\Packs\\STMicroelectronics\\X-CUBE-MEMS1\\10.0.0\\Drivers\\BSP\\Components\\lps22hh",
                 "C:\\Users\\Max\\STM32Cube\\Repository\\Packs\\STMicroelectronics\\X-CUBE-MEMS1\\10.0.0\\Drivers\\BSP\\Components\\Common",
+                "c:\\Users\\Max\\OneDrive\\Schule\\DA\\Drohne Lendl\\Drivers\\STM32H7xx_HAL_Driver\\Inc",
+                "c:\\Users\\Max\\OneDrive\\Schule\\DA\\Drohne Lendl\\Drivers\\STM32H7xx_HAL_Driver\\Inc\\Legacy",
+                "c:\\Users\\Max\\OneDrive\\Schule\\DA\\Drohne Lendl\\Drivers\\CMSIS\\Device\\ST\\STM32H7xx\\Include",
+                "c:\\Users\\Max\\OneDrive\\Schule\\DA\\Drohne Lendl\\Drivers\\CMSIS\\Include",
                 "C:\\Keil_v5\\ARM\\ARMCLANG\\include",
                 "C:\\Keil_v5\\ARM\\ARMCLANG\\include\\arm_linux",
                 "C:\\Keil_v5\\ARM\\ARMCLANG\\include\\arm_linux_compat",
                 "C:\\Keil_v5\\ARM\\ARMCLANG\\include\\libcxx",
                 "c:\\Users\\Max\\OneDrive\\Schule\\DA\\Drohne Lendl\\MDK-ARM",
                 "c:\\Users\\Max\\OneDrive\\Schule\\DA\\Drohne Lendl\\Core\\Src",
-                "C:\\Users\\Max\\STM32Cube\\Repository\\STM32Cube_FW_H7_V1.11.1\\Drivers\\STM32H7xx_HAL_Driver\\Src"
+                "c:\\Users\\Max\\OneDrive\\Schule\\DA\\Drohne Lendl\\Drivers\\STM32H7xx_HAL_Driver\\Src"
             ],
             "defines": [
                 "USE_HAL_DRIVER",

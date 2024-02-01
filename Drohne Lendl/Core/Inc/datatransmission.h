@@ -39,8 +39,8 @@
  * @brief This function prepares the data for transmission
  * @retval None
  */
-void DATA_ARRANGEMENT(float value);
-void DATA_SEND();
+void DATA_ARRANGEMENT(float value, int8_t j);
+void DATA_SEND(int8_t j);
 
 void DATA_INIT(UART_HandleTypeDef *huart);
 

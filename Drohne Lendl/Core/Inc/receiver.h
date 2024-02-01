@@ -34,9 +34,9 @@
 
 #define ESC_SAFEMODE_THR_MAX    10      // max throttle in safe mode
 #define ESC_NORMALMODE_THR_MAX  80      // max throttle in safe mode
-#define ESC_TURN_OFFSET_MAX     10      // max addition throttle speed when turning
+#define ESC_TURN_OFFSET_MAX     5       // max addition throttle speed when turning
 #define ESC_OFFMODE_THR         0       // throttle when on/off switch is on off
-#define ESC_MOTORTEST_THR       30      // throttle for motor test
+#define ESC_MOTORTEST_THR       5       // throttle for motor test
 #define ESC_LANDING_THR         50      // throttle to land drone in case of failsafe
 
 // channel indices (-1 because of array indices)
@@ -174,7 +174,7 @@ Receiver_Status Receiver_FailsafeHandler(void);
  * @param huart pointer to UART_HandleTypeDef
  * @retval None
  */
-void Receiver_CheckEqChData(UART_HandleTypeDef *huart);
+void Receiver_IBusFailsafeCheck(UART_HandleTypeDef *huart);
 
 #endif // RECEIVER_H_INCLUDED
 

@@ -73,8 +73,8 @@ DS2438_Status DS2438_Init(TIM_HandleTypeDef *htim, GPIO_TypeDef *gpio_Port, uint
     if(DS2438_ReadPage(0x00, pageData) == DS2438_ERROR)
         return DS2438_ERROR;
 
-    pageData[0] |= 0x08;
-    // pageData[0] &= 0xF7;
+    // pageData[0] |= 0x08; // supply voltage
+    pageData[0] &= 0xF7;    // external input
 
     if(DS2438_WritePage(0x00, pageData) == DS2438_ERROR)
         return DS2438_ERROR;
