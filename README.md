@@ -32,3 +32,7 @@ all datasheets can be found in the folder [Datenblätter](https://github.com/Fro
 
  - [App development](https://github.com/LyffLyff/FPV-Drohne)
 
+## Credits + Sponsor
+sponsored by DRONETECH Austria, 
+![logo_light](https://github.com/LyffLyff/FPV-Drohne/assets/93743301/e1c992ff-6a3c-4576-9553-21091604b3e8)
+
