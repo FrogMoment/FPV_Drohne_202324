@@ -23,6 +23,7 @@
 #include "main.h"
 #include <string.h>
 #include <stdio.h>
+#include "status_handling.h"
 
 /*******************************************************************************************
 -------------------------------------- GLOBAL DEFINES --------------------------------------
@@ -85,9 +86,10 @@ typedef enum DShot_Command
  * @brief This function initializes the output ESC DShot signal
  * @param htim pointer to TIM_HandleTypeDef (output timer)
  * @param protocol DSHOT150, DSHOT300, DSHOT600
+ * @param updateTim pointer to TIM_HandleTypeDef (executes 1ms interrupt)
  * @return DShot_Status
  */
-DShot_Status DShot_Init(TIM_HandleTypeDef *htim, ESC_OutputProtocol protocol);
+DShot_Status DShot_Init(TIM_HandleTypeDef *htim, ESC_OutputProtocol protocol, TIM_HandleTypeDef *updateTim);
 
 /**
  * @brief This function formats the motor data for the DShot protocol
@@ -110,14 +112,17 @@ void DShot_SendCommand(DShot_Command command);
  * @brief This function formats and sends DShot data via PWM DMA
  * @param throttle Throttle values (0-2047)
  * @param telemetry telemetry request bit
+ * @param data formatted data by the function
+ * @retval None
  */
-void DShot_SendData(uint16_t *throttle, int8_t telemetry);
+void DShot_FormatData(uint16_t *throttle, int8_t telemetry, uint16_t data[4][17]);
 
 /**
  * @brief This function tests the motors
  * @retval None
  */
 void DShot_MotorTest(void);
+
 
 #endif // DSHOT_H_INCLUDED
 

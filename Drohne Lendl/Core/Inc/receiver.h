@@ -33,9 +33,9 @@
  ************************************************************************************************/
 
 #define ESC_SAFEMODE_THR_MAX    10      // max throttle in safe mode
-#define ESC_NORMALMODE_THR_MAX  80      // max throttle in safe mode
-#define ESC_TURN_OFFSET_MAX     5       // max addition throttle speed when turning
-#define ESC_OFFMODE_THR         0       // throttle when on/off switch is on off
+#define ESC_NORMALMODE_THR_MAX  80      // max throttle in normal mode
+#define ESC_TURN_OFFSET_MAX     5       // max addition to throttle when turning
+#define ESC_OFFMODE_THR         0       // throttle when on/off switch is in offmode
 #define ESC_MOTORTEST_THR       5       // throttle for motor test
 #define ESC_LANDING_THR         50      // throttle to land drone in case of failsafe
 
@@ -113,9 +113,10 @@ extern uint8_t failsafeFlag;
  * @param huart pointer to a UART_HandleTypeDef structure (input usart)
  * @param htim_out pointer to a TIM_HandleTypeDef structure (output pwm timer)
  * @param speed_out DSHOT150, DSHOT300 or DSHOT600
+ * @param sendUpdateTim pointer to TIM_HandleTypeDef (1ms interrupt for sending)
  * @return Receiver_Status
  */
-Receiver_Status Receiver_Init(Receiver_Protocol proto, UART_HandleTypeDef *huart, TIM_HandleTypeDef *htim_out, ESC_OutputProtocol speed_out);
+Receiver_Status Receiver_Init(Receiver_Protocol proto, UART_HandleTypeDef *huart, TIM_HandleTypeDef *htim_out, ESC_OutputProtocol speed_out, TIM_HandleTypeDef *sendUpdateTim);
 
 /**
  * @brief This function decodes the receiver raw data depending on the protocol
@@ -161,7 +162,7 @@ Receiver_Status Receiver_SetStdDC(void);
  * @param huart pointer to a UART_HandleTypeDef structure (for output)
  * @retval None
  */
-void Receiver_OutputChValues(UART_HandleTypeDef *huart);
+void Receiver_OutputChValues(void);
 
 /**
  * @brief This function sets the drone motors to a throttle that slowly lands the drone

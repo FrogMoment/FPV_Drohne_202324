@@ -6,8 +6,13 @@
  *
  * @copyright FPV Drohne DA 202324
  *
- * @brief
- *
+ * @brief This file provides functions for:
+ *          - MPU9250 + AK8963 initialization
+ *          - BMP280 initialization
+ *          - read / write registers via I2C
+ *          - connection check
+ *          - read accerometer, gyroscope, magnetometer, barometer data
+ *          - calculate pitch, roll and yaw with complementary filter
  */
 
 #include "IMU_10DOF.h"
@@ -56,7 +61,7 @@ void IMU_DelayUs(uint16_t us)
 /**
  * @brief This function initialzes the 10DOF IMU (accelerometer, gyroscope, magnetometer, barometer
  * @param imuInit pointer to IMU_InitTypeDef
- * @return IMU_Status 
+ * @return IMU_Status
  */
 IMU_Status IMU_Init(IMU_InitTypeDef *imuInit)
 {
@@ -163,7 +168,7 @@ IMU_Status IMU_Init(IMU_InitTypeDef *imuInit)
         baroSum += baroAltitude;
         IMU_DelayUs(1000);
     }
-    baroAltitudeOffset =  baroSum /= amount;
+    baroAltitudeOffset = baroSum /= amount;
 
 
     return IMU_OK;
@@ -305,9 +310,10 @@ IMU_RegCoordinates IMU_MPU_ReadAccel(void)
     IMU_ReadRegister(MPU9250, IMU_MPU_ACCEL_XOUT_H_ADDR, buffer, 6);
 
     IMU_RegCoordinates accelData = {0};
-    accelData.x = ((int16_t)buffer[0] << 8) | (int16_t)buffer[1];
-    accelData.y = ((int16_t)buffer[2] << 8) | (int16_t)buffer[3];
-    accelData.z = ((int16_t)buffer[4] << 8) | (int16_t)buffer[5];
+    accelData.x = ((int16_t)buffer[0] << 8) | buffer[1];
+    accelData.y = ((int16_t)buffer[2] << 8) | buffer[3];
+    accelData.z = ((int16_t)buffer[4] << 8) | buffer[5];
+    // MAYBE invert z-axis because the sensor is upside down
 
     return accelData;
 }
@@ -354,7 +360,8 @@ void IMU_GetAngles(void)
 
     accel.x = (accelData.x / accelSens) - 0.020f;
     accel.y = (accelData.y / accelSens) - 0.021f;
-    accel.z = ((accelData.z) / accelSens) - 0.140f; // -1 because of mounting upside down
+    accel.z = (accelData.z / accelSens) - 0.140f;
+    accel.z = -accel.z;
 
     // mag.x = (float)magData.x * ((((float)magAdjust[0] - 128.0f) / 256.0f) + 1.0f);
     // mag.y = (float)magData.y * ((((float)magAdjust[1] - 128.0f) / 256.0f) + 1.0f);
@@ -364,8 +371,8 @@ void IMU_GetAngles(void)
     float accelPitch = atan2(accel.y, accel.z) * RAD2DEG;
     float accelRoll = atan2(accel.x, accel.z) * RAD2DEG;
 
-    angle.roll = 0.98 * (angle.roll - gyro.y * dt) + (1 - 0.98) * accelRoll;
-    angle.pitch = 0.98 * (angle.pitch + gyro.x * dt) + (1 - 0.98) * accelPitch;
+    angle.roll = 0.98 * (angle.roll - gyro.y * dt) + (1.0 - 0.98) * accelRoll;
+    angle.pitch = 0.98 * (angle.pitch + gyro.x * dt) + (1.0 - 0.98) * accelPitch;
     angle.yaw += gyro.z * dt;
 }
 

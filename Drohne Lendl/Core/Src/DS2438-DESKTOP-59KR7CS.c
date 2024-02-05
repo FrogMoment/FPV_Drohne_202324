@@ -1,17 +1,19 @@
 /**
  * @file DS2438.c
- * @author Maximilian Lendl, Marcel Bieder, Lukas Lindmayr
+ * @author Maximilian Lendl
  * @date 2023-07-11
  * @version 1
  *
- * @copyright FPV Drohne DA 202324
+ * @copyright Speed Junkies DA 202324
  *
  * @brief This file provides functions for:
  *          - OneWire read
  *          - OneWire write
  *          - DS2438 communication
+ *          - Current measurement
  *          - Voltage measurement
  *          - Temperature measurement
+ *          - capacity measurement
  */
 
 #include "DS2438.h"
@@ -76,11 +78,6 @@ DS2438_Status DS2438_Init(TIM_HandleTypeDef *htim, GPIO_TypeDef *gpio_Port, uint
 
     if(DS2438_WritePage(0x00, pageData) == DS2438_ERROR)
         return DS2438_ERROR;
-
-    // check current voltage
-    DS2438_ReadVoltage();
-    if(ds2438_Voltage <= DS2438_MIN_VOLTAGE)
-        return DS2438_VOLTAGE_ERROR;
 
     return DS2438_OK;
 }
@@ -263,7 +260,7 @@ DS2438_Status DS2438_StartVoltageMeasurement(void)
  * @brief This function returns the control voltage flag bit
  * @return int8_t
  */
-int8_t DS2438_ReadControlVoltageFlag(void)
+int8_t DS2438_ControlVoltageFlag(void)
 {
     int16_t pageData[9] = {0x00};
 
@@ -282,7 +279,7 @@ DS2438_Status DS2438_ReadVoltage(void)
         return DS2438_ERROR;
 
     // wait for measurement to be complete (1 = busy, 0 = ready)
-    while(DS2438_ReadControlVoltageFlag());
+    while(DS2438_ControlVoltageFlag());
 
     int16_t pageData[9] = {0x00};
 
@@ -294,7 +291,7 @@ DS2438_Status DS2438_ReadVoltage(void)
     int16_t voltageMSB = pageData[4];
 
     ds2438_Voltage = (((voltageMSB & 0x3) << 8) | (voltageLSB)) / 100.0;
-    ds2438_Voltage *= 3; // multiplay voltage because of resistor voltage divider
+    ds2438_Voltage *= 3; // because of resistor voltage divider 
 
     return DS2438_OK;
 }

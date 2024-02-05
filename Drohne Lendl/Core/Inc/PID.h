@@ -6,8 +6,8 @@
  * 
  * @copyright FPV Drohne DA 202324
  * 
- * @brief 
- * 
+ * @brief This file provides functions for:
+ *          - PID algorithm for hover mode
  */
 
 #ifndef PID_H_INCLUDED

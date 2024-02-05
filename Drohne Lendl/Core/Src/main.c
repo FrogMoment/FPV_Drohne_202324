@@ -142,7 +142,7 @@ void RealTimeSystemCallback(TIM_HandleTypeDef *htim)
 
 
   // ------------------ RECEIVER ------------------
-  // int8_t tmp = Receiver_MotorControl();
+  // int8_t tmp = Receiver_ConvertInput();
   // if(tmp != RECEIVER_OK)
   // {
   //   sprintf(txt, "Receiver Error: %d\n\r", tmp);
@@ -150,10 +150,10 @@ void RealTimeSystemCallback(TIM_HandleTypeDef *htim)
 
   //   if(tmp == IBUS_SIGNAL_LOST_ERROR || tmp == SBUS_SIGNAL_LOST || tmp == SBUS_SIGNAL_FAILSAFE)
   //   {
-  //     Receiver_SignalLostHandler();
+      
   //   }
   // }
-  // Receiver_OutputChValues(&huart4);
+  // Receiver_OutputChValues();
 
   // sprintf(txt, "%02x\t%02X\t%02X\t%02X\t%02X\n", receiver_RawData[0], receiver_RawData[1], receiver_RawData[2], receiver_RawData[3], receiver_RawData[4]);
   // HAL_UART_Transmit(&huart4, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
@@ -197,12 +197,12 @@ void RealTimeSystemCallback(TIM_HandleTypeDef *htim)
   uint8_t errorCode;
   
   // DS2438 battery voltage
-  errorCode = DS2438_ReadVoltage();
-  if(errorCode != DS2438_OK)
-  {
-    sprintf(txt, "DS2438 Error %d\n\r", errorCode);
-    Terminal_Print(txt);
-  }
+  // errorCode = DS2438_ReadVoltage();
+  // if(errorCode != DS2438_OK)
+  // {
+  //   sprintf(txt, "DS2438 Error %d\n\r", errorCode);
+  //   Terminal_Print(txt);
+  // }
   
   // Receiver Input
   // errorCode = Receiver_ConvertInput();
@@ -215,14 +215,15 @@ void RealTimeSystemCallback(TIM_HandleTypeDef *htim)
   // IMU Angles
   // IMU_GetAngles();
 
-  // static int8_t packetSelect = 0;
-  // if(packetSelect == 0)
-  //   DATA_TRANSMISSION_1(ds2438_Voltage, baroAltitude, 0x00);
-  // else
-  //   DATA_TRANSMISSION_2(angle.pitch, angle.roll, angle.yaw);
+  static int8_t packetSelect = 0;
+  if(packetSelect == 0)
+    DATA_TRANSMISSION_1(2.5, 10.55, 0x00);
+    // DATA_TRANSMISSION_1(ds2438_Voltage, baroAltitude, 0x00);
+  else
+    DATA_TRANSMISSION_2(23.23, 25.52, -96.22);
+    // DATA_TRANSMISSION_2(angle.pitch, angle.roll, angle.yaw);
 
-  // packetSelect++;
-  // packetSelect %= 2;
+  packetSelect = packetSelect == 0;
 
   // uint32_t stop = __HAL_TIM_GET_COUNTER(&htim2);
   // sprintf(txt, "%dus\n\r", stop);
@@ -232,11 +233,10 @@ void RealTimeSystemCallback(TIM_HandleTypeDef *htim)
   // Terminal_Print(txt);
   // sprintf(txt, "IMU: %.2fDeg  %.2fDeg  %.2fDeg\n\r", angle.pitch, angle.roll, angle.yaw);
   // Terminal_Print(txt);
+  // sprintf(txt, "accel: %.2f  %.2f  %.2f\n\r", accel.x, accel.y, accel.z);
+  // Terminal_Print(txt);
   // sprintf(txt, "%.3fV\n\r", ds2438_Voltage);
   // Terminal_Print(txt);
-
-
-
 }
 
 /* USER CODE END 0 */
@@ -295,12 +295,22 @@ int main(void)
   HAL_TIM_PWM_Start(&htim1, LED_BLUE_CHANNEL);
 
 
+  // initialize data output to server
+  DATA_INIT(&huart3);
+
+
+  __HAL_TIM_SET_PRESCALER(LED_TIM, 14000 - 1);
+
+
   // initliaze DS2438
   // Terminal_Print("DS2438 start ... ");
   // errorCode = DS2438_Init(&htim16, GPIOC, GPIO_PIN_0);
   // if(errorCode != DS2438_OK)
   //   Sensor_ErrorHandler(DS2438, errorCode);
   // Terminal_Print("DS2438 OK\n\r");
+
+
+  __HAL_TIM_SET_PRESCALER(LED_TIM, 7000 - 1);
 
 
   // init IMU 10DOF
@@ -324,7 +334,7 @@ int main(void)
   // Terminal_Print("IMU OK\n\r");
 
 
-  __HAL_TIM_SET_PRESCALER(LED_TIM, 14000 - 1);
+  __HAL_TIM_SET_PRESCALER(LED_TIM, 3500 - 1);
 
 
   // debug
@@ -333,23 +343,20 @@ int main(void)
 
   // initialize receiver reception with DMA
   // Terminal_Print("Receiver start ... ");
-  // errorCode = Receiver_Init(SBUS, &huart1, &htim3, DSHOT600);
+  // errorCode = Receiver_Init(SBUS, &huart1, &htim3, DSHOT150, &htim14);
   // if(errorCode != RECEIVER_OK)
   //   Sensor_ErrorHandler(RECEIVER, errorCode);
   // Terminal_Print("Receiver OK\n\r");
 
-  errorCode = DShot_Init(&htim3, DSHOT150);
-  if(errorCode != DSHOT_OK)
-    Sensor_ErrorHandler(RECEIVER, errorCode);
-  Terminal_Print("DSHOT OK\n\r");
-  DShot_MotorTest();
-
-
-  __HAL_TIM_SET_PRESCALER(LED_TIM, 3500 - 1);
-
-
-  // initialize data output to server
-  // DATA_INIT(&huart3);
+  // TODO delete ----------------------------------------------
+  
+  // errorCode = DShot_Init(&htim3, DSHOT300, &htim14);
+  // if(errorCode != DSHOT_OK)
+  //   Sensor_ErrorHandler(RECEIVER, errorCode);
+  // Terminal_Print("DSHOT OK\n\r");
+  // DShot_MotorTest();
+  
+  // ----------------------------------------------------------
 
 
   __HAL_TIM_SET_COMPARE(LED_TIM, LED_BLUE_CHANNEL, 10000);
@@ -574,7 +581,7 @@ static void MX_TIM1_Init(void)
 
   /* USER CODE END TIM1_Init 1 */
   htim1.Instance = TIM1;
-  htim1.Init.Prescaler = 28000-1;
+  htim1.Init.Prescaler = 27900-1;
   htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim1.Init.Period = 10000-1;
   htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
@@ -866,7 +873,7 @@ static void MX_TIM15_Init(void)
 
   /* USER CODE END TIM15_Init 1 */
   htim15.Instance = TIM15;
-  htim15.Init.Prescaler = 2790-1;
+  htim15.Init.Prescaler = 8370-1;
   htim15.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim15.Init.Period = 10000-1;
   htim15.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;

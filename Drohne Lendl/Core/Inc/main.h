@@ -40,6 +40,7 @@ extern "C" {
 extern UART_HandleTypeDef huart4;
 extern char txt[1000];
 extern int16_t helpTmp;
+extern TIM_HandleTypeDef htim2;
 extern TIM_HandleTypeDef htim1;
 
 /* USER CODE END ET */

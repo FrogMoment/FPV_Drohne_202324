@@ -1,19 +1,17 @@
 /**
  * @file DS2438.h
- * @author Maximilian Lendl
+ * @author Maximilian Lendl, Marcel Bieder, Lukas Lindmayr
  * @date 2023-07-11
  * @version 1
  *
- * @copyright Speed Junkies DA 202324
+ * @copyright FPV Drohne DA 202324
  *
  * @brief This file provides functions for:
  *          - OneWire read
  *          - OneWire write
  *          - DS2438 communication
- *          - Current measurement
  *          - Voltage measurement
  *          - Temperature measurement
- *          - capacity measurement
  */
 
 #ifndef DS2438_H_INCLUDED
@@ -35,6 +33,8 @@
 
 #define DS2438_RSENS 0.150      // value of sense resistor [ohm]
 
+#define DS2438_MIN_VOLTAGE 21   // voltage to send errors and switch to failsafe
+
 /************************************************************************************************
 --------------------------------------- GLOBAL STRUCTURES ---------------------------------------
 ************************************************************************************************/
@@ -42,7 +42,8 @@
 typedef enum DS2438_Status
 {
     DS2438_OK = 0,
-    DS2438_ERROR = 1
+    DS2438_ERROR = 1,
+    DS2438_VOLTAGE_ERROR = 2
 } DS2438_Status;
 
 /************************************************************************************************
@@ -132,20 +133,7 @@ DS2438_Status DS2438_StartVoltageMeasurement(void);
  * @brief This function returns the control voltage flag bit
  * @return int8_t
  */
-int8_t DS2438_ControlVoltageFlag(void);
-
-/**
- * @brief This function reads vica
- * @param data
- * @return DS2438_Status
- */
-DS2438_Status DS2438_ReadVICA(int8_t *data);
-
-/**
- * @brief This function reads the current current value of the DS2438
- * @return DS2438_Status
- */
-DS2438_Status DS2438_ReadCurrent(void);
+int8_t DS2438_ReadControlVoltageFlag(void);
 
 /**
  * @brief This function reads the current voltage value of the DS2438
@@ -158,18 +146,6 @@ DS2438_Status DS2438_ReadVoltage(void);
  * @return DS2438_Status
  */
 DS2438_Status DS2438_ReadTemperature(void);
-
-/**
- * @brief This function reads the current capacity value of the DS2438
- * @return DS2438_Status
- */
-DS2438_Status DS2438_ReadCapacity(void);
-
-/**
- * @brief This function reads current, voltage, temperature and capacity of the DS2438
- * @return DS2438_Status
- */
-DS2438_Status DS2438_ReadAllSensors(void);
 
 #endif // DS2438_H_INCLUDED
 

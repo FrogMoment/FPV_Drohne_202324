@@ -49,9 +49,10 @@ uint8_t droneOffModeFlag = 1;
  * @param huart pointer to a UART_HandleTypeDef structure (input usart)
  * @param htim_out pointer to a TIM_HandleTypeDef structure (output pwm timer)
  * @param speed_out DSHOT150, DSHOT300 or DSHOT600
+ * @param sendUpdateTim pointer to TIM_HandleTypeDef (1ms interrupt for sending)
  * @return Receiver_Status
  */
-Receiver_Status Receiver_Init(Receiver_Protocol proto, UART_HandleTypeDef *huart, TIM_HandleTypeDef *htim_out, ESC_OutputProtocol speed_out)
+Receiver_Status Receiver_Init(Receiver_Protocol proto, UART_HandleTypeDef *huart, TIM_HandleTypeDef *htim_out, ESC_OutputProtocol speed_out, TIM_HandleTypeDef *sendUpdateTim)
 {
     receiver_InputUART = huart; // set input uart
     receiver_SelectedProtocol = proto;           // set serial protocol
@@ -177,7 +178,7 @@ Receiver_Status Receiver_Init(Receiver_Protocol proto, UART_HandleTypeDef *huart
 
     // initialize output with DShot
     int8_t errorCode;
-    errorCode = DShot_Init(htim_out, speed_out);
+    errorCode = DShot_Init(htim_out, speed_out, sendUpdateTim);
     if(errorCode != DSHOT_OK)
         return RECEIVER_PWM_ERROR;
 
@@ -433,6 +434,17 @@ Receiver_Status Receiver_ConvertInput(void)
 
     if(!hoverModeFlag && !failsafeFlag)
     {
+        // MAYBE sketch of better calculation of control ---------------
+        // pitch -= 0.5;
+        // roll -= 0.5;
+        // yaw -= 0.5;
+
+        // motor.LF = throttle - pitch + roll - yaw;
+        // motor.RF = throttle - pitch - roll + yaw;
+        // motor.LR = throttle + pitch + roll + yaw;
+        // motor.RR = throttle + pitch - roll - yaw;
+        // --------------------------------------------------------------
+
         // check if the value is larger then the max value (throttle + turn offset max)
         if(motor.LF > throttle + ESC_TURN_OFFSET_MAX) motor.LF = throttle + ESC_TURN_OFFSET_MAX;
         if(motor.RF > throttle + ESC_TURN_OFFSET_MAX) motor.RF = throttle + ESC_TURN_OFFSET_MAX;
@@ -470,10 +482,9 @@ Receiver_Status Receiver_SetStdDC(void)
 /**
  * @brief This function outputs all receiver channels side by side
  * @attention This function uses the global array receiver_ChData[]
- * @param huart pointer to a UART_HandleTypeDef structure (for output)
  * @retval None
  */
-void Receiver_OutputChValues(UART_HandleTypeDef *huart)
+void Receiver_OutputChValues(void)
 {
     char tmp[100], finalString[1000];
 

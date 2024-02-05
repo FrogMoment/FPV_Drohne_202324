@@ -34,7 +34,7 @@ TIM_HandleTypeDef *DShot_OutputTim = NULL;
  */
 static void DShot_WriteDataCallback(TIM_HandleTypeDef *htim)
 {
-    static float prevThrottle[4];
+    static float prevThrottle[4] = {-1, -1, -1, -1};
     static uint16_t data[4][17] = {0};
 
     if(newThrottle[0] != prevThrottle[0] || newThrottle[1] != prevThrottle[1] || newThrottle[2] != prevThrottle[2] || newThrottle[3] != prevThrottle[3])
@@ -106,8 +106,8 @@ DShot_Status DShot_Init(TIM_HandleTypeDef *htim, ESC_OutputProtocol protocol, TI
     __HAL_TIM_SET_PRESCALER(DShot_OutputTim, 1 - 1);
     __HAL_TIM_SET_AUTORELOAD(DShot_OutputTim, protocol - 1);
 
-    oneDC = ceil(protocol * 0.75);   // calculate duty cycle for sending bit 1
-    zeroDC = ceil(protocol * 0.375); // calculate duty cycle for sending bit 0 
+    oneDC = protocol * 0.74850;   // calculate DC for sending bit 1
+    zeroDC = protocol * 0.37425;  // calculate DC for sending bit 0
 
     // define custom transfer complete ISR
     DShot_OutputTim->hdma[ESC_LF_DMA_ID]->XferCpltCallback = DShot_DMA_XferCpltCallback;
@@ -129,9 +129,9 @@ DShot_Status DShot_Init(TIM_HandleTypeDef *htim, ESC_OutputProtocol protocol, TI
 
     // set custom ISR for 1ms interrupt + start timer
     HAL_TIM_RegisterCallback(updateTim, HAL_TIM_PERIOD_ELAPSED_CB_ID, DShot_WriteDataCallback);
+    DShot_SendCommand(0);
     HAL_TIM_Base_Start_IT(updateTim);
 
-    DShot_SendThrottle(0, 0, 0, 0);
 
     return DSHOT_OK;
 }
@@ -167,10 +167,10 @@ void DShot_SendThrottle(double motorLF, double motorRF, double motorLR, double m
  */
 void DShot_SendCommand(DShot_Command command)
 {
-    // get command integar value
-    uint16_t commands[4] = {command, command, command, command};
-
-    DShot_FormatData(commands, 0, NULL);
+    newThrottle[0] = command;
+    newThrottle[1] = command;
+    newThrottle[2] = command;
+    newThrottle[3] = command;
 }
 
 /**
@@ -209,17 +209,11 @@ void DShot_FormatData(uint16_t *throttle, int8_t telemetry, uint16_t data[4][17]
  */
 void DShot_MotorTest(void)
 {
-    DShot_SendThrottle(0, 0, 0, 0);
-
-    HAL_Delay(5000);
-
+    DShot_SendCommand(0);
+    
+    HAL_Delay(10000);
+    
     DShot_SendThrottle(5, 5, 5, 5);
-
-    HAL_Delay(5000);
-
-    DShot_SendThrottle(0, 0, 0, 0);
-
-    while(1);
 }
 
 

@@ -40,13 +40,23 @@
  * @retval None
  */
 void DATA_ARRANGEMENT(float value, int8_t j);
+
+/**
+ * @brief This function sends the data over uart
+ * @retval None
+ */
 void DATA_SEND(int8_t j);
 
 void DATA_INIT(UART_HandleTypeDef *huart);
 
 /**
- * @brief This function transmitts the data to the port where Audio-In (VTx) is connected
+ * @brief This function transmitts the first package (00) to the port where Audio-In (VTx) is connected
  * @retval None
  */
 void DATA_TRANSMISSION_1(float voltage, float grounddistance, int8_t error_code);
+
+/**
+ * @brief This function transmitts the second package (FF) to the port where Audio-In (VTx) is connected
+ * @retval None
+ */
 void DATA_TRANSMISSION_2(float pitch, float roll, float yaw);

@@ -6,8 +6,8 @@
  * 
  * @copyright FPV Drohne DA 202324
  * 
- * @brief 
- * 
+ * @brief This file provides functions for:
+ *          - PID algorithm for hover mode
  */
 
 #include "PID.h"
@@ -31,13 +31,14 @@ PID_Status PID_Hover(float inputThrottle)
     float dt = 0.01f;
     float inputPitch = 0.0f, inputRoll = 0.0f, inputYaw = 0.0f;
 
+    // read angular velocity
     IMU_RegCoordinates gyroData = IMU_MPU_ReadGyro();
 
     gyro.x = (gyroData.x - gyroOffset.x) / gyroSens;
     gyro.y = (gyroData.y - gyroOffset.y) / gyroSens;
     gyro.z = (gyroData.z - gyroOffset.z) / gyroSens;
     
-    // roll
+    // calculate PID roll output 
     float errorRoll = inputRoll - gyro.y;
     
     static float I_Roll = 0, errorRollPrev = 0;
@@ -52,7 +53,7 @@ PID_Status PID_Hover(float inputThrottle)
 
     errorRollPrev = errorRoll;
 
-    // pitch
+    // calculate PID pitch output 
     float errorPitch = inputPitch - gyro.x;
 
     static float I_Pitch = 0, errorPitchPrev = 0;
@@ -67,7 +68,7 @@ PID_Status PID_Hover(float inputThrottle)
 
     errorPitchPrev = errorPitch;
 
-    // yaw
+    // calculate PID yaw output 
     float errorYaw = inputYaw - gyro.z;
     static float I_Yaw = 0, errorYawPrev = 0;
     I_Yaw += errorYaw * KI_YAW;

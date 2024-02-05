@@ -6,8 +6,13 @@
  *
  * @copyright FPV Drohne DA 202324
  *
- * @brief
- *
+ * @brief This file provides functions for:
+ *          - MPU9250 + AK8963 initialization
+ *          - BMP280 initialization
+ *          - read / write registers via I2C
+ *          - connection check
+ *          - read accerometer, gyroscope, magnetometer, barometer data
+ *          - calculate pitch, roll and yaw with complementary filter
  */
 
 #ifndef IMU_10DOF_INCLUDED
