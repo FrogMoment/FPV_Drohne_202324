@@ -365,7 +365,7 @@ Receiver_Status Receiver_ConvertInput(void)
     {
         pitch = (pitch < .5) ? (.5 - pitch) * 2 : (pitch - .5) * 2; // get difference from 50%
         pitch *= ESC_TURN_OFFSET_MAX;                               // get percent of max duty cycle addition
-        
+
         // flying backwards, front motors faster
         if(receiver_ChData[RECEIVER_PITCH_CHANNEL] < receiver_InputLimits.half)
         {
