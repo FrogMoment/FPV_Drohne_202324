@@ -131,18 +131,24 @@ IMU_Status IMU_Init(IMU_InitTypeDef *imuInit)
     /*************************************************************************************
     ------------------------------- AK8963 initialization -------------------------------
     *************************************************************************************/
+    // power down AK8963
     IMU_WriteRegister(AK8963, IMU_MAG_CNTL1_ADDR, 0x00);
     IMU_DelayUs(10000);
+    // soft reset the sensor
     IMU_WriteRegister(AK8963, IMU_MAG_CNTL2_ADDR, 0x01);
 
-    // magnetometer calibration
+    // power down AK8963
     IMU_WriteRegister(AK8963, IMU_MAG_CNTL1_ADDR, 0x00);
     HAL_Delay(100);
+    // set Fuse ROM access mode + 16-bit output
     IMU_WriteRegister(AK8963, IMU_MAG_CNTL1_ADDR, 0x1F);
     HAL_Delay(100);
+    // read sensitivity adjustment values
     IMU_ReadRegister(AK8963, IMU_MAG_ASAX_ADDR, magAdjust, 3);
+    // power down AK8963
     IMU_WriteRegister(AK8963, IMU_MAG_CNTL1_ADDR, 0x00);
     HAL_Delay(100);
+    // set Continuous measurement mode 2 + 16-bit output 
     IMU_WriteRegister(AK8963, IMU_MAG_CNTL1_ADDR, 0x16);
     HAL_Delay(100);
     IMU_WriteRegister(MPU9250, IMU_MPU_PWR_MGMT_1_ADDR, 0x01);
