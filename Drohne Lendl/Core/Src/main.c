@@ -53,7 +53,6 @@
 ADC_HandleTypeDef hadc1;
 
 I2C_HandleTypeDef hi2c1;
-DMA_HandleTypeDef hdma_i2c1_rx;
 
 TIM_HandleTypeDef htim1;
 TIM_HandleTypeDef htim2;
@@ -72,7 +71,6 @@ UART_HandleTypeDef huart4;
 UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart3;
 DMA_HandleTypeDef hdma_usart1_rx;
-DMA_HandleTypeDef hdma_usart3_tx;
 
 /* USER CODE BEGIN PV */
 
@@ -197,33 +195,44 @@ void RealTimeSystemCallback(TIM_HandleTypeDef *htim)
   uint8_t errorCode;
   
   // DS2438 battery voltage
-  // errorCode = DS2438_ReadVoltage();
-  // if(errorCode != DS2438_OK)
-  // {
-  //   sprintf(txt, "DS2438 Error %d\n\r", errorCode);
-  //   Terminal_Print(txt);
-  // }
+  errorCode = DS2438_ReadVoltage();
+  if(errorCode != DS2438_OK)
+  {
+    sprintf(txt, "DS2438 Error %d\n\r", errorCode);
+    Terminal_Print(txt);
+
+    if(errorCode == DS2438_VOLTAGE_ERROR)
+      Receiver_FailsafeHandler();
+  }
   
   // Receiver Input
-  // errorCode = Receiver_ConvertInput();
-  // if(errorCode != RECEIVER_OK)
-  // {
-  //   sprintf(txt, "Receiver Error %d\n\r", errorCode);
-  //   Terminal_Print(txt);
-  // }
+  errorCode = Receiver_ConvertInput();
+  
+  if(errorCode != RECEIVER_OK)
+  {
+    sprintf(txt, "Receiver Error %d\n\r", errorCode);
+    Terminal_Print(txt);
+  }
 
   // IMU Angles
-  // IMU_GetAngles();
+  IMU_GetAngles();
 
-  static int8_t packetSelect = 0;
-  if(packetSelect == 0)
-    DATA_TRANSMISSION_1(2.5, 10.55, 0x00);
-    // DATA_TRANSMISSION_1(ds2438_Voltage, baroAltitude, 0x00);
-  else
-    DATA_TRANSMISSION_2(23.23, 25.52, -96.22);
-    // DATA_TRANSMISSION_2(angle.pitch, angle.roll, angle.yaw);
+  // static int8_t dataTransmitDelay = 0;
 
-  packetSelect = packetSelect == 0;
+  // if(dataTransmitDelay++ >= 3)
+  // {
+  //   static int8_t packetSelect = 0;
+
+  //   if(packetSelect == 0)
+  //     DATA_TRANSMISSION_1(33.69f, 12.0f, 0.0f);
+  //     // DATA_TRANSMISSION_1(ds2438_Voltage, baroAltitude, 0x00);
+  //   else
+  //     DATA_TRANSMISSION_2(-12.0f, 66.0f, -1.69f);
+  //     // DATA_TRANSMISSION_2(angle.pitch, angle.roll, angle.yaw);
+
+  //   packetSelect = packetSelect == 0;
+  //   dataTransmitDelay = 0;
+  // }
 
   // uint32_t stop = __HAL_TIM_GET_COUNTER(&htim2);
   // sprintf(txt, "%dus\n\r", stop);
@@ -233,9 +242,7 @@ void RealTimeSystemCallback(TIM_HandleTypeDef *htim)
   // Terminal_Print(txt);
   // sprintf(txt, "IMU: %.2fDeg  %.2fDeg  %.2fDeg\n\r", angle.pitch, angle.roll, angle.yaw);
   // Terminal_Print(txt);
-  // sprintf(txt, "accel: %.2f  %.2f  %.2f\n\r", accel.x, accel.y, accel.z);
-  // Terminal_Print(txt);
-  // sprintf(txt, "%.3fV\n\r", ds2438_Voltage);
+  // sprintf(txt, "gyro: %.2f  %.2f  %.2f\n\r", gyro.x, gyro.y, gyro.z);
   // Terminal_Print(txt);
 }
 
@@ -296,61 +303,63 @@ int main(void)
 
 
   // initialize data output to server
-  DATA_INIT(&huart3);
+  // DATA_INIT(&huart3);
 
 
   __HAL_TIM_SET_PRESCALER(LED_TIM, 14000 - 1);
 
 
   // initliaze DS2438
-  // Terminal_Print("DS2438 start ... ");
-  // errorCode = DS2438_Init(&htim16, GPIOC, GPIO_PIN_0);
-  // if(errorCode != DS2438_OK)
-  //   Sensor_ErrorHandler(DS2438, errorCode);
-  // Terminal_Print("DS2438 OK\n\r");
+  Terminal_Print("DS2438 start ... ");
+  errorCode = DS2438_Init(&htim16, GPIOC, GPIO_PIN_0);
+  if(errorCode != DS2438_OK)
+    Sensor_ErrorHandler(DS2438, errorCode);
+  Terminal_Print("DS2438 OK\n\r");
 
 
   __HAL_TIM_SET_PRESCALER(LED_TIM, 7000 - 1);
 
+  float dt = (float)((htim15.Instance->ARR + 1) * (htim15.Instance->PSC + 1)) / (float)SystemCoreClock;
+
 
   // init IMU 10DOF
-  // Terminal_Print("IMU start ... ");
-  // IMU_InitTypeDef imuInit;
-  // imuInit.hi2c = &hi2c1;
-  // imuInit.gyroFS = GYRO_500DPS;
-  // imuInit.accelFS = ACCEL_16G;
-  // imuInit.gyroDLPF = GYRO_DLPF_10HZ;
-  // imuInit.accelDLPF = ACCEL_DLPF_10HZ;
-  // imuInit.baroCoeff = IMU_BARO_FILTER_COEFF_16;
-  // imuInit.baroTempOS = BARO_TEMP_OS_2X;
-  // imuInit.baroPressOS = BARO_PRESS_OS_16X;
-  // imuInit.baroSBT = BARO_STANDBY_0P5MS;
-  // imuInit.baroMode = BARO_MODE_NORMAL;
-  // imuInit.htim = &htim17;
-  // imuInit.dt = (float)((htim15.Instance->ARR + 1) * (htim15.Instance->PSC + 1)) / (float)SystemCoreClock;
-  // errorCode = IMU_Init(&imuInit);
-  // if(errorCode != IMU_OK)
-  //   Sensor_ErrorHandler(IMU, errorCode);
-  // Terminal_Print("IMU OK\n\r");
+  Terminal_Print("IMU start ... ");
+  IMU_InitTypeDef imuInit;
+  imuInit.hi2c = &hi2c1;
+  imuInit.gyroFS = GYRO_500DPS;
+  imuInit.accelFS = ACCEL_16G;
+  imuInit.gyroDLPF = GYRO_DLPF_10HZ;
+  imuInit.accelDLPF = ACCEL_DLPF_10HZ;
+  imuInit.baroCoeff = IMU_BARO_FILTER_COEFF_16;
+  imuInit.baroTempOS = BARO_TEMP_OS_2X;
+  imuInit.baroPressOS = BARO_PRESS_OS_16X;
+  imuInit.baroSBT = BARO_STANDBY_0P5MS;
+  imuInit.htim = &htim17;
+  imuInit.dt = dt;
+  errorCode = IMU_Init(&imuInit);
+  if(errorCode != IMU_OK)
+    Sensor_ErrorHandler(IMU, errorCode);
+  Terminal_Print("IMU OK\n\r");
 
 
   __HAL_TIM_SET_PRESCALER(LED_TIM, 3500 - 1);
 
 
   // debug
-  HAL_TIM_Base_Start(&htim2);
+  // HAL_TIM_Base_Start(&htim2);
 
 
   // initialize receiver reception with DMA
-  // Terminal_Print("Receiver start ... ");
-  // errorCode = Receiver_Init(SBUS, &huart1, &htim3, DSHOT150, &htim14);
-  // if(errorCode != RECEIVER_OK)
-  //   Sensor_ErrorHandler(RECEIVER, errorCode);
-  // Terminal_Print("Receiver OK\n\r");
+  Terminal_Print("Receiver start ... ");
+  errorCode = Receiver_Init(SBUS, &huart1, &htim3, DSHOT300, &htim14);
+  if(errorCode != RECEIVER_OK)
+    Sensor_ErrorHandler(RECEIVER, errorCode);
+  Terminal_Print("Receiver OK\n\r");
+
 
   // TODO delete ----------------------------------------------
   
-  // errorCode = DShot_Init(&htim3, DSHOT300, &htim14);
+  // errorCode = DShot_Init(&htim3, DSHOT150, &htim14);
   // if(errorCode != DSHOT_OK)
   //   Sensor_ErrorHandler(RECEIVER, errorCode);
   // Terminal_Print("DSHOT OK\n\r");
@@ -873,7 +882,7 @@ static void MX_TIM15_Init(void)
 
   /* USER CODE END TIM15_Init 1 */
   htim15.Instance = TIM15;
-  htim15.Init.Prescaler = 8370-1;
+  htim15.Init.Prescaler = 1395-1;
   htim15.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim15.Init.Period = 10000-1;
   htim15.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
@@ -1116,7 +1125,6 @@ static void MX_DMA_Init(void)
 {
 
   /* DMA controller clock enable */
-  __HAL_RCC_DMA2_CLK_ENABLE();
   __HAL_RCC_DMA1_CLK_ENABLE();
 
   /* DMA interrupt init */
@@ -1135,12 +1143,6 @@ static void MX_DMA_Init(void)
   /* DMA1_Stream4_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Stream4_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA1_Stream4_IRQn);
-  /* DMA1_Stream5_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Stream5_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(DMA1_Stream5_IRQn);
-  /* DMA2_Stream6_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA2_Stream6_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(DMA2_Stream6_IRQn);
 
 }
 

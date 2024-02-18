@@ -115,7 +115,7 @@ void DShot_SendCommand(DShot_Command command);
  * @param data formatted data by the function
  * @retval None
  */
-void DShot_FormatData(uint16_t *throttle, int8_t telemetry, uint16_t data[4][17]);
+void DShot_FormatData(uint16_t *throttle, int8_t telemetry, uint16_t data[4][18]);
 
 /**
  * @brief This function tests the motors

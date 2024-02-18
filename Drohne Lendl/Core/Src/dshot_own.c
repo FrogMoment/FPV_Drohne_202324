@@ -34,8 +34,8 @@ TIM_HandleTypeDef *DShot_OutputTim = NULL;
  */
 static void DShot_WriteDataCallback(TIM_HandleTypeDef *htim)
 {
-    static float prevThrottle[4];
-    static uint16_t data[4][17] = {0};
+    static uint16_t prevThrottle[4] = {1};
+    static uint16_t data[4][18] = {0};
 
     if(newThrottle[0] != prevThrottle[0] || newThrottle[1] != prevThrottle[1] || newThrottle[2] != prevThrottle[2] || newThrottle[3] != prevThrottle[3])
     {
@@ -47,10 +47,10 @@ static void DShot_WriteDataCallback(TIM_HandleTypeDef *htim)
 
 
     // start dma transfer to the capture compare register
-    HAL_DMA_Start_IT(DShot_OutputTim->hdma[ESC_LF_DMA_ID], (uint32_t)&data[0][0], ESC_TIM_GET_CCR_ADDR(ESC_LF_TIM_CH), 17);
-    HAL_DMA_Start_IT(DShot_OutputTim->hdma[ESC_RF_DMA_ID], (uint32_t)&data[1][0], ESC_TIM_GET_CCR_ADDR(ESC_RF_TIM_CH), 17);
-    HAL_DMA_Start_IT(DShot_OutputTim->hdma[ESC_LR_DMA_ID], (uint32_t)&data[2][0], ESC_TIM_GET_CCR_ADDR(ESC_LR_TIM_CH), 17);
-    HAL_DMA_Start_IT(DShot_OutputTim->hdma[ESC_RR_DMA_ID], (uint32_t)&data[3][0], ESC_TIM_GET_CCR_ADDR(ESC_RR_TIM_CH), 17);
+    HAL_DMA_Start_IT(DShot_OutputTim->hdma[ESC_LF_DMA_ID], (uint32_t)&data[0][0], ESC_TIM_GET_CCR_ADDR(ESC_LF_TIM_CH), 18);
+    HAL_DMA_Start_IT(DShot_OutputTim->hdma[ESC_RF_DMA_ID], (uint32_t)&data[1][0], ESC_TIM_GET_CCR_ADDR(ESC_RF_TIM_CH), 18);
+    HAL_DMA_Start_IT(DShot_OutputTim->hdma[ESC_LR_DMA_ID], (uint32_t)&data[2][0], ESC_TIM_GET_CCR_ADDR(ESC_LR_TIM_CH), 18);
+    HAL_DMA_Start_IT(DShot_OutputTim->hdma[ESC_RR_DMA_ID], (uint32_t)&data[3][0], ESC_TIM_GET_CCR_ADDR(ESC_RR_TIM_CH), 18);
 
     // reset counter to get rid of delay between channels
     __HAL_TIM_SET_COUNTER(DShot_OutputTim, 0);
@@ -106,8 +106,8 @@ DShot_Status DShot_Init(TIM_HandleTypeDef *htim, ESC_OutputProtocol protocol, TI
     __HAL_TIM_SET_PRESCALER(DShot_OutputTim, 1 - 1);
     __HAL_TIM_SET_AUTORELOAD(DShot_OutputTim, protocol - 1);
 
-    oneDC = ceil(protocol * 0.75);   // calculate duty cycle for sending bit 1
-    zeroDC = ceil(protocol * 0.375); // calculate duty cycle for sending bit 0 
+    oneDC = ceil((float)protocol * 0.75);   // calculate duty cycle for sending bit 1
+    zeroDC = ceil((float)protocol * 0.375); // calculate duty cycle for sending bit 0 
 
     // define custom transfer complete ISR
     DShot_OutputTim->hdma[ESC_LF_DMA_ID]->XferCpltCallback = DShot_DMA_XferCpltCallback;
@@ -132,6 +132,8 @@ DShot_Status DShot_Init(TIM_HandleTypeDef *htim, ESC_OutputProtocol protocol, TI
     HAL_TIM_Base_Start_IT(updateTim);
 
     DShot_SendThrottle(0, 0, 0, 0);
+
+    HAL_Delay(5000);
 
     return DSHOT_OK;
 }
@@ -167,10 +169,10 @@ void DShot_SendThrottle(double motorLF, double motorRF, double motorLR, double m
  */
 void DShot_SendCommand(DShot_Command command)
 {
-    // get command integar value
-    uint16_t commands[4] = {command, command, command, command};
-
-    DShot_FormatData(commands, 0, NULL);
+    newThrottle[0] = command;
+    newThrottle[1] = command;
+    newThrottle[2] = command;
+    newThrottle[3] = command;
 }
 
 /**
@@ -180,7 +182,7 @@ void DShot_SendCommand(DShot_Command command)
  * @param data formatted data by the function
  * @retval None
  */
-void DShot_FormatData(uint16_t *throttle, int8_t telemetry, uint16_t data[4][17])
+void DShot_FormatData(uint16_t *throttle, int8_t telemetry, uint16_t data[4][18])
 {
     uint16_t withoutCS, complete, div;
 
@@ -214,10 +216,6 @@ void DShot_MotorTest(void)
     HAL_Delay(5000);
 
     DShot_SendThrottle(5, 5, 5, 5);
-
-    HAL_Delay(5000);
-
-    DShot_SendThrottle(0, 0, 0, 0);
 
     while(1);
 }

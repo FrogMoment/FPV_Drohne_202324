@@ -326,7 +326,7 @@ Receiver_Status Receiver_ConvertInput(void)
     ------------------------------------------------ check 3 position switch (mode select) ------------------------------------------------
     ***************************************************************************************************************************************/
 
-    uint16_t esc_MaxThr;
+    uint16_t esc_MaxThr = ESC_SAFEMODE_THR_MAX;
     uint8_t hoverModeFlag = 0;
 
     // top position (< half) = safemode
@@ -347,9 +347,9 @@ Receiver_Status Receiver_ConvertInput(void)
     Motor_Position motor;
 
     float throttle = (float)(receiver_ChData[RECEIVER_THROTTLE_CHANNEL] - receiver_InputLimits.min) / receiver_InputLimits.delta; // get joystick position
+    throttle *= esc_MaxThr; // get percent of max duty cycle addition
     if(!hoverModeFlag && !failsafeFlag)
     {
-        throttle *= esc_MaxThr; // get percent of max duty cycle addition
         motor.LF = throttle;    // set motor speed to throttle
         motor.RF = throttle;    // set motor speed to throttle
         motor.LR = throttle;    // set motor speed to throttle
@@ -452,10 +452,10 @@ Receiver_Status Receiver_ConvertInput(void)
         if(motor.RR > throttle + ESC_TURN_OFFSET_MAX) motor.RR = throttle + ESC_TURN_OFFSET_MAX;
 
         // check if value is samller then the min value (5)
-        if(motor.LF < 5) motor.LF = 5;
-        if(motor.RF < 5) motor.RF = 5;
-        if(motor.LR < 5) motor.LR = 5;
-        if(motor.RR < 5) motor.RR = 5;
+        if(motor.LF < 5) motor.LF = 0;
+        if(motor.RF < 5) motor.RF = 0;
+        if(motor.LR < 5) motor.LR = 0;
+        if(motor.RR < 5) motor.RR = 0;
 
         // send values
         DShot_SendThrottle(motor.LF, motor.RF, motor.LR, motor.RR);
@@ -513,9 +513,12 @@ Receiver_Status Receiver_FailsafeHandler(void)
     if(pwm_Timer == NULL)
         return RECEIVER_PWM_ERROR;
 
-    DShot_SendThrottle(ESC_LANDING_THR, ESC_LANDING_THR, ESC_LANDING_THR, ESC_LANDING_THR);
+    DShot_SendThrottle(ESC_FAILSAFE_THR, ESC_FAILSAFE_THR, ESC_FAILSAFE_THR, ESC_FAILSAFE_THR);
 
     // MAYBE check IMU for stability
+
+    __HAL_TIM_SET_COMPARE(LED_TIM, LED_RED_CHANNEL, 5000);
+    __HAL_TIM_SET_COMPARE(LED_TIM, LED_BLUE_CHANNEL, 0);
 
     return RECEIVER_OK;
 }

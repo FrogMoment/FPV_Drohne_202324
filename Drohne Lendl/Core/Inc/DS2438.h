@@ -29,11 +29,11 @@
 #define DS2438_CONVERT_V 0xB4   // Convert Voltage command
 #define DS2438_READ_SP 0xBE     // read scratchpad command
 #define DS2438_WRITE_SP 0x4E    // write scratchpad command
-#define DS2438_COPY_SP 0x48     // write scratchpad command
+#define DS2438_COPY_SP 0x48     // copy scratchpad command
 
 #define DS2438_RSENS 0.150      // value of sense resistor [ohm]
 
-#define DS2438_MIN_VOLTAGE 21   // voltage to send errors and switch to failsafe
+#define DS2438_MIN_VOLTAGE 19   // voltage to send errors and switch to failsafe
 
 /************************************************************************************************
 --------------------------------------- GLOBAL STRUCTURES ---------------------------------------

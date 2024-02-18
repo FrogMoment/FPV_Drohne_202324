@@ -228,13 +228,6 @@ typedef enum IMU_BARO_Oversampling
 
 } IMU_BARO_Oversampling;
 
-typedef enum IMU_BARO_Mode
-{
-    BARO_MODE_SLEEP = 0,
-    BARO_MODE_FORCE = 1,
-    BARO_MODE_NORMAL = 3
-} IMU_BARO_Mode;
-
 typedef struct IMU_InitTypeDef
 {
     I2C_HandleTypeDef *hi2c;
@@ -249,10 +242,9 @@ typedef struct IMU_InitTypeDef
     IMU_BARO_IIRFilterCoefficient baroCoeff;
     IMU_BARO_Oversampling baroTempOS;
     IMU_BARO_Oversampling baroPressOS;
-    IMU_BARO_Mode baroMode;
 
-    TIM_HandleTypeDef *htim; // timer for us delay
-    float dt; // time between measurements 
+    TIM_HandleTypeDef *htim;    // timer for us delay
+    float dt;                   // time between measurements 
 } IMU_InitTypeDef;
 
 /**********************************************************************************

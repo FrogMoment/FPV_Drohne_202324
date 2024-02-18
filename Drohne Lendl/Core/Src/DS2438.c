@@ -47,8 +47,8 @@ void DS2438_DelayUs(uint32_t us)
 /**
  * @brief This function initializes the DS2438
  * @param htim pointer to TIM_HandleTypeDef (timer for us delay)
- * @param gpio_Port GPIOx (x dependend on port)
- * @param gpio_Pin GPIO_PIN_x (x dependend on pin)
+ * @param gpio_Port GPIOx (port of DQ Pin)
+ * @param gpio_Pin GPIO_PIN_x (pin of DQ Pin)
  * @return DS2438_Status
  */
 DS2438_Status DS2438_Init(TIM_HandleTypeDef *htim, GPIO_TypeDef *gpio_Port, uint16_t gpio_Pin)
@@ -78,9 +78,9 @@ DS2438_Status DS2438_Init(TIM_HandleTypeDef *htim, GPIO_TypeDef *gpio_Port, uint
         return DS2438_ERROR;
 
     // check current voltage
-    DS2438_ReadVoltage();
-    if(ds2438_Voltage <= DS2438_MIN_VOLTAGE)
-        return DS2438_VOLTAGE_ERROR;
+    int8_t errorCode = DS2438_ReadVoltage();
+    if(errorCode != DS2438_OK)
+        return errorCode;
 
     return DS2438_OK;
 }
@@ -92,15 +92,19 @@ DS2438_Status DS2438_Init(TIM_HandleTypeDef *htim, GPIO_TypeDef *gpio_Port, uint
 DS2438_Status DS2438_Reset(void)
 {
     // reset DS2438
-    HAL_GPIO_WritePin(ds2438_GPIOPort, ds2438_GPIOPin, GPIO_PIN_RESET);  // send reset pulse (min 480us)
+    // send reset pulse (min 480us)
+    HAL_GPIO_WritePin(ds2438_GPIOPort, ds2438_GPIOPin, GPIO_PIN_RESET);
     DS2438_DelayUs(480);
-    HAL_GPIO_WritePin(ds2438_GPIOPort, ds2438_GPIOPin, GPIO_PIN_SET);    // release line -> change to receive mode
+    // release line -> change to receive mode
+    HAL_GPIO_WritePin(ds2438_GPIOPort, ds2438_GPIOPin, GPIO_PIN_SET);    
 
-    DS2438_DelayUs(70); // wait until slave sends presence pulse
+    // wait until slave sends presence pulse
+    DS2438_DelayUs(70); 
+    // read current pin state
     int8_t pin = HAL_GPIO_ReadPin(ds2438_GPIOPort, ds2438_GPIOPin);
     DS2438_DelayUs(410);
 
-    // read current pin level (0 -> found, 1 -> not found)
+    // check pin state (0 -> found, 1 -> not found)
     if(pin == GPIO_PIN_SET)
         return DS2438_ERROR;
 
@@ -274,27 +278,33 @@ int8_t DS2438_ReadControlVoltageFlag(void)
 
 /**
  * @brief This function reads the current voltage value of the DS2438
+ * @attention the voltage gets stored in the global variable 'ds2438_Voltage'
  * @return DS2438_Status
  */
 DS2438_Status DS2438_ReadVoltage(void)
 {
+    // start measurement (send CONVERT T command)
     if(DS2438_StartVoltageMeasurement() == DS2438_ERROR)
         return DS2438_ERROR;
 
-    // wait for measurement to be complete (1 = busy, 0 = ready)
+    // wait for measurement to be complete (ADB flag: 1 = busy, 0 = ready)
     while(DS2438_ReadControlVoltageFlag());
 
     int16_t pageData[9] = {0x00};
 
+    // read data
     if(DS2438_ReadPage(0x00, pageData) == DS2438_ERROR)
         return DS2438_ERROR;
 
-    // extracting voltage bits 
+    // extracting voltage bytes 
     int16_t voltageLSB = pageData[3];
     int16_t voltageMSB = pageData[4];
 
     ds2438_Voltage = (((voltageMSB & 0x3) << 8) | (voltageLSB)) / 100.0;
-    ds2438_Voltage *= 3; // multiplay voltage because of resistor voltage divider
+    ds2438_Voltage *= 3; // times 3 because of resistor voltage divider
+
+    if(ds2438_Voltage <= DS2438_MIN_VOLTAGE)
+        return DS2438_VOLTAGE_ERROR;
 
     return DS2438_OK;
 }

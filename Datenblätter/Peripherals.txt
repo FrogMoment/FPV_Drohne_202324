@@ -30,5 +30,7 @@ Drohne Lendl:
 	PC6: GPIO_Input, Receiver_PPM
 
 	extra (PB2, PC5, PC4, PA2, PC3, PC2, PC1, PC13, PA12, PC7, PB15, PB13, PB12)
+
+Theme für Bilder in Doku: Light (Visual Studio)
 	
 	

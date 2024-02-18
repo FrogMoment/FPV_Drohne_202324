@@ -59,7 +59,7 @@ void IMU_DelayUs(uint16_t us)
 }
 
 /**
- * @brief This function initialzes the 10DOF IMU (accelerometer, gyroscope, magnetometer, barometer
+ * @brief This function initialzes the 10DOF IMU (accel, gyro, mag, baro)
  * @param imuInit pointer to IMU_InitTypeDef
  * @return IMU_Status
  */
@@ -88,16 +88,26 @@ IMU_Status IMU_Init(IMU_InitTypeDef *imuInit)
     /*************************************************************************************
     ------------------------------- MPU9250 initialization -------------------------------
     *************************************************************************************/
-    IMU_WriteRegister(MPU9250, IMU_MPU_PWR_MGMT_1_ADDR, 0x00); // reset MPU
+    // reset MPU
+    IMU_WriteRegister(MPU9250, IMU_MPU_PWR_MGMT_1_ADDR, 0x00); 
     IMU_DelayUs(10000);
+    // auto select best clk source
     IMU_WriteRegister(MPU9250, IMU_MPU_PWR_MGMT_1_ADDR, 0x01);
+    // enable gyro and accel
     IMU_WriteRegister(MPU9250, IMU_MPU_PWR_MGMT_2_ADDR, 0x00);
+
+    // select full scale range for gyro and accel
     IMU_WriteRegister(MPU9250, IMU_MPU_ACCEL_CONFIG_ADDR, imuInit->accelFS << 3);
     IMU_WriteRegister(MPU9250, IMU_MPU_GYRO_CONFIG_ADDR, imuInit->gyroFS << 3);
+    
+    // select digital low pass filter for gyro and accel
     IMU_WriteRegister(MPU9250, IMU_MPU_ACCEL_CONFIG_2_ADDR, imuInit->accelDLPF);
     IMU_WriteRegister(MPU9250, IMU_MPU_CONFIG_ADDR, imuInit->gyroDLPF);
+    
+    // select fastest sample rate
     IMU_WriteRegister(MPU9250, IMU_MPU_SMPLRT_DIV_ADDR, 0x00);
 
+    // calculate sensitivity scale factor (LSB/g and LSB/(°/s))
     accelSens = IMU_ACCEL_RES_MAX / (1 << imuInit->accelFS);
     gyroSens = IMU_GYRO_RES_MAX / (1 << imuInit->gyroFS);
 
@@ -140,8 +150,9 @@ IMU_Status IMU_Init(IMU_InitTypeDef *imuInit)
     /*************************************************************************************
     ------------------------------- BMP280 initialization -------------------------------
     *************************************************************************************/
-    IMU_WriteRegister(BMP280, IMU_BARO_RESET_ADDR, 0xB6); // rest barometer
+    IMU_WriteRegister(BMP280, IMU_BARO_RESET_ADDR, 0xB6); // reset barometer
 
+    // check status of device
     uint8_t timeout = 0, status = 1;
     while(status != 0x00)
     {
@@ -151,16 +162,17 @@ IMU_Status IMU_Init(IMU_InitTypeDef *imuInit)
     }
 
     IMU_BARO_ReadCompensationValues();
+
+    // set standby time and time constant of IIR filter
     uint8_t config = ((imuInit->baroSBT << 5) | (imuInit->baroCoeff << 2));
     IMU_WriteRegister(BMP280, IMU_BARO_CONFIG_ADDR, config);
 
-    if(imuInit->baroMode == BARO_MODE_FORCE)
-        imuInit->baroMode = BARO_MODE_SLEEP;
-    uint8_t ctrl = (imuInit->baroTempOS << 5) | (imuInit->baroPressOS << 2) | imuInit->baroMode;
+    // set oversampling settings for temperature and pressure measurement and set normal mode
+    uint8_t ctrl = (imuInit->baroTempOS << 5) | (imuInit->baroPressOS << 2) | 0x03;
     IMU_WriteRegister(BMP280, IMU_BARO_CTRL_MEAS_ADDR, ctrl);
 
     // get current altitude level
-    IMU_DelayUs(UINT16_MAX);
+    IMU_DelayUs(UINT16_MAX - 1);
     float baroSum = 0;
     for(uint16_t i = 0; i < amount; i++)
     {
@@ -168,8 +180,7 @@ IMU_Status IMU_Init(IMU_InitTypeDef *imuInit)
         baroSum += baroAltitude;
         IMU_DelayUs(1000);
     }
-    baroAltitudeOffset = baroSum /= amount;
-
+    baroAltitudeOffset = baroSum / amount;
 
     return IMU_OK;
 }
@@ -285,7 +296,7 @@ IMU_Status IMU_CheckConnection(void)
 
 /**
  * @brief This function reads gyroscope register data (x,y,z)
- * @return IMU_RegCoordinates 1
+ * @return IMU_RegCoordinates
  */
 IMU_RegCoordinates IMU_MPU_ReadGyro(void)
 {
@@ -313,7 +324,9 @@ IMU_RegCoordinates IMU_MPU_ReadAccel(void)
     accelData.x = ((int16_t)buffer[0] << 8) | buffer[1];
     accelData.y = ((int16_t)buffer[2] << 8) | buffer[3];
     accelData.z = ((int16_t)buffer[4] << 8) | buffer[5];
-    // MAYBE invert z-axis because the sensor is upside down
+    
+    // invert z-axis because the sensor is upside down
+    accelData.z = -accelData.z;
 
     return accelData;
 }
@@ -361,7 +374,7 @@ void IMU_GetAngles(void)
     accel.x = (accelData.x / accelSens) - 0.020f;
     accel.y = (accelData.y / accelSens) - 0.021f;
     accel.z = (accelData.z / accelSens) - 0.140f;
-    accel.z = -accel.z;
+    // accel.z = -accel.z;
 
     // mag.x = (float)magData.x * ((((float)magAdjust[0] - 128.0f) / 256.0f) + 1.0f);
     // mag.y = (float)magData.y * ((((float)magAdjust[1] - 128.0f) / 256.0f) + 1.0f);
