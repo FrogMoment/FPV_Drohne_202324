@@ -193,7 +193,7 @@ void DShot_FormatData(uint16_t *throttle, int8_t telemetry, uint16_t data[4][18]
         withoutCS = (throttle[i] << 1) | telemetry;
 
         // format whole data frame
-        complete = withoutCS << 4 | (withoutCS ^ (withoutCS >> 4) ^ (withoutCS >> 8)) & 0x0F;
+        complete = withoutCS << 4 | ((withoutCS ^ (withoutCS >> 4) ^ (withoutCS >> 8)) & 0x0F);
 
         // convert each bit to the specific duty cycle length   
         div = 0x8000;
