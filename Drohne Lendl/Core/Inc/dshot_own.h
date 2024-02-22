@@ -23,7 +23,6 @@
 #include "main.h"
 #include <string.h>
 #include <stdio.h>
-#include "status_handling.h"
 
 /*******************************************************************************************
 -------------------------------------- GLOBAL DEFINES --------------------------------------
@@ -55,7 +54,7 @@ typedef enum DShot_Status
 {
     DSHOT_OK = 0,
 
-    DSHOT_TIM_ERROR = 1
+    DSHOT_TIM_ERROR = 100
 } DShot_Status;
 
 // DShot speeds
@@ -97,16 +96,16 @@ DShot_Status DShot_Init(TIM_HandleTypeDef *htim, ESC_OutputProtocol protocol, TI
  * @param motorRF percent of throttle value of right front motor (0-100)
  * @param motorLR percent of throttle value of left rear motor (0-100)
  * @param motorRR percent of throttle value of right rear motor (0-100)
- * @retval None
+ * @retval DShot_Status
  */
-void DShot_SendThrottle(double motorLF, double motorRF, double motorLR, double motorRR);
+DShot_Status DShot_SendThrottle(double motorLF, double motorRF, double motorLR, double motorRR);
 
 /**
  * @brief This function sends a command to the ESC via DShot protocol
  * @param command
- * @retval None
+ * @retval DShot_Status
  */
-void DShot_SendCommand(DShot_Command command);
+DShot_Status DShot_SendCommand(DShot_Command command);
 
 /**
  * @brief This function formats and sends DShot data via PWM DMA

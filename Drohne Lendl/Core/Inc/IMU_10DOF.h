@@ -25,7 +25,6 @@
 #include "main.h"
 #include <string.h>
 #include <stdio.h>
-#include "status_handling.h"
 #include <math.h>
 
 /**********************************************************************************
@@ -263,6 +262,7 @@ extern float baroAltitude;
 
 extern IMU_Coordinates gyroOffset;
 extern float gyroSens;
+extern float imu_DeltaTime;
 
 /**********************************************************************************
 ------------------------------- FUNCTION PROTOTYPES -------------------------------

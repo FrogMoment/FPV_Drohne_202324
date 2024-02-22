@@ -14,6 +14,7 @@
 #define PID_H_INCLUDED
 
 #include "main.h"
+#include <math.h>
 #include "IMU_10DOF.h"
 #include "dshot_own.h"
 
@@ -23,6 +24,8 @@ typedef enum PID_Status
 
     PID_RECEIVER_ERROR = 1
 } PID_Status;
+
+void PID_Init(float deltaTime);
 
 PID_Status PID_Hover(float inputThrottle);
 

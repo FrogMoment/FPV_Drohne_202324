@@ -23,7 +23,7 @@
 
 I2C_HandleTypeDef *imu_ComI2C;
 TIM_HandleTypeDef *imu_DelayTIM;
-float dt = 0;
+float imu_DeltaTime = 0;
 
 float accelSens = 0;
 float gyroSens = 0;
@@ -73,7 +73,7 @@ IMU_Status IMU_Init(IMU_InitTypeDef *imuInit)
     if(imu_DelayTIM == NULL)
         return IMU_TIM_ERROR;
 
-    dt = imuInit->dt;
+    // IMU_dt = imuInit->dt;
 
     HAL_TIM_Base_Start(imu_DelayTIM); // start delay timer
 
@@ -331,9 +331,6 @@ IMU_RegCoordinates IMU_MPU_ReadAccel(void)
     accelData.y = ((int16_t)buffer[2] << 8) | buffer[3];
     accelData.z = ((int16_t)buffer[4] << 8) | buffer[5];
     
-    // invert z-axis because the sensor is upside down
-    accelData.z = -accelData.z;
-
     return accelData;
 }
 
@@ -369,6 +366,19 @@ IMU_RegCoordinates IMU_MAG_ReadMag(void)
  */
 void IMU_GetAngles(void)
 {
+    uint16_t tmpTime = __HAL_TIM_GET_COUNTER(imu_DelayTIM);
+    __HAL_TIM_SET_COUNTER(imu_DelayTIM, 0);
+
+    static int8_t firstTimeFlag = 0;
+    if(firstTimeFlag == 0)
+    {
+        tmpTime = 0;
+        firstTimeFlag = 1;
+    }
+
+    imu_DeltaTime = (float)tmpTime / 1E6f; 
+
+
     IMU_RegCoordinates gyroData = IMU_MPU_ReadGyro();
     IMU_RegCoordinates accelData = IMU_MPU_ReadAccel();
     // IMU_RegCoordinates magData = IMU_MAG_ReadMag();
@@ -380,7 +390,9 @@ void IMU_GetAngles(void)
     accel.x = (accelData.x / accelSens) - 0.020f;
     accel.y = (accelData.y / accelSens) - 0.021f;
     accel.z = (accelData.z / accelSens) - 0.140f;
-    // accel.z = -accel.z;
+
+    // invert z-axis because the sensor is upside down
+    accel.z = -accel.z;
 
     // mag.x = (float)magData.x * ((((float)magAdjust[0] - 128.0f) / 256.0f) + 1.0f);
     // mag.y = (float)magData.y * ((((float)magAdjust[1] - 128.0f) / 256.0f) + 1.0f);
@@ -390,9 +402,9 @@ void IMU_GetAngles(void)
     float accelPitch = atan2(accel.y, accel.z) * RAD2DEG;
     float accelRoll = atan2(accel.x, accel.z) * RAD2DEG;
 
-    angle.roll = 0.98 * (angle.roll - gyro.y * dt) + (1.0 - 0.98) * accelRoll;
-    angle.pitch = 0.98 * (angle.pitch + gyro.x * dt) + (1.0 - 0.98) * accelPitch;
-    angle.yaw += gyro.z * dt;
+    angle.roll = 0.98 * (angle.roll - gyro.y * imu_DeltaTime) + (1.0 - 0.98) * accelRoll;
+    angle.pitch = 0.98 * (angle.pitch + gyro.x * imu_DeltaTime) + (1.0 - 0.98) * accelPitch;
+    angle.yaw += gyro.z * imu_DeltaTime;
 }
 
 /**

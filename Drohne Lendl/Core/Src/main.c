@@ -25,11 +25,8 @@
 #include <stdio.h>
 #include <string.h>
 #include "DS2438.h"
-#include "receiver.h"
 #include "IMU_10DOF.h"
-#include "dshot_own.h"
-#include "status_handling.h"
-#include "PID.h"
+#include "flight.h"
 #include "datatransmission.h"
 
 /* USER CODE END Includes */
@@ -110,100 +107,21 @@ static void MX_ADC1_Init(void);
 // real time interrupt service routine
 void RealTimeSystemCallback(TIM_HandleTypeDef *htim)
 {
-  // ---------------- MPU9250 ----------------  
-  // sprintf(txt, "accel:\t%.3f  %.3f  %.3f\n\r", accel.x, accel.y, accel.z);
-  // HAL_UART_Transmit(&huart4, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
-
-  // sprintf(txt, "gyro:\t%.3f  %.3f  %.3f\n\r", gyro.x, gyro.y, gyro.z);
-  // HAL_UART_Transmit(&huart4, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
-
-  // sprintf(txt, "temp:\t%f\n\r", temp);
-  // HAL_UART_Transmit(&huart4, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
-
-  // sprintf(txt, "filter: %.3f  %.3f\n\n\r", fusion.pitch, fusion.roll);
-  // HAL_UART_Transmit(&huart4, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
-
-
-  // ----------------- DS2438 -----------------
-  // DS2438
-  // uint8_t status = DS2438_ReadVoltage();
-  // if(status != DS2438_OK)
-  // {
-  //   sprintf(txt, "error: %d", status);
-  //   HAL_UART_Transmit(&huart4, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
-  // }
-  // else
-  // {
-  //   sprintf(txt, "voltage: %.3f\n\r", ds2438_voltage);
-  //   HAL_UART_Transmit(&huart4, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
-  // }
-
-
-  // ------------------ RECEIVER ------------------
-  // int8_t tmp = Receiver_ConvertInput();
-  // if(tmp != RECEIVER_OK)
-  // {
-  //   sprintf(txt, "Receiver Error: %d\n\r", tmp);
-  //   HAL_UART_Transmit(&huart4, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
-
-  //   if(tmp == IBUS_SIGNAL_LOST_ERROR || tmp == SBUS_SIGNAL_LOST || tmp == SBUS_SIGNAL_FAILSAFE)
-  //   {
-      
-  //   }
-  // }
-  // Receiver_OutputChValues();
-
-  // sprintf(txt, "%02x\t%02X\t%02X\t%02X\t%02X\n", receiver_RawData[0], receiver_RawData[1], receiver_RawData[2], receiver_RawData[3], receiver_RawData[4]);
-  // HAL_UART_Transmit(&huart4, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
-
-  // DShot_SendData(50.0, 50.0, 50.0, 50.0);
-
-  // DShot_SendThrottle(50, 50, 50, 50);
-
-  // ----------------- IMU 10DOF -----------------
-// MX_MEMS_Process();
-/*
-  IMU_GetYawPitchRoll(angles);
-  sprintf(txt, "\r\n Pitch: %.2f \t Roll: %.2f \t Yaw: %.2f \r\n", angles.pitch, angles.roll, angles.yaw);
-  HAL_UART_Transmit(&huart4, (uint8_t *)&txt, strlen(txt), HAL_MAX_DELAY);
-*/
-
-  // IMU_GetAngles();
-  // IMU_BARO_ReadBaro();
-  // sprintf(txt, " \
-  //               accel: X: %.3f \t Y: %.3f \t Z: %.3f \n\r \
-  //               gyro:  X: %.3f \t Y: %.3f \t Z: %.3f \n\r \
-  //               mag:   X: %.3f \t Y: %.3f \t Z: %.3f \n\n\r", \
-  //               accel.x, accel.y, accel.z, gyro.x, gyro.y, gyro.z, mag.x, mag.y, mag.z);
-  // sprintf(txt, " \
-  //               accel: X: %.3f \t Y: %.3f \t Z: %.3f \n\r", \
-  //               accel.x, accel.y, accel.z);
-  // sprintf(txt, " \
-  //               mag: X: %.3f \t Y: %.3f \t Z: %.3f \n\r", \
-  //               mag.x, mag.y, mag.z);
-  // sprintf(txt, "%.1f, %.1f, %.1f\n\r", angle.pitch, angle.roll, angle.yaw);
-  // sprintf(txt, "%.3f, %.3f\n\r", baroTemperature, baroPressure);
-  // sprintf(txt, "%4.1fDeg, %4.1fDeg, %4.1fDeg | %3.1fDegC, %5.1fPa, %3.1fm\n\r", angle.pitch, angle.roll, angle.yaw, baroTemperature, baroPressure, baroAltitude);
-  // Terminal_Print(txt);
-
-  // ----------------------- PID ---------------------------
-  // PID_Hover(50);
-
-  // ------------------------ all testing -------------------------------
+  // TODO delte debug timer 
   __HAL_TIM_SET_COUNTER(&htim2, 0);
 
   uint8_t errorCode;
   
   // DS2438 battery voltage
-  errorCode = DS2438_ReadVoltage();
-  if(errorCode != DS2438_OK)
-  {
-    sprintf(txt, "DS2438 Error %d\n\r", errorCode);
-    Terminal_Print(txt);
+  // errorCode = DS2438_ReadVoltage();
+  // if(errorCode != DS2438_OK)
+  // {
+  //   sprintf(txt, "DS2438 Error %d\n\r", errorCode);
+  //   Terminal_Print(txt);
 
-    if(errorCode == DS2438_VOLTAGE_ERROR)
-      Receiver_FailsafeHandler();
-  }
+  //   if(errorCode == DS2438_VOLTAGE_ERROR)
+  //     Receiver_FailsafeHandler();
+  // }
   
   // Receiver Input
   errorCode = Receiver_ConvertInput();
@@ -234,14 +152,14 @@ void RealTimeSystemCallback(TIM_HandleTypeDef *htim)
   //   dataTransmitDelay = 0;
   // }
 
-  // uint32_t stop = __HAL_TIM_GET_COUNTER(&htim2);
-  // sprintf(txt, "%dus\n\r", stop);
-  // Terminal_Print(txt);
+  uint32_t stop = __HAL_TIM_GET_COUNTER(&htim2);
+  sprintf(txt, "%dus\n\r", stop);
+  Terminal_Print(txt);
 
   // sprintf(txt, "DS2438: %.2fV\n\r", ds2438_Voltage);
   // Terminal_Print(txt);
-  // sprintf(txt, "IMU: %.2fDeg  %.2fDeg  %.2fDeg\n\r", angle.pitch, angle.roll, angle.yaw);
-  // Terminal_Print(txt);
+  sprintf(txt, "IMU: %.2fDeg  %.2fDeg  %.2fDeg\n\r", angle.pitch, angle.roll, angle.yaw);
+  Terminal_Print(txt);
   // sprintf(txt, "gyro: %.2f  %.2f  %.2f\n\r", gyro.x, gyro.y, gyro.z);
   // Terminal_Print(txt);
 }
@@ -293,7 +211,11 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
 
+  float dt = (float)((htim15.Instance->ARR + 1) * (htim15.Instance->PSC + 1)) / (float)SystemCoreClock;
+
+
   int8_t errorCode;
+  
 
   Terminal_Print("Program start\n\r");
   __HAL_TIM_SET_COMPARE(LED_TIM, LED_RED_CHANNEL, 0);
@@ -310,16 +232,14 @@ int main(void)
 
 
   // initliaze DS2438
-  Terminal_Print("DS2438 start ... ");
-  errorCode = DS2438_Init(&htim16, GPIOC, GPIO_PIN_0);
-  if(errorCode != DS2438_OK)
-    Sensor_ErrorHandler(DS2438, errorCode);
-  Terminal_Print("DS2438 OK\n\r");
+  // Terminal_Print("DS2438 start ... ");
+  // errorCode = DS2438_Init(&htim16, GPIOC, GPIO_PIN_0);
+  // if(errorCode != DS2438_OK)
+  //   Sensor_ErrorHandler(DS2438, errorCode);
+  // Terminal_Print("DS2438 OK\n\r");
 
 
   __HAL_TIM_SET_PRESCALER(LED_TIM, 7000 - 1);
-
-  float dt = (float)((htim15.Instance->ARR + 1) * (htim15.Instance->PSC + 1)) / (float)SystemCoreClock;
 
 
   // init IMU 10DOF
@@ -345,16 +265,23 @@ int main(void)
   __HAL_TIM_SET_PRESCALER(LED_TIM, 3500 - 1);
 
 
-  // debug
-  // HAL_TIM_Base_Start(&htim2);
+  // TODO delete debug timer start
+  HAL_TIM_Base_Start(&htim2);
 
 
-  // initialize receiver reception with DMA
-  Terminal_Print("Receiver start ... ");
-  errorCode = Receiver_Init(SBUS, &huart1, &htim3, DSHOT300, &htim14);
+  // initilize receiver input + dshot output + PID
+  Terminal_Print("Flight Init start ... ");
+  flightTypeDef flightInit;
+  flightInit.inputProtocol = SBUS;
+  flightInit.inputUART = &huart1;
+  flightInit.outputTIM = &htim3;
+  flightInit.outputProtocol = DSHOT300;
+  flightInit.outputUpdateTIM = &htim14;
+  flightInit.deltaTime = dt;
+  errorCode = Flight_Init(&flightInit);
   if(errorCode != RECEIVER_OK)
     Sensor_ErrorHandler(RECEIVER, errorCode);
-  Terminal_Print("Receiver OK\n\r");
+  Terminal_Print("Flight Init OK\n\r");
 
 
   // TODO delete ----------------------------------------------

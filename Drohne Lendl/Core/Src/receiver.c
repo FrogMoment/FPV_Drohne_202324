@@ -16,8 +16,6 @@
  */
 
 #include "receiver.h"
-#include "dshot_own.h"
-#include "PID.h"
 
 /************************************************************************************************
 --------------------------------------- GLOBAL VARIABLES ---------------------------------------
@@ -47,12 +45,9 @@ uint8_t droneOffModeFlag = 1;
  * @brief This function calibrates and starts uart receive dma with selected protocol
  * @param proto protocol to use (SBUS / IBUS)
  * @param huart pointer to a UART_HandleTypeDef structure (input usart)
- * @param htim_out pointer to a TIM_HandleTypeDef structure (output pwm timer)
- * @param speed_out DSHOT150, DSHOT300 or DSHOT600
- * @param sendUpdateTim pointer to TIM_HandleTypeDef (1ms interrupt for sending)
  * @return Receiver_Status
  */
-Receiver_Status Receiver_Init(Receiver_Protocol proto, UART_HandleTypeDef *huart, TIM_HandleTypeDef *htim_out, ESC_OutputProtocol speed_out, TIM_HandleTypeDef *sendUpdateTim)
+Receiver_Status Receiver_Init(Receiver_Protocol proto, UART_HandleTypeDef *huart)
 {
     receiver_InputUART = huart; // set input uart
     receiver_SelectedProtocol = proto;           // set serial protocol
@@ -175,12 +170,6 @@ Receiver_Status Receiver_Init(Receiver_Protocol proto, UART_HandleTypeDef *huart
     // set value range and half value
     receiver_InputLimits.delta = receiver_InputLimits.max - receiver_InputLimits.min;
     receiver_InputLimits.half = (receiver_InputLimits.max + receiver_InputLimits.min) / 2;
-
-    // initialize output with DShot
-    int8_t errorCode;
-    errorCode = DShot_Init(htim_out, speed_out, sendUpdateTim);
-    if(errorCode != DSHOT_OK)
-        return RECEIVER_PWM_ERROR;
 
     return RECEIVER_OK;
 }
@@ -340,6 +329,7 @@ Receiver_Status Receiver_ConvertInput(void)
     // down position = extra mode hover mode
     else
         hoverModeFlag = 1;
+
     /**************************************************************************************************************************************
     ------------------------------------------------ calculate throttle input (up / down) ------------------------------------------------
     ***************************************************************************************************************************************/
@@ -458,10 +448,13 @@ Receiver_Status Receiver_ConvertInput(void)
         if(motor.RR < 5) motor.RR = 0;
 
         // send values
-        DShot_SendThrottle(motor.LF, motor.RF, motor.LR, motor.RR);
+        if(DShot_SendThrottle(motor.LF, motor.RF, motor.LR, motor.RR) != DSHOT_OK)
+            return RECEIVER_PWM_ERROR;
     }
     else
+    {
         PID_Hover(throttle);
+    }
 
     return RECEIVER_OK;
 }
@@ -515,7 +508,9 @@ Receiver_Status Receiver_FailsafeHandler(void)
 
     DShot_SendThrottle(ESC_FAILSAFE_THR, ESC_FAILSAFE_THR, ESC_FAILSAFE_THR, ESC_FAILSAFE_THR);
 
-    // MAYBE check IMU for stability
+    // TODO hover mode with a little less then take off throttle
+    // something like that 
+    // PID_Hover(30);
 
     __HAL_TIM_SET_COMPARE(LED_TIM, LED_RED_CHANNEL, 5000);
     __HAL_TIM_SET_COMPARE(LED_TIM, LED_BLUE_CHANNEL, 0);

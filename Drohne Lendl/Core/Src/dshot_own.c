@@ -131,7 +131,8 @@ DShot_Status DShot_Init(TIM_HandleTypeDef *htim, ESC_OutputProtocol protocol, TI
     HAL_TIM_RegisterCallback(updateTim, HAL_TIM_PERIOD_ELAPSED_CB_ID, DShot_WriteDataCallback);
     HAL_TIM_Base_Start_IT(updateTim);
 
-    DShot_SendThrottle(0, 0, 0, 0);
+    if(DShot_SendThrottle(0, 0, 0, 0) != DSHOT_OK)
+        return DSHOT_TIM_ERROR;
 
     HAL_Delay(5000);
 
@@ -144,10 +145,13 @@ DShot_Status DShot_Init(TIM_HandleTypeDef *htim, ESC_OutputProtocol protocol, TI
  * @param motorRF percent of throttle value of right front motor (0-100)
  * @param motorLR percent of throttle value of left rear motor (0-100)
  * @param motorRR percent of throttle value of right rear motor (0-100)
- * @retval None
+ * @retval DShot_Status
  */
-void DShot_SendThrottle(double motorLF, double motorRF, double motorLR, double motorRR)
+DShot_Status DShot_SendThrottle(double motorLF, double motorRF, double motorLR, double motorRR)
 {
+    if(DShot_OutputTim == NULL)
+        return DSHOT_TIM_ERROR;
+    
     /**
      * timer channel 1 = left front motor
      * timer channel 2 = right front motor
@@ -160,19 +164,26 @@ void DShot_SendThrottle(double motorLF, double motorRF, double motorLR, double m
     newThrottle[1] = 48 + 20 * motorRF;
     newThrottle[2] = 48 + 20 * motorLR;
     newThrottle[3] = 48 + 20 * motorRR;
+
+    return DSHOT_OK;
 }
 
 /**
  * @brief This function sends a command to the ESC via DShot protocol
  * @param command
- * @retval None
+ * @retval DShot_Status
  */
-void DShot_SendCommand(DShot_Command command)
+DShot_Status DShot_SendCommand(DShot_Command command)
 {
+    if(DShot_OutputTim == NULL)
+        return DSHOT_TIM_ERROR;
+ 
     newThrottle[0] = command;
     newThrottle[1] = command;
     newThrottle[2] = command;
     newThrottle[3] = command;
+
+    return DSHOT_OK;
 }
 
 /**
