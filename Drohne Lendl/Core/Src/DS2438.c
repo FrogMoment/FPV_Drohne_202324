@@ -303,8 +303,8 @@ DS2438_Status DS2438_ReadVoltage(void)
     ds2438_Voltage = (((voltageMSB & 0x3) << 8) | (voltageLSB)) / 100.0;
     ds2438_Voltage *= 3; // times 3 because of resistor voltage divider
 
-    if(ds2438_Voltage <= DS2438_MIN_VOLTAGE)
-        return DS2438_VOLTAGE_ERROR;
+    // if(ds2438_Voltage <= DS2438_MIN_VOLTAGE)
+    //     return DS2438_VOLTAGE_ERROR;
 
     return DS2438_OK;
 }

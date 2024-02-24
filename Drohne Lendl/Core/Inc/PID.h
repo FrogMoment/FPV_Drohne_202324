@@ -25,9 +25,13 @@ typedef enum PID_Status
     PID_RECEIVER_ERROR = 1
 } PID_Status;
 
+extern int8_t uartCheck;
+
 void PID_Init(float deltaTime);
 
 PID_Status PID_Hover(float inputThrottle);
+
+void changeKs(void);
 
 
 

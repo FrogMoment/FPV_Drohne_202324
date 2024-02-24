@@ -120,6 +120,10 @@ void Error_Handler(void);
 #define RECEIVER_PPM_GPIO_Port GPIOC
 #define EXTRA_9_Pin GPIO_PIN_7
 #define EXTRA_9_GPIO_Port GPIOC
+#define LED_RED_Pin GPIO_PIN_8
+#define LED_RED_GPIO_Port GPIOA
+#define LED_BLUE_Pin GPIO_PIN_9
+#define LED_BLUE_GPIO_Port GPIOA
 #define EXTRA_8_Pin GPIO_PIN_12
 #define EXTRA_8_GPIO_Port GPIOA
 #define IMU_F_SYNC_Pin GPIO_PIN_3

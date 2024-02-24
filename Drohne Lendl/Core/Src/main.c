@@ -24,10 +24,12 @@
 
 #include <stdio.h>
 #include <string.h>
+#include "datatransmission.h"
 #include "DS2438.h"
 #include "IMU_10DOF.h"
-#include "flight.h"
-#include "datatransmission.h"
+#include "receiver.h"
+#include "dshot_own.h"
+#include "PID.h"
 
 /* USER CODE END Includes */
 
@@ -107,12 +109,14 @@ static void MX_ADC1_Init(void);
 // real time interrupt service routine
 void RealTimeSystemCallback(TIM_HandleTypeDef *htim)
 {
-  // TODO delte debug timer 
-  __HAL_TIM_SET_COUNTER(&htim2, 0);
+  // TODO delete debug timer 
+  // __HAL_TIM_SET_COUNTER(&htim2, 0);
 
   uint8_t errorCode;
-  
-  // DS2438 battery voltage
+
+  /************************************************************************************************
+  -------------------------------------------- DS2438 --------------------------------------------
+  ************************************************************************************************/
   // errorCode = DS2438_ReadVoltage();
   // if(errorCode != DS2438_OK)
   // {
@@ -122,45 +126,62 @@ void RealTimeSystemCallback(TIM_HandleTypeDef *htim)
   //   if(errorCode == DS2438_VOLTAGE_ERROR)
   //     Receiver_FailsafeHandler();
   // }
-  
-  // Receiver Input
+
+  /************************************************************************************************
+  --------------------------------------- RECEIVER + OUTPUT ---------------------------------------
+  ************************************************************************************************/
   errorCode = Receiver_ConvertInput();
-  
+
   if(errorCode != RECEIVER_OK)
   {
     sprintf(txt, "Receiver Error %d\n\r", errorCode);
     Terminal_Print(txt);
+
+    if(errorCode == IBUS_SIGNAL_LOST_ERROR || errorCode == SBUS_SIGNAL_LOST || errorCode == SBUS_SIGNAL_FAILSAFE)
+      Receiver_FailsafeHandler();
   }
 
-  // IMU Angles
+  /************************************************************************************************
+  ---------------------------------------------- IMU ----------------------------------------------
+  ************************************************************************************************/
   IMU_GetAngles();
+  // IMU_BARO_ReadBaro();
 
+  /************************************************************************************************
+  --------------------------------------- DATA TRANSMISSION ---------------------------------------
+  ************************************************************************************************/
   // static int8_t dataTransmitDelay = 0;
 
-  // if(dataTransmitDelay++ >= 3)
+  // if(dataTransmitDelay++ >= 4)
   // {
   //   static int8_t packetSelect = 0;
 
   //   if(packetSelect == 0)
-  //     DATA_TRANSMISSION_1(33.69f, 12.0f, 0.0f);
-  //     // DATA_TRANSMISSION_1(ds2438_Voltage, baroAltitude, 0x00);
+  //     // DATA_TRANSMISSION_1(22.123f, 1.123f, 0x00);
+  //     DATA_TRANSMISSION_1(ds2438_Voltage, baroAltitude, 0x00);
   //   else
-  //     DATA_TRANSMISSION_2(-12.0f, 66.0f, -1.69f);
-  //     // DATA_TRANSMISSION_2(angle.pitch, angle.roll, angle.yaw);
+  //     // DATA_TRANSMISSION_2(-12.25f, 66.0f, -1.69f);
+  //     DATA_TRANSMISSION_2(angle.pitch, angle.roll, angle.yaw);
 
   //   packetSelect = packetSelect == 0;
   //   dataTransmitDelay = 0;
   // }
 
-  uint32_t stop = __HAL_TIM_GET_COUNTER(&htim2);
-  sprintf(txt, "%dus\n\r", stop);
-  Terminal_Print(txt);
+  /************************************************************************************************
+  --------------------------------------------- DEBUG ---------------------------------------------
+  ************************************************************************************************/
+  // uint32_t stop = __HAL_TIM_GET_COUNTER(&htim2);
+  // sprintf(txt, "%dus\n\r", stop);
+  // Terminal_Print(txt);
 
+  /************************************************************************************************
+  -------------------------------------------- OUTPUT --------------------------------------------
+  ************************************************************************************************/
   // sprintf(txt, "DS2438: %.2fV\n\r", ds2438_Voltage);
   // Terminal_Print(txt);
-  sprintf(txt, "IMU: %.2fDeg  %.2fDeg  %.2fDeg\n\r", angle.pitch, angle.roll, angle.yaw);
-  Terminal_Print(txt);
-  // sprintf(txt, "gyro: %.2f  %.2f  %.2f\n\r", gyro.x, gyro.y, gyro.z);
+  // sprintf(txt, "IMU: %.2fDeg  %.2fDeg  %.2fDeg\n\r", angle.pitch, angle.roll, angle.yaw);
+  // Terminal_Print(txt);
+  // sprintf(txt, "accel: %.2f  %.2f  %.2f\n\r", accel.x, accel.y, accel.z);
   // Terminal_Print(txt);
 }
 
@@ -215,13 +236,13 @@ int main(void)
 
 
   int8_t errorCode;
-  
+
 
   Terminal_Print("Program start\n\r");
   __HAL_TIM_SET_COMPARE(LED_TIM, LED_RED_CHANNEL, 0);
   __HAL_TIM_SET_COMPARE(LED_TIM, LED_BLUE_CHANNEL, 5000);
-  HAL_TIM_PWM_Start(&htim1, LED_RED_CHANNEL);
-  HAL_TIM_PWM_Start(&htim1, LED_BLUE_CHANNEL);
+  HAL_TIM_PWM_Start(LED_TIM, LED_RED_CHANNEL);
+  HAL_TIM_PWM_Start(LED_TIM, LED_BLUE_CHANNEL);
 
 
   // initialize data output to server
@@ -239,7 +260,7 @@ int main(void)
   // Terminal_Print("DS2438 OK\n\r");
 
 
-  __HAL_TIM_SET_PRESCALER(LED_TIM, 7000 - 1);
+  __HAL_TIM_SET_PRESCALER(LED_TIM, 12000 - 1);
 
 
   // init IMU 10DOF
@@ -262,37 +283,39 @@ int main(void)
   Terminal_Print("IMU OK\n\r");
 
 
-  __HAL_TIM_SET_PRESCALER(LED_TIM, 3500 - 1);
+  __HAL_TIM_SET_PRESCALER(LED_TIM, 9000 - 1);
 
 
   // TODO delete debug timer start
-  HAL_TIM_Base_Start(&htim2);
+  // HAL_TIM_Base_Start(&htim2);
 
 
-  // initilize receiver input + dshot output + PID
-  Terminal_Print("Flight Init start ... ");
-  flightTypeDef flightInit;
-  flightInit.inputProtocol = SBUS;
-  flightInit.inputUART = &huart1;
-  flightInit.outputTIM = &htim3;
-  flightInit.outputProtocol = DSHOT300;
-  flightInit.outputUpdateTIM = &htim14;
-  flightInit.deltaTime = dt;
-  errorCode = Flight_Init(&flightInit);
+  // initialize receiver reception with DMA
+  Terminal_Print("Receiver start ... ");
+  errorCode = Receiver_Init(SBUS, &huart1);
   if(errorCode != RECEIVER_OK)
     Sensor_ErrorHandler(RECEIVER, errorCode);
-  Terminal_Print("Flight Init OK\n\r");
+  Terminal_Print("Receiver OK\n\r");
 
 
-  // TODO delete ----------------------------------------------
-  
-  // errorCode = DShot_Init(&htim3, DSHOT150, &htim14);
-  // if(errorCode != DSHOT_OK)
-  //   Sensor_ErrorHandler(RECEIVER, errorCode);
-  // Terminal_Print("DSHOT OK\n\r");
-  // DShot_MotorTest();
-  
-  // ----------------------------------------------------------
+  __HAL_TIM_SET_PRESCALER(LED_TIM, 6000 - 1);
+
+
+  // initililize output via DSHOT protocol
+  Terminal_Print("DShot start ... ");
+  errorCode = DShot_Init(&htim3, DSHOT300, &htim14);
+  if(errorCode != DSHOT_OK)
+    Sensor_ErrorHandler(DSHOT, errorCode);
+  Terminal_Print("DShot OK\n\r");
+
+
+  __HAL_TIM_SET_PRESCALER(LED_TIM, 3000 - 1);
+
+
+  // initilize PID
+  Terminal_Print("PID start ... ");
+  PID_Init(dt);
+  Terminal_Print("PID OK\n\r");
 
 
   __HAL_TIM_SET_COMPARE(LED_TIM, LED_BLUE_CHANNEL, 10000);

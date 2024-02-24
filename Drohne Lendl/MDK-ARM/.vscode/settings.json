@@ -16,6 +16,10 @@
         "pid.h": "c",
         "flight.h": "c",
         "receiver.h": "c",
-        "datatransmission.h": "c"
+        "datatransmission.h": "c",
+        "limits": "c",
+        "type_traits": "c",
+        "xtr1common": "c",
+        "stm32_hal_legacy.h": "c"
     }
 }

@@ -24,16 +24,28 @@ void Sensor_ErrorHandler(Sensors sens, int8_t errorCode)
   char txt[100];
   switch(sens)
   {
+    case DATA_TRANSMIT:
+      sprintf(txt, "DATA TRANSMIT ERROR | Code: %d\n\r", errorCode);
+      break;
+
     case DS2438:
       sprintf(txt, "DS2438 ERROR | Code: %d\n\r", errorCode);
+      break;
+
+    case IMU:
+      sprintf(txt, "IMU ERROR | Code: %d\n\r", errorCode);
       break;
 
     case RECEIVER:
       sprintf(txt, "RECEIVER ERROR | Code: %d\n\r", errorCode);
       break;
 
-    case IMU:
-      sprintf(txt, "IMU ERROR | Code: %d\n\r", errorCode);
+    case DSHOT:
+      sprintf(txt, "DSHOT ERROR | Code: %d\n\r", errorCode);
+      break;
+
+    case PID:
+      sprintf(txt, "PID ERROR | Code: %d\n\r", errorCode);
       break;
 
     default:

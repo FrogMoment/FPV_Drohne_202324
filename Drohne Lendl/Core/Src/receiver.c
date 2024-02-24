@@ -298,6 +298,8 @@ Receiver_Status Receiver_ConvertInput(void)
     if(status != RECEIVER_OK)
         return status;
 
+    __HAL_TIM_SET_COMPARE(LED_TIM, LED_RED_CHANNEL, 0);
+
     /**************************************************************************************************************************************
     -------------------------------------------------------- check ON / OFF switch --------------------------------------------------------
     ***************************************************************************************************************************************/
@@ -424,6 +426,8 @@ Receiver_Status Receiver_ConvertInput(void)
 
     if(!hoverModeFlag && !failsafeFlag)
     {
+        uartCheck = 1; // TODO delete
+        
         // MAYBE sketch of better calculation of control ---------------
         // pitch -= 0.5;
         // roll -= 0.5;
@@ -513,7 +517,6 @@ Receiver_Status Receiver_FailsafeHandler(void)
     // PID_Hover(30);
 
     __HAL_TIM_SET_COMPARE(LED_TIM, LED_RED_CHANNEL, 5000);
-    __HAL_TIM_SET_COMPARE(LED_TIM, LED_BLUE_CHANNEL, 0);
 
     return RECEIVER_OK;
 }

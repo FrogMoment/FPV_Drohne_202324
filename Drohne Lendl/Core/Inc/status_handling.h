@@ -20,11 +20,12 @@
 
 typedef enum Sensors
 {
-  // MPU9250 = 0,
-  DS2438 = 1,
-  RECEIVER = 2,
+  DATA_TRANSMIT = 1,
+  DS2438 = 2,
   IMU = 3,
-  DATA_TRANSMIT = 4
+  RECEIVER = 4,
+  DSHOT = 5,
+  PID = 6
 } Sensors;
 
 /**

@@ -387,12 +387,14 @@ void IMU_GetAngles(void)
     gyro.y = (gyroData.y - gyroOffset.y) / gyroSens;
     gyro.z = (gyroData.z - gyroOffset.z) / gyroSens;
 
-    accel.x = (accelData.x / accelSens) - 0.020f;
-    accel.y = (accelData.y / accelSens) - 0.021f;
-    accel.z = (accelData.z / accelSens) - 0.140f;
+    accel.x = (accelData.x / accelSens) - 0.01f;
+    accel.y = (accelData.y / accelSens) - 0.02f;
+    accel.z = (accelData.z / accelSens) - 0.1f;
 
-    // invert z-axis because the sensor is upside down
+    // invert axis because the sensor is upside down
     accel.z = -accel.z;
+    // gyro.y = -gyro.y;
+    // gyro.x = -gyro.x;
 
     // mag.x = (float)magData.x * ((((float)magAdjust[0] - 128.0f) / 256.0f) + 1.0f);
     // mag.y = (float)magData.y * ((((float)magAdjust[1] - 128.0f) / 256.0f) + 1.0f);
@@ -402,8 +404,8 @@ void IMU_GetAngles(void)
     float accelPitch = atan2(accel.y, accel.z) * RAD2DEG;
     float accelRoll = atan2(accel.x, accel.z) * RAD2DEG;
 
-    angle.roll = 0.98 * (angle.roll - gyro.y * imu_DeltaTime) + (1.0 - 0.98) * accelRoll;
-    angle.pitch = 0.98 * (angle.pitch + gyro.x * imu_DeltaTime) + (1.0 - 0.98) * accelPitch;
+    angle.roll = 0.98f * (angle.roll + gyro.y * imu_DeltaTime) + (1.0f - 0.98f) * accelRoll;
+    angle.pitch = 0.98f * (angle.pitch - gyro.x * imu_DeltaTime) + (1.0f - 0.98f) * accelPitch;
     angle.yaw += gyro.z * imu_DeltaTime;
 }
 
