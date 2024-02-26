@@ -14,7 +14,7 @@
 #include "status_handling.h"
 
 /**
- * @brief This funciton completly stops the program
+ * @brief This function completely stops the program
  * @param sens what sensor has the error
  * @param errorCode
  * @retval None
@@ -22,6 +22,8 @@
 void Sensor_ErrorHandler(Sensors sens, int8_t errorCode)
 {
   char txt[100];
+
+  // choose error source
   switch(sens)
   {
     case DATA_TRANSMIT:
@@ -52,12 +54,18 @@ void Sensor_ErrorHandler(Sensors sens, int8_t errorCode)
       sprintf(txt, "wrong sensor ERROR | Code: %d\n\r", errorCode);
       break;
   }
+
+  // output error message
   Terminal_Print(txt);
 
+  // turn red LED on and the blue LED off
   __HAL_TIM_SET_COMPARE(LED_TIM, LED_RED_CHANNEL, 10000);
   __HAL_TIM_SET_COMPARE(LED_TIM, LED_BLUE_CHANNEL, 0);
 
+  // disable all interrupts
   __disable_irq();
+
+  // infinite loop
   while(1);
 }
 

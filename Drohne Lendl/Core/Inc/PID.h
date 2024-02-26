@@ -25,14 +25,25 @@ typedef enum PID_Status
     PID_RECEIVER_ERROR = 1
 } PID_Status;
 
-extern int8_t uartCheck;
+/**
+ * @brief This function initializes the change Ks system 
+ * @param huart pointer to UART_HandleTypeDef (input uart)
+ * @retval None
+ */
+void PID_Init(UART_HandleTypeDef *huart);
 
-void PID_Init(float deltaTime);
-
+/**
+ * @brief This function controls hover mode with a PID controller
+ * @param inputThrottle throttle value 0-100%
+ * @return PID_Status 
+ */
 PID_Status PID_Hover(float inputThrottle);
 
-void changeKs(void);
-
+/**
+ * @brief This function changes a PID controller coefficients via uart
+ * @param huart 
+ */
+void changeKs(UART_HandleTypeDef *huart);
 
 
 

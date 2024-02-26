@@ -172,7 +172,10 @@ Receiver_Status Receiver_FailsafeHandler(void);
  * @param huart pointer to UART_HandleTypeDef
  * @retval None
  */
-void Receiver_IBusFailsafeCheck(UART_HandleTypeDef *huart);
+void Receiver_IBusFailsafeCheck(void);
+
+
+void Receiver_ReceptionCallback(UART_HandleTypeDef *huart);
 
 #endif // RECEIVER_H_INCLUDED
 

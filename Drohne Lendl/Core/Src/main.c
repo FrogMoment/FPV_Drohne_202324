@@ -69,6 +69,7 @@ DMA_HandleTypeDef hdma_tim3_ch4;
 UART_HandleTypeDef huart4;
 UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart3;
+DMA_HandleTypeDef hdma_uart4_rx;
 DMA_HandleTypeDef hdma_usart1_rx;
 
 /* USER CODE BEGIN PV */
@@ -145,7 +146,7 @@ void RealTimeSystemCallback(TIM_HandleTypeDef *htim)
   ---------------------------------------------- IMU ----------------------------------------------
   ************************************************************************************************/
   IMU_GetAngles();
-  // IMU_BARO_ReadBaro();
+  IMU_BARO_ReadBaro();
 
   /************************************************************************************************
   --------------------------------------- DATA TRANSMISSION ---------------------------------------
@@ -245,12 +246,16 @@ int main(void)
   HAL_TIM_PWM_Start(LED_TIM, LED_BLUE_CHANNEL);
 
 
-  // initialize data output to server
+  /******************************************************************
+  ----------------------- data output to VTX -----------------------
+  ******************************************************************/
   // DATA_INIT(&huart3);
 
 
+  /******************************************************************
+  ----------------------- battery monitoring -----------------------
+  ******************************************************************/
   __HAL_TIM_SET_PRESCALER(LED_TIM, 14000 - 1);
-
 
   // initliaze DS2438
   // Terminal_Print("DS2438 start ... ");
@@ -260,8 +265,10 @@ int main(void)
   // Terminal_Print("DS2438 OK\n\r");
 
 
+  /******************************************************************
+  ---------------------------- IMU init ----------------------------
+  ******************************************************************/
   __HAL_TIM_SET_PRESCALER(LED_TIM, 12000 - 1);
-
 
   // init IMU 10DOF
   Terminal_Print("IMU start ... ");
@@ -283,21 +290,20 @@ int main(void)
   Terminal_Print("IMU OK\n\r");
 
 
+  /******************************************************************
+  ---------------------------- PID init ----------------------------
+  ******************************************************************/
   __HAL_TIM_SET_PRESCALER(LED_TIM, 9000 - 1);
 
-
-  // TODO delete debug timer start
-  // HAL_TIM_Base_Start(&htim2);
-
-
-  // initialize receiver reception with DMA
-  Terminal_Print("Receiver start ... ");
-  errorCode = Receiver_Init(SBUS, &huart1);
-  if(errorCode != RECEIVER_OK)
-    Sensor_ErrorHandler(RECEIVER, errorCode);
-  Terminal_Print("Receiver OK\n\r");
+  // initilize PID
+  Terminal_Print("PID start ... ");
+  PID_Init(&huart4);
+  Terminal_Print("PID OK\n\r");
 
 
+  /******************************************************************
+  --------------------------- DSHOT init ---------------------------
+  ******************************************************************/
   __HAL_TIM_SET_PRESCALER(LED_TIM, 6000 - 1);
 
 
@@ -309,20 +315,31 @@ int main(void)
   Terminal_Print("DShot OK\n\r");
 
 
+  /******************************************************************
+  -------------------------- Receiver init --------------------------
+  ******************************************************************/
   __HAL_TIM_SET_PRESCALER(LED_TIM, 3000 - 1);
 
 
-  // initilize PID
-  Terminal_Print("PID start ... ");
-  PID_Init(dt);
-  Terminal_Print("PID OK\n\r");
+  // initialize receiver reception with DMA
+  Terminal_Print("Receiver start ... ");
+  errorCode = Receiver_Init(SBUS, &huart1);
+  if(errorCode != RECEIVER_OK)
+    Sensor_ErrorHandler(RECEIVER, errorCode);
+  Terminal_Print("Receiver OK\n\r");
 
 
+  /******************************************************************
+  ------------------------ Real Time System ------------------------
+  ******************************************************************/
   __HAL_TIM_SET_COMPARE(LED_TIM, LED_BLUE_CHANNEL, 10000);
 
+  // TODO delete debug timer start
+  // HAL_TIM_Base_Start(&htim2);
 
   // start timer 1 counter + interrupt (real time structure)
   // set custom callback function
+  Terminal_Print("Initilisation finished -> Start Real Time System ...\n\r");
   HAL_TIM_RegisterCallback(&htim15, HAL_TIM_PERIOD_ELAPSED_CB_ID, RealTimeSystemCallback);
   HAL_TIM_Base_Start_IT(&htim15);
 
@@ -945,10 +962,11 @@ static void MX_UART4_Init(void)
   huart4.Init.Parity = UART_PARITY_NONE;
   huart4.Init.Mode = UART_MODE_TX_RX;
   huart4.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  huart4.Init.OverSampling = UART_OVERSAMPLING_16;
+  huart4.Init.OverSampling = UART_OVERSAMPLING_8;
   huart4.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
   huart4.Init.ClockPrescaler = UART_PRESCALER_DIV1;
-  huart4.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+  huart4.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_RXOVERRUNDISABLE_INIT;
+  huart4.AdvancedInit.OverrunDisable = UART_ADVFEATURE_OVERRUN_DISABLE;
   if (HAL_UART_Init(&huart4) != HAL_OK)
   {
     Error_Handler();
@@ -1075,12 +1093,10 @@ static void MX_DMA_Init(void)
 {
 
   /* DMA controller clock enable */
+  __HAL_RCC_DMA2_CLK_ENABLE();
   __HAL_RCC_DMA1_CLK_ENABLE();
 
   /* DMA interrupt init */
-  /* DMA1_Stream0_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Stream0_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(DMA1_Stream0_IRQn);
   /* DMA1_Stream1_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Stream1_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA1_Stream1_IRQn);
@@ -1093,6 +1109,12 @@ static void MX_DMA_Init(void)
   /* DMA1_Stream4_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Stream4_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA1_Stream4_IRQn);
+  /* DMA2_Stream0_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA2_Stream0_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA2_Stream0_IRQn);
+  /* DMA2_Stream2_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA2_Stream2_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA2_Stream2_IRQn);
 
 }
 
