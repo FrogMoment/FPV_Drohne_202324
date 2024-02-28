@@ -98,15 +98,15 @@
 typedef enum IMU_Status
 {
     IMU_OK = 0,
-    IMU_ADDRESS_ERROR = 1,
-    IMU_I2C_ERROR = 2,
-    IMU_TIM_ERROR = 3,
+    IMU_ADDRESS_ERROR = 1,      // wrong I2C slave address
+    IMU_I2C_ERROR = 2,          // no I2C typedef set
+    IMU_TIM_ERROR = 3,          // no TIM typedef set
 
-    IMU_MPU_WHOAMI_ERROR = 10,
-    IMU_MAG_WHOAMI_ERROR = 11,
-    IMU_BARO_CHIPID_ERROR = 12,
+    IMU_MPU_WHOAMI_ERROR = 10,  // MPU9250 who am i value wrong
+    IMU_MAG_WHOAMI_ERROR = 11,  // AK8963 who am i value wrong
+    IMU_BARO_CHIPID_ERROR = 12, // BMP280 who am i value wrong
 
-    IMU_BARO_INIT_ERROR = 13
+    IMU_BARO_INIT_ERROR = 13    // BMP280 init timeout 
 } IMU_Status;
 
 // all IMU sensors

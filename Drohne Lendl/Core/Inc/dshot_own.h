@@ -54,7 +54,7 @@ typedef enum DShot_Status
 {
     DSHOT_OK = 0,
 
-    DSHOT_TIM_ERROR = 100
+    DSHOT_TIM_ERROR = 100 // no TIM typedef set
 } DShot_Status;
 
 // DShot speeds

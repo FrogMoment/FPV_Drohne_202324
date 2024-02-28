@@ -42,8 +42,9 @@
 typedef enum DS2438_Status
 {
     DS2438_OK = 0,
-    DS2438_ERROR = 1,
-    DS2438_VOLTAGE_ERROR = 2
+
+    DS2438_ERROR = 1,           // sensor not found or initialisation  error
+    DS2438_VOLTAGE_ERROR = 2    // battery voltage too low
 } DS2438_Status;
 
 /************************************************************************************************

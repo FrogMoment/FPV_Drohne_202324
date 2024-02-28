@@ -77,6 +77,7 @@ void Sensor_ErrorHandler(Sensors sens, int8_t errorCode)
 void Terminal_Print(char *string)
 {
   HAL_UART_Transmit(TERMINAL_UART, (uint8_t *)string, strlen(string), HAL_MAX_DELAY);
+  HAL_UART_Transmit(&huart4, (uint8_t *)string, strlen(string), HAL_MAX_DELAY);
 }
 
 
