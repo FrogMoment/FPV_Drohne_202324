@@ -16,9 +16,9 @@
 
 #include "DS2438.h"
 
-/************************************************************************************************
---------------------------------------- GLOBAL VARIABLES ---------------------------------------
-************************************************************************************************/
+ /************************************************************************************************
+ --------------------------------------- GLOBAL VARIABLES ---------------------------------------
+ ************************************************************************************************/
 
 float ds2438_Current = 0;        // DS2438 current value
 float ds2438_Voltage = 0;        // DS2438 voltage value
@@ -65,19 +65,19 @@ DS2438_Status DS2438_Init(TIM_HandleTypeDef *htim, GPIO_TypeDef *gpio_Port, uint
 	if(DS2438_Reset() == DS2438_ERROR)
 		return DS2438_ERROR;
 
-// set Vad as A/D converter input
+	// set Vad as A/D converter input
 	int16_t pageData[9] = {0x00};
 
 	if(DS2438_ReadPage(0x00, pageData) == DS2438_ERROR)
 		return DS2438_ERROR;
 
-// pageData[0] |= 0x08; // supply voltage
+	// pageData[0] |= 0x08; // supply voltage
 	pageData[0] &= 0xF7;    // external input
 
 	if(DS2438_WritePage(0x00, pageData) == DS2438_ERROR)
 		return DS2438_ERROR;
 
-// check current voltage
+	// check current voltage
 	int8_t errorCode = DS2438_ReadVoltage();
 	if(errorCode != DS2438_OK)
 		return errorCode;
@@ -91,8 +91,8 @@ DS2438_Status DS2438_Init(TIM_HandleTypeDef *htim, GPIO_TypeDef *gpio_Port, uint
  */
 DS2438_Status DS2438_Reset(void)
 {
-		// reset DS2438
-		// send reset pulse (min 480us)
+	// reset DS2438
+	// send reset pulse (min 480us)
 	HAL_GPIO_WritePin(ds2438_GPIOPort, ds2438_GPIOPin, GPIO_PIN_RESET);
 	DS2438_DelayUs(480);
 	// release line -> change to receive mode
@@ -191,11 +191,11 @@ int8_t DS2438_ReadBit(void)
  */
 DS2438_Status DS2438_WritePage(uint8_t page, int16_t *pageData)
 {
-		// reset + presence pulse
+	// reset + presence pulse
 	if(DS2438_Reset() == DS2438_ERROR)
 		return DS2438_ERROR;
 
-// copy current data to scratchpad
+	// copy current data to scratchpad
 	DS2438_WriteByte(DS2438_SKIP_ROM);
 	DS2438_WriteByte(DS2438_WRITE_SP);
 	DS2438_WriteByte(page);
@@ -203,7 +203,7 @@ DS2438_Status DS2438_WritePage(uint8_t page, int16_t *pageData)
 	for(uint8_t i = 0; i < 9; i++)
 		DS2438_WriteByte(pageData[i]);
 
-// reset + presence pulse
+	// reset + presence pulse
 	if(DS2438_Reset() == DS2438_ERROR)
 		return DS2438_ERROR;
 
@@ -222,11 +222,11 @@ DS2438_Status DS2438_WritePage(uint8_t page, int16_t *pageData)
  */
 DS2438_Status DS2438_ReadPage(uint8_t page, int16_t *pageData)
 {
-		// reset + presence pulse
+	// reset + presence pulse
 	if(DS2438_Reset() == DS2438_ERROR)
 		return DS2438_ERROR;
 
-// copy current data to scratchpad
+	// copy current data to scratchpad
 	DS2438_WriteByte(DS2438_SKIP_ROM);
 	DS2438_WriteByte(DS2438_RECALL_MEM);
 	DS2438_WriteByte(page);
@@ -235,7 +235,7 @@ DS2438_Status DS2438_ReadPage(uint8_t page, int16_t *pageData)
 	if(DS2438_Reset() == DS2438_ERROR)
 		return DS2438_ERROR;
 
-// read scratchpad data
+	// read scratchpad data
 	DS2438_WriteByte(DS2438_SKIP_ROM);
 	DS2438_WriteByte(DS2438_READ_SP);
 	DS2438_WriteByte(page);
@@ -252,11 +252,11 @@ DS2438_Status DS2438_ReadPage(uint8_t page, int16_t *pageData)
  */
 DS2438_Status DS2438_StartVoltageMeasurement(void)
 {
-		// reset + presence pulse
+	// reset + presence pulse
 	if(DS2438_Reset() == DS2438_ERROR)
 		return DS2438_ERROR;
 
-// read voltage data
+	// read voltage data
 	DS2438_WriteByte(DS2438_SKIP_ROM);
 	DS2438_WriteByte(DS2438_CONVERT_V);
 
@@ -283,11 +283,11 @@ int8_t DS2438_ReadControlVoltageFlag(void)
  */
 DS2438_Status DS2438_ReadVoltage(void)
 {
-		// start measurement (send CONVERT T command)
+	// start measurement (send CONVERT T command)
 	if(DS2438_StartVoltageMeasurement() == DS2438_ERROR)
 		return DS2438_ERROR;
 
-// wait for measurement to be complete (ADB flag: 1 = busy, 0 = ready)
+	// wait for measurement to be complete (ADB flag: 1 = busy, 0 = ready)
 	while(DS2438_ReadControlVoltageFlag());
 
 	int16_t pageData[9] = {0x00};
@@ -296,7 +296,7 @@ DS2438_Status DS2438_ReadVoltage(void)
 	if(DS2438_ReadPage(0x00, pageData) == DS2438_ERROR)
 		return DS2438_ERROR;
 
-// extracting voltage bytes 
+	// extracting voltage bytes 
 	int16_t voltageLSB = pageData[3];
 	int16_t voltageMSB = pageData[4];
 
@@ -304,7 +304,7 @@ DS2438_Status DS2438_ReadVoltage(void)
 	ds2438_Voltage *= 3; // times 3 because of resistor voltage divider
 
 	if(ds2438_Voltage <= DS2438_MIN_VOLTAGE)
-	    return DS2438_VOLTAGE_ERROR;
+		return DS2438_VOLTAGE_ERROR;
 
 	return DS2438_OK;
 }
@@ -320,7 +320,7 @@ DS2438_Status DS2438_ReadTemperature(void)
 	if(DS2438_ReadPage(0x00, pageData) == DS2438_ERROR)
 		return DS2438_ERROR;
 
-// extracting temp bits 
+	// extracting temp bits 
 	int16_t tempLSB = pageData[1];
 	int16_t tempMSB = pageData[2];
 
