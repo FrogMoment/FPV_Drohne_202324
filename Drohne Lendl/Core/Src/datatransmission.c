@@ -167,7 +167,7 @@ void DATA_TRANSMISSION_1(float voltage, float grounddistance, int8_t error_code)
     transmission_buffer[9] = error_code;
 
     // send package 1
-    HAL_UART_Transmit(DATA_OUTPUT, transmission_buffer, 10, HAL_MAX_DELAY);
+    HAL_UART_Transmit_DMA(DATA_OUTPUT, transmission_buffer, 10);
 }
 
 /**
@@ -190,5 +190,5 @@ void DATA_TRANSMISSION_2(float pitch, float roll, float yaw)
     DATA_ARRANGEMENT(yaw, 3);
 
     // send package 2
-    HAL_UART_Transmit(DATA_OUTPUT, transmission_buffer, 13, HAL_MAX_DELAY);
+    HAL_UART_Transmit_DMA(DATA_OUTPUT, transmission_buffer, 13);
 }

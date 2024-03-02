@@ -17,9 +17,9 @@
 
 #include "IMU_10DOF.h"
 
-/**********************************************************************
---------------------------- GLOBAL VARIABLES ---------------------------
-**********************************************************************/
+ /**********************************************************************
+ --------------------------- GLOBAL VARIABLES ---------------------------
+ **********************************************************************/
 
 I2C_HandleTypeDef *imu_ComI2C;
 TIM_HandleTypeDef *imu_DelayTIM;
@@ -73,7 +73,7 @@ IMU_Status IMU_Init(IMU_InitTypeDef *imuInit)
 	if(imu_DelayTIM == NULL)
 		return IMU_TIM_ERROR;
 
-// IMU_dt = imuInit->dt;
+	// IMU_dt = imuInit->dt;
 
 	HAL_TIM_Base_Start(imu_DelayTIM); // start delay timer
 
@@ -85,10 +85,10 @@ IMU_Status IMU_Init(IMU_InitTypeDef *imuInit)
 	if(errorCode != IMU_OK)
 		return errorCode;
 
-/*************************************************************************************
-------------------------------- MPU9250 initialization -------------------------------
-*************************************************************************************/
-// reset MPU
+	/*************************************************************************************
+	------------------------------- MPU9250 initialization -------------------------------
+	*************************************************************************************/
+	// reset MPU
 	IMU_WriteRegister(MPU9250, IMU_MPU_PWR_MGMT_1_ADDR, 0x00);
 	IMU_DelayUs(10000);
 	// auto select best clk source
@@ -201,7 +201,7 @@ IMU_Status IMU_Init(IMU_InitTypeDef *imuInit)
  */
 IMU_Status IMU_ReadRegister(IMU_Sensor sensor, uint8_t regAddr, uint8_t *data, uint8_t rxBytes)
 {
-		// determine the I2C device address
+	// determine the I2C device address
 	uint16_t devAddress;
 	switch(sensor)
 	{
@@ -236,7 +236,7 @@ IMU_Status IMU_ReadRegister(IMU_Sensor sensor, uint8_t regAddr, uint8_t *data, u
  */
 IMU_Status IMU_WriteRegister(IMU_Sensor sensor, uint8_t regAddr, uint8_t data)
 {
-		// determine the I2C device address
+	// determine the I2C device address
 	uint16_t devAddress;
 	switch(sensor)
 	{
@@ -290,7 +290,7 @@ IMU_Status IMU_CheckConnection(void)
 
 		if(sensor[i] == MPU9250)
 		{
-				// enable bypass mode
+			// enable bypass mode
 			if(IMU_WriteRegister(MPU9250, IMU_MPU_INT_PIN_CFG_ADDR, 0x02) != IMU_OK)
 				return IMU_ADDRESS_ERROR;
 			IMU_DelayUs(10000);
@@ -375,8 +375,8 @@ void IMU_GetAngles(void)
 	static int8_t firstTimeFlag = 0;
 	if(firstTimeFlag == 0)
 	{
-		tmpTime = 0;
 		firstTimeFlag = 1;
+		return;
 	}
 
 	// calculate delta time

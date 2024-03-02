@@ -17,9 +17,9 @@
 
 #include "receiver.h"
 
-/************************************************************************************************
---------------------------------------- GLOBAL VARIABLES ---------------------------------------
-************************************************************************************************/
+ /************************************************************************************************
+ --------------------------------------- GLOBAL VARIABLES ---------------------------------------
+ ************************************************************************************************/
 
  // receiver variables
 UART_HandleTypeDef *receiver_InputUART = NULL;          // pointer to UART_HandleTypeDef of input signal
@@ -31,7 +31,6 @@ uint16_t receiver_ChData[16] = {0};     // each channel data
 uint16_t receiver_SameDataCounter = 0;  // counter amount of same channel data after another
 
 // pwm output variables
-TIM_HandleTypeDef *pwm_Timer = NULL;        // pointer to TIM_HandleTypeDef of output pwm signal
 Receiver_Values receiver_InputLimits = {0}; // input limits dependend on selected protocol
 
 uint8_t failsafeFlag = 0;
@@ -59,16 +58,16 @@ Receiver_Status Receiver_Init(Receiver_Protocol proto, UART_HandleTypeDef *huart
 
 	switch(receiver_SelectedProtocol)
 	{
-			/**
-			 * 115200 baud
-			 * 8 data bits, 1 stop bit, no parity
-			 * LSB first, not inverted
-			 * 32 Bytes:
-			 *      Byte[0]: protocol length, 0x20
-			 *      Byte[1]: command code, 0x40
-			 *      Byte[2-29]: channel data, 14 channels, 2 byte each, little endian
-			 *      Byte[30-31]: checksum, little endian, 0xFFFF - sum of other 30 bytes = checksum
-			 */
+		/**
+		 * 115200 baud
+		 * 8 data bits, 1 stop bit, no parity
+		 * LSB first, not inverted
+		 * 32 Bytes:
+		 *      Byte[0]: protocol length, 0x20
+		 *      Byte[1]: command code, 0x40
+		 *      Byte[2-29]: channel data, 14 channels, 2 byte each, little endian
+		 *      Byte[30-31]: checksum, little endian, 0xFFFF - sum of other 30 bytes = checksum
+		 */
 		case IBUS:
 		{
 			// check if uart is configured via baudrate
@@ -200,7 +199,7 @@ Receiver_Status Receiver_Decode(void)
 	{
 		case IBUS:
 		{
-				// if reception input start at the last byte -> reorder for correct order (rotate left)
+			// if reception input start at the last byte -> reorder for correct order (rotate left)
 			if(receiver_RawData[1] == 0x20 && receiver_RawData[2] == 0x40)
 			{
 				uint8_t tmp = receiver_RawData[0];
@@ -213,7 +212,7 @@ Receiver_Status Receiver_Decode(void)
 			if(receiver_RawData[0] != 0x20 || receiver_RawData[1] != 0x40)
 				return IBUS_HEADER_ERROR;
 
-		// check if checksum is correct (0xFFFF - sum of other 30 bytes = checksum)
+			// check if checksum is correct (0xFFFF - sum of other 30 bytes = checksum)
 			uint16_t sum = 0;
 			for(int8_t i = 0; i < 30; i++)
 				sum += receiver_RawData[i];
@@ -222,11 +221,11 @@ Receiver_Status Receiver_Decode(void)
 			if((0xFFFF - sum) != checksum)
 				return IBUS_CHECKSUM_ERROR;
 
-		// decode channel data (14 channels, 2 bytes each, little endian byte order)
+			// decode channel data (14 channels, 2 bytes each, little endian byte order)
 			for(int8_t i = 0, j = 0; i < 14; i++, j += 2)
 				receiver_ChData[i] = (receiver_RawData[j + 3] << 8) | receiver_RawData[j + 2];
 
-		// check disconnection
+			// check disconnection
 			Receiver_IBusFailsafeCheck();
 			if(receiver_SameDataCounter > 250)
 				return IBUS_SIGNAL_LOST_ERROR;
@@ -237,7 +236,7 @@ Receiver_Status Receiver_Decode(void)
 
 		case SBUS:
 		{
-				// if reception input start at the last byte -> reorder for correct order (rotate left)
+			// if reception input start at the last byte -> reorder for correct order (rotate left)
 			if(receiver_RawData[0] == 0x00 && receiver_RawData[1] == 0x0F)
 			{
 				uint8_t tmp = receiver_RawData[0];
@@ -250,19 +249,19 @@ Receiver_Status Receiver_Decode(void)
 			if(receiver_RawData[0] != 0x0F)
 				return SBUS_HEADER_ERROR;
 
-		// check if protocol footer is correct
+			// check if protocol footer is correct
 			if(receiver_RawData[24] != 0x00)
 				return SBUS_FOOTER_ERROR;
 
-		// check signal lost flags
+			// check signal lost flags
 			if(receiver_RawData[23] & 0x04)
 				return SBUS_SIGNAL_LOST;
 
-		// check signal failsafe flag
+			// check signal failsafe flag
 			if(receiver_RawData[23] & 0x08)
 				return SBUS_SIGNAL_FAILSAFE;
 
-		// decode channel data (16 channels, 11 bits each, lsb first)
+			// decode channel data (16 channels, 11 bits each, lsb first)
 			for(int8_t i = 0, j = 0; i < 16; i += 8, j += 11)
 			{
 				receiver_ChData[i + 0] = ((receiver_RawData[j + 1] >> 0) | (receiver_RawData[j + 2] << 8)) & 0x7FF;
@@ -305,22 +304,26 @@ Receiver_Status Receiver_ConvertInput(void)
 
 	__HAL_TIM_SET_COMPARE(LED_TIM, LED_RED_CHANNEL, 0);
 
+
 	/**************************************************************************************************************************************
 	-------------------------------------------------------- check ON / OFF switch --------------------------------------------------------
 	***************************************************************************************************************************************/
-
-	// top position (< half) = off (set standard throttle)
-	if(receiver_ChData[RECEIVER_ONOFF_SWITCH_CHANNEL] < receiver_InputLimits.half)
-		return Receiver_SetStdDC();
-
-	if(droneOffModeFlag == 1 && receiver_ChData[RECEIVER_THROTTLE_CHANNEL] > receiver_InputLimits.min + 10)
-		return Receiver_SetStdDC();
+	float throttle = 0, pitch = 0, roll = 0, yaw = 0;
 
 	droneOffModeFlag = 0;
 
-	/**************************************************************************************************************************************
-	------------------------------------------------ check 3 position switch (mode select) ------------------------------------------------
-	***************************************************************************************************************************************/
+	// top position (< half) = off (set standard throttle)
+	if(receiver_ChData[RECEIVER_ONOFF_SWITCH_CHANNEL] < receiver_InputLimits.half)
+		droneOffModeFlag = 1;
+	// return Receiver_SetStdDC();
+
+	if(droneOffModeFlag == 1 && receiver_ChData[RECEIVER_THROTTLE_CHANNEL] > receiver_InputLimits.min + 10)
+		droneOffModeFlag = 1;
+	// return Receiver_SetStdDC();
+
+/**************************************************************************************************************************************
+------------------------------------------------ check 3 position switch (mode select) ------------------------------------------------
+***************************************************************************************************************************************/
 
 	uint16_t esc_MaxThr = ESC_SAFEMODE_THR_MAX;
 	uint8_t hoverModeFlag = 0;
@@ -329,139 +332,180 @@ Receiver_Status Receiver_ConvertInput(void)
 	if(receiver_ChData[RECEIVER_MODESEL_SWTICH_CHANNEL] < receiver_InputLimits.half - 10)
 		esc_MaxThr = ESC_SAFEMODE_THR_MAX;
 
-// middle position (half +- 10) = normalmode
+	// middle position (half +- 10) = normalmode
 	else if(receiver_ChData[RECEIVER_MODESEL_SWTICH_CHANNEL] >= receiver_InputLimits.half - 10 && receiver_ChData[RECEIVER_MODESEL_SWTICH_CHANNEL] <= receiver_InputLimits.half + 10)
 		esc_MaxThr = ESC_NORMALMODE_THR_MAX;
 
-// down position = extra mode hover mode
+	// down position = extra mode hover mode
 	else
 		hoverModeFlag = 1;
 
-/**************************************************************************************************************************************
------------------------------------------------- calculate throttle input (up / down) ------------------------------------------------
-***************************************************************************************************************************************/
+	/**************************************************************************************************************************************
+	------------------------------------------------ calculate throttle input (up / down) ------------------------------------------------
+	***************************************************************************************************************************************/
 
-	Motor_Position motor;
+	// Motor_Position motor;
 
-	float throttle = (float)(receiver_ChData[RECEIVER_THROTTLE_CHANNEL] - receiver_InputLimits.min) / receiver_InputLimits.delta; // get joystick position
-	throttle *= esc_MaxThr; // get percent of max duty cycle addition
-	if(!hoverModeFlag && !failsafeFlag)
+	// throttle = (float)(receiver_ChData[RECEIVER_THROTTLE_CHANNEL] - receiver_InputLimits.min) / receiver_InputLimits.delta; // get joystick position
+	// throttle *= esc_MaxThr; // get percent of max duty cycle addition
+	// if(!hoverModeFlag && !failsafeFlag)
+	// {
+	// 	motor.LF = throttle;    // set motor speed to throttle
+	// 	motor.RF = throttle;    // set motor speed to throttle
+	// 	motor.LR = throttle;    // set motor speed to throttle
+	// 	motor.RR = throttle;    // set motor speed to throttle
+	// }
+
+	if(droneOffModeFlag == 0)
+		throttle = 0;
+	else
 	{
-		motor.LF = throttle;    // set motor speed to throttle
-		motor.RF = throttle;    // set motor speed to throttle
-		motor.LR = throttle;    // set motor speed to throttle
-		motor.RR = throttle;    // set motor speed to throttle
+		throttle = (float)(receiver_ChData[RECEIVER_THROTTLE_CHANNEL] - receiver_InputLimits.min) / receiver_InputLimits.delta; // get joystick position
+		throttle *= esc_MaxThr; // get percent of max duty cycle addition
 	}
 
 	/**************************************************************************************************************************************
 	-------------------------------------------- calculate pitch input (forwards / backwards) --------------------------------------------
 	***************************************************************************************************************************************/
 
-	float pitch = (float)(receiver_ChData[RECEIVER_PITCH_CHANNEL] - receiver_InputLimits.min) / receiver_InputLimits.delta; // get joystick position
-	if(!hoverModeFlag && !failsafeFlag)
-	{
-		pitch = (pitch < .5) ? (.5 - pitch) * 2 : (pitch - .5) * 2; // get difference from 50%
-		pitch *= ESC_TURN_OFFSET_MAX;                               // get percent of max duty cycle addition
+	// float pitch = (float)(receiver_ChData[RECEIVER_PITCH_CHANNEL] - receiver_InputLimits.min) / receiver_InputLimits.delta; // get joystick position
+	// if(!hoverModeFlag && !failsafeFlag)
+	// {
+	// 	pitch = (pitch < .5) ? (.5 - pitch) * 2 : (pitch - .5) * 2; // get difference from 50%
+	// 	pitch *= ESC_TURN_OFFSET_MAX;                               // get percent of max duty cycle addition
 
-		// flying backwards, front motors faster
-		if(receiver_ChData[RECEIVER_PITCH_CHANNEL] < receiver_InputLimits.half)
-		{
-			motor.LF += pitch;  // add motor speed to left front
-			motor.RF += pitch;  // add motor speed to right front
-		}
-		// flying forward, rear motors faster
-		else
-		{
-			motor.LR += pitch;  // add motor speed to left rear
-			motor.RR += pitch;  // add motor speed to right rear
-		}
+	// 	// flying backwards, front motors faster
+	// 	if(receiver_ChData[RECEIVER_PITCH_CHANNEL] < receiver_InputLimits.half)
+	// 	{
+	// 		motor.LF += pitch;  // add motor speed to left front
+	// 		motor.RF += pitch;  // add motor speed to right front
+	// 	}
+	// 	// flying forward, rear motors faster
+	// 	else
+	// 	{
+	// 		motor.LR += pitch;  // add motor speed to left rear
+	// 		motor.RR += pitch;  // add motor speed to right rear
+	// 	}
+	// }
+
+	if(droneOffModeFlag == 0)
+		pitch = 0;
+	else
+	{
+		pitch = (float)(receiver_ChData[RECEIVER_PITCH_CHANNEL] - receiver_InputLimits.min) / receiver_InputLimits.delta; // get joystick position
+		pitch -= 0.5f;
+		pitch *= ESC_TURN_OFFSET_MAX;                               // get percent of max duty cycle addition
 	}
+
 
 	/**************************************************************************************************************************************
 	------------------------------------------------- calculate roll input (left / right) -------------------------------------------------
 	***************************************************************************************************************************************/
 
-	float roll = (float)(receiver_ChData[RECEIVER_ROLL_CHANNEL] - receiver_InputLimits.min) / receiver_InputLimits.delta; // get joystick position
-	if(!hoverModeFlag && !failsafeFlag)
-	{
-		roll = (roll < .5) ? (.5 - roll) * 2 : (roll - .5) * 2; // get difference from 50%
-		roll *= ESC_TURN_OFFSET_MAX;                            // get percent of max duty cycle addition
+	// float roll = (float)(receiver_ChData[RECEIVER_ROLL_CHANNEL] - receiver_InputLimits.min) / receiver_InputLimits.delta; // get joystick position
+	// if(!hoverModeFlag && !failsafeFlag)
+	// {
+	// 	roll = (roll < .5) ? (.5 - roll) * 2 : (roll - .5) * 2; // get difference from 50%
+	// 	roll *= ESC_TURN_OFFSET_MAX;                            // get percent of max duty cycle addition
 
-		// flying left, right motors faster
-		if(receiver_ChData[RECEIVER_ROLL_CHANNEL] < receiver_InputLimits.half)
-		{
-			motor.RF += roll;   // add motor speed to right front
-			motor.RR += roll;   // add motor speed to right rear 
-		}
-		// flying right, left motors faster
-		else
-		{
-			motor.LF += roll;   // add motor speed to left front 
-			motor.LR += roll;   // add motor speed to left rear 
-		}
+	// 	// flying left, right motors faster
+	// 	if(receiver_ChData[RECEIVER_ROLL_CHANNEL] < receiver_InputLimits.half)
+	// 	{
+	// 		motor.RF += roll;   // add motor speed to right front
+	// 		motor.RR += roll;   // add motor speed to right rear 
+	// 	}
+	// 	// flying right, left motors faster
+	// 	else
+	// 	{
+	// 		motor.LF += roll;   // add motor speed to left front 
+	// 		motor.LR += roll;   // add motor speed to left rear 
+	// 	}
+	// }
+
+	if(droneOffModeFlag == 1)
+		roll = 0;
+	else
+	{
+		roll = (float)(receiver_ChData[RECEIVER_ROLL_CHANNEL] - receiver_InputLimits.min) / receiver_InputLimits.delta; // get joystick position
+		roll -= 0.5f;
+		roll *= ESC_TURN_OFFSET_MAX;                            // get percent of max duty cycle addition
 	}
 
 	/**************************************************************************************************************************************
 	------------------------------------------ calculate yaw input (rotate left / rotate right) ------------------------------------------
 	***************************************************************************************************************************************/
 
-	float yaw = (float)(receiver_ChData[RECEIVER_YAW_CHANNEL] - receiver_InputLimits.min) / receiver_InputLimits.delta; // get joystick position
-	if(!hoverModeFlag && !failsafeFlag)
-	{
-		yaw = (yaw < .5) ? (.5 - yaw) * 2 : (yaw - .5) * 2; // get difference from 50%
-		yaw *= ESC_TURN_OFFSET_MAX;                         // get percent of max duty cycle addition
+	// float yaw = (float)(receiver_ChData[RECEIVER_YAW_CHANNEL] - receiver_InputLimits.min) / receiver_InputLimits.delta; // get joystick position
+	// if(!hoverModeFlag && !failsafeFlag)
+	// {
+	// 	yaw = (yaw < .5) ? (.5 - yaw) * 2 : (yaw - .5) * 2; // get difference from 50%
+	// 	yaw *= ESC_TURN_OFFSET_MAX;                         // get percent of max duty cycle addition
 
-		// rotate left, right front and left rear motors faster
-		if(receiver_ChData[RECEIVER_YAW_CHANNEL] < receiver_InputLimits.half)
-		{
-			motor.LF += yaw;    // add motor speed to right front 
-			motor.RR += yaw;    // add motor speed to left rear 
-		}
-		// rotate right, left front and right rear motors faster
-		else
-		{
-			motor.RF += yaw;    // add motor speed to left front 
-			motor.LR += yaw;    // add motor speed to right rear 
-		}
+	// 	// rotate left, right front and left rear motors faster
+	// 	if(receiver_ChData[RECEIVER_YAW_CHANNEL] < receiver_InputLimits.half)
+	// 	{
+	// 		motor.LF += yaw;    // add motor speed to right front 
+	// 		motor.RR += yaw;    // add motor speed to left rear 
+	// 	}
+	// 	// rotate right, left front and right rear motors faster
+	// 	else
+	// 	{
+	// 		motor.RF += yaw;    // add motor speed to left front 
+	// 		motor.LR += yaw;    // add motor speed to right rear 
+	// 	}
+	// }
+
+	if(droneOffModeFlag == 1)
+		yaw = 0;
+	else
+	{
+		yaw = (float)(receiver_ChData[RECEIVER_YAW_CHANNEL] - receiver_InputLimits.min) / receiver_InputLimits.delta; // get joystick position
+		yaw -= 0.5f;
+		yaw *= ESC_TURN_OFFSET_MAX;                         // get percent of max duty cycle addition
 	}
 
 	/**************************************************************************************************************************************
 	-------------------------------------------------------- check and send values --------------------------------------------------------
 	***************************************************************************************************************************************/
 
-	if(!hoverModeFlag && !failsafeFlag)
-	{
-			// MAYBE sketch of better calculation of control ---------------
-			// pitch -= 0.5;
-			// roll -= 0.5;
-			// yaw -= 0.5;
+	// if(!hoverModeFlag && !failsafeFlag)
+	// {
+	// 	// MAYBE sketch of better calculation of control ---------------
+	// 	// pitch -= 0.5;
+	// 	// roll -= 0.5;
+	// 	// yaw -= 0.5;
 
-			// motor.LF = throttle - pitch + roll - yaw;
-			// motor.RF = throttle - pitch - roll + yaw;
-			// motor.LR = throttle + pitch + roll + yaw;
-			// motor.RR = throttle + pitch - roll - yaw;
-			// --------------------------------------------------------------
+	// 	// motor.LF = throttle - pitch + roll - yaw;
+	// 	// motor.RF = throttle - pitch - roll + yaw;
+	// 	// motor.LR = throttle + pitch + roll + yaw;
+	// 	// motor.RR = throttle + pitch - roll - yaw;
+	// 	// --------------------------------------------------------------
 
-			// check if the value is larger then the max value (throttle + turn offset max)
-		if(motor.LF > throttle + ESC_TURN_OFFSET_MAX) motor.LF = throttle + ESC_TURN_OFFSET_MAX;
-		if(motor.RF > throttle + ESC_TURN_OFFSET_MAX) motor.RF = throttle + ESC_TURN_OFFSET_MAX;
-		if(motor.LR > throttle + ESC_TURN_OFFSET_MAX) motor.LR = throttle + ESC_TURN_OFFSET_MAX;
-		if(motor.RR > throttle + ESC_TURN_OFFSET_MAX) motor.RR = throttle + ESC_TURN_OFFSET_MAX;
+	// 	// check if the value is larger then the max value (throttle + turn offset max)
+	// 	if(motor.LF > throttle + ESC_TURN_OFFSET_MAX) motor.LF = throttle + ESC_TURN_OFFSET_MAX;
+	// 	if(motor.RF > throttle + ESC_TURN_OFFSET_MAX) motor.RF = throttle + ESC_TURN_OFFSET_MAX;
+	// 	if(motor.LR > throttle + ESC_TURN_OFFSET_MAX) motor.LR = throttle + ESC_TURN_OFFSET_MAX;
+	// 	if(motor.RR > throttle + ESC_TURN_OFFSET_MAX) motor.RR = throttle + ESC_TURN_OFFSET_MAX;
 
-		// check if value is samller then the min value (5)
-		if(motor.LF < 5) motor.LF = 0;
-		if(motor.RF < 5) motor.RF = 0;
-		if(motor.LR < 5) motor.LR = 0;
-		if(motor.RR < 5) motor.RR = 0;
+	// 	// check if value is samller then the min value (5)
+	// 	if(motor.LF < 5) motor.LF = 0;
+	// 	if(motor.RF < 5) motor.RF = 0;
+	// 	if(motor.LR < 5) motor.LR = 0;
+	// 	if(motor.RR < 5) motor.RR = 0;
 
-		// send values
-		if(DShot_SendThrottle(motor.LF, motor.RF, motor.LR, motor.RR) != DSHOT_OK)
-			return RECEIVER_PWM_ERROR;
-	}
-	else
-	{
+	// 	// send values
+	// 	if(DShot_SendThrottle(motor.LF, motor.RF, motor.LR, motor.RR) != DSHOT_OK)
+	// 		return RECEIVER_PWM_ERROR;
+	// }
+	// else
+	// {
+	// 	PID_Hover(throttle);
+	// }
+
+	if(hoverModeFlag == 1)
 		PID_Hover(throttle);
-	}
+	else
+		PID_Normal(throttle, pitch, roll, yaw);
 
 	return RECEIVER_OK;
 }
@@ -509,10 +553,6 @@ void Receiver_OutputChValues(void)
  */
 Receiver_Status Receiver_FailsafeHandler(void)
 {
-		// check if pwm_Timer is set
-	if(pwm_Timer == NULL)
-		return RECEIVER_PWM_ERROR;
-
 	DShot_SendThrottle(ESC_FAILSAFE_THR, ESC_FAILSAFE_THR, ESC_FAILSAFE_THR, ESC_FAILSAFE_THR);
 
 	// TODO hover mode with a little less then take off throttle
@@ -531,7 +571,7 @@ Receiver_Status Receiver_FailsafeHandler(void)
  */
 void Receiver_IBusFailsafeCheck(void)
 {
-		// only used for IBUS because SBUS does have a signal lost / failsafe flag
+	// only used for IBUS because SBUS does have a signal lost / failsafe flag
 	if(receiver_SelectedProtocol != IBUS)
 		return;
 
@@ -547,7 +587,7 @@ void Receiver_IBusFailsafeCheck(void)
 		int8_t same = 1; // data is same flag
 		for(int8_t i = 0; i < 14 && same == 1; i++)
 		{
-				// check if the old channel data is not the same as the current
+			// check if the old channel data is not the same as the current
 			if(receiver_OldChData[i] != receiver_ChData[i])
 			{
 				receiver_SameDataCounter = 0; // reset channel data check
@@ -565,12 +605,53 @@ void Receiver_IBusFailsafeCheck(void)
 		receiver_OldChData[i] = receiver_ChData[i];
 }
 
+/**
+ * @brief This function is the ISR for DMA receiver reception complete
+ * @details all data gets decoded, the motor speed gets regulated and data gets transmitted
+ * @param huart
+ */
 void Receiver_ReceptionCallback(UART_HandleTypeDef *huart)
 {
-	currentStatus = Receiver_Decode();
+	uint8_t errorCode;
+	errorCode = Receiver_Decode();
 
-	if(receiver_SelectedProtocol == IBUS && currentStatus == RECEIVER_OK)
+	if(receiver_SelectedProtocol == IBUS && errorCode == RECEIVER_OK)
 		Receiver_IBusFailsafeCheck();
+
+	/************************************************************************************************
+	--------------------------------------- RECEIVER + OUTPUT ---------------------------------------
+	************************************************************************************************/
+	errorCode = Receiver_ConvertInput();
+
+	if(errorCode != RECEIVER_OK)
+	{
+		sprintf(txt, "Receiver Error %d\n\r", errorCode);
+		Terminal_Print(txt);
+
+		if(errorCode == IBUS_SIGNAL_LOST_ERROR || errorCode == SBUS_SIGNAL_LOST || errorCode == SBUS_SIGNAL_FAILSAFE)
+			Receiver_FailsafeHandler();
+	}
+
+	/************************************************************************************************
+		---------------------------------------------- IMU ----------------------------------------------
+		************************************************************************************************/
+	IMU_GetAngles();
+	IMU_BARO_ReadBaro();
+
+	static int8_t dataTransmitDelay = 0;
+
+	if(dataTransmitDelay++ >= 60)
+	{
+		static int8_t packetSelect = 0;
+
+		if(packetSelect == 0)
+			DATA_TRANSMISSION_1(ds2438_Voltage, baroAltitude, 0x00);
+		else
+			DATA_TRANSMISSION_2(angle.pitch, angle.roll, angle.yaw);
+
+		packetSelect = packetSelect == 0;
+		dataTransmitDelay = 0;
+	}
 }
 
 

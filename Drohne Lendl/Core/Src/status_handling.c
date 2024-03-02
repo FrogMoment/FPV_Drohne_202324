@@ -13,12 +13,12 @@
 
 #include "status_handling.h"
 
-/**
- * @brief This function completely stops the program
- * @param sens what sensor has the error
- * @param errorCode
- * @retval None
- */
+ /**
+  * @brief This function completely stops the program
+  * @param sens what sensor has the error
+  * @param errorCode
+  * @retval None
+  */
 void Sensor_ErrorHandler(Sensors sens, int8_t errorCode)
 {
   char txt[100];
@@ -77,7 +77,6 @@ void Sensor_ErrorHandler(Sensors sens, int8_t errorCode)
 void Terminal_Print(char *string)
 {
   HAL_UART_Transmit(TERMINAL_UART, (uint8_t *)string, strlen(string), HAL_MAX_DELAY);
-  HAL_UART_Transmit(&huart4, (uint8_t *)string, strlen(string), HAL_MAX_DELAY);
 }
 
 

@@ -27,6 +27,8 @@
 #include <stdio.h>
 #include "dshot_own.h"
 #include "PID.h"
+#include "DS2438.h"
+#include "datatransmission.h"
 
  /************************************************************************************************
  ---------------------------------------- GLOBAL DEFINES ----------------------------------------
@@ -34,7 +36,7 @@
 
 #define ESC_SAFEMODE_THR_MAX    30      // max throttle in safe mode
 #define ESC_NORMALMODE_THR_MAX  60      // max throttle in normal mode
-#define ESC_TURN_OFFSET_MAX     10      // max addition to throttle when turning
+#define ESC_TURN_OFFSET_MAX     45      // max addition to throttle when turning
 #define ESC_OFFMODE_THR         0       // throttle when on/off switch is in offmode
 #define ESC_MOTORTEST_THR       5       // throttle for motor test
 #define ESC_FAILSAFE_THR        0       // throttle to land drone in case of failsafe

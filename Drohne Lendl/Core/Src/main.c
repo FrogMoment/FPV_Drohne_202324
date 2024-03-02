@@ -70,6 +70,7 @@ UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart3;
 DMA_HandleTypeDef hdma_uart4_rx;
 DMA_HandleTypeDef hdma_usart1_rx;
+DMA_HandleTypeDef hdma_usart3_tx;
 
 /* USER CODE BEGIN PV */
 
@@ -109,22 +110,22 @@ static void MX_TIM1_Init(void);
 void RealTimeSystemCallback(TIM_HandleTypeDef *htim)
 {
   // TODO delete debug timer 
-  // __HAL_TIM_SET_COUNTER(&htim2, 0);
+  __HAL_TIM_SET_COUNTER(&htim2, 0);
 
   uint8_t errorCode;
 
   /************************************************************************************************
   -------------------------------------------- DS2438 --------------------------------------------
   ************************************************************************************************/
-  errorCode = DS2438_ReadVoltage();
-  if(errorCode != DS2438_OK)
-  {
-    sprintf(txt, "DS2438 Error %d\n\r", errorCode);
-    Terminal_Print(txt);
+  // errorCode = DS2438_ReadVoltage();
+  // if(errorCode != DS2438_OK)
+  // {
+  //   sprintf(txt, "DS2438 Error %d\n\r", errorCode);
+  //   Terminal_Print(txt);
 
-    if(errorCode == DS2438_VOLTAGE_ERROR)
-      Receiver_FailsafeHandler();
-  }
+  //   if(errorCode == DS2438_VOLTAGE_ERROR)
+  //     Receiver_FailsafeHandler();
+  // }
 
   /************************************************************************************************
   --------------------------------------- RECEIVER + OUTPUT ---------------------------------------
@@ -149,37 +150,37 @@ void RealTimeSystemCallback(TIM_HandleTypeDef *htim)
   /************************************************************************************************
   --------------------------------------- DATA TRANSMISSION ---------------------------------------
   ************************************************************************************************/
-  // static int8_t dataTransmitDelay = 0;
+  static int8_t dataTransmitDelay = 0;
 
-  // if(dataTransmitDelay++ >= 4)
-  // {
-  //   static int8_t packetSelect = 0;
+  if(dataTransmitDelay++ >= 4)
+  {
+    static int8_t packetSelect = 0;
 
-  //   if(packetSelect == 0)
-  //     // DATA_TRANSMISSION_1(22.123f, 1.123f, 0x00);
-  //     DATA_TRANSMISSION_1(ds2438_Voltage, baroAltitude, 0x00);
-  //   else
-  //     // DATA_TRANSMISSION_2(-12.25f, 66.0f, -1.69f);
-  //     DATA_TRANSMISSION_2(angle.pitch, angle.roll, angle.yaw);
+    if(packetSelect == 0)
+      // DATA_TRANSMISSION_1(22.123f, 1.123f, 0x00);
+      DATA_TRANSMISSION_1(ds2438_Voltage, baroAltitude, 0x00);
+    else
+      // DATA_TRANSMISSION_2(-12.25f, 66.0f, -1.69f);
+      DATA_TRANSMISSION_2(angle.pitch, angle.roll, angle.yaw);
 
-  //   packetSelect = packetSelect == 0;
-  //   dataTransmitDelay = 0;
-  // }
+    packetSelect = packetSelect == 0;
+    dataTransmitDelay = 0;
+  }
 
   /************************************************************************************************
   --------------------------------------------- DEBUG ---------------------------------------------
   ************************************************************************************************/
-  // uint32_t stop = __HAL_TIM_GET_COUNTER(&htim2);
-  // sprintf(txt, "%dus\n\r", stop);
-  // Terminal_Print(txt);
+  uint32_t stop = __HAL_TIM_GET_COUNTER(&htim2);
+  sprintf(txt, "%dus\n\r", stop);
+  Terminal_Print(txt);
 
   /************************************************************************************************
   -------------------------------------------- OUTPUT --------------------------------------------
   ************************************************************************************************/
   // sprintf(txt, "DS2438: %.2fV\n\r", ds2438_Voltage);
   // Terminal_Print(txt);
-  // sprintf(txt, "IMU: %.2fDeg  %.2fDeg  %.2fDeg\n\r", angle.pitch, angle.roll, angle.yaw);
-  // Terminal_Print(txt);
+  sprintf(txt, "IMU: %.2fDeg  %.2fDeg  %.2fDeg\n\r", angle.pitch, angle.roll, angle.yaw);
+  Terminal_Print(txt);
   // sprintf(txt, "accel: %.2f  %.2f  %.2f\n\r", accel.x, accel.y, accel.z);
   // Terminal_Print(txt);
 }
@@ -242,7 +243,7 @@ int main(void)
   __HAL_TIM_SET_COMPARE(LED_TIM, LED_RED_CHANNEL, 0);
   __HAL_TIM_SET_COMPARE(LED_TIM, LED_BLUE_CHANNEL, 5000);
   // start timer for LEDs
-  HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
+  HAL_TIM_PWM_Start(LED_TIM, TIM_CHANNEL_1);
   HAL_TIM_PWM_Start(LED_TIM, LED_BLUE_CHANNEL);
 
 
@@ -259,9 +260,9 @@ int main(void)
 
   // initliaze DS2438
   // Terminal_Print("DS2438 start ... ");
-  errorCode = DS2438_Init(&htim16, GPIOC, GPIO_PIN_0);
-  if(errorCode != DS2438_OK)
-    Sensor_ErrorHandler(DS2438, errorCode);
+  // errorCode = DS2438_Init(&htim16, GPIOC, GPIO_PIN_0);
+  // if(errorCode != DS2438_OK)
+  //   Sensor_ErrorHandler(DS2438, errorCode);
   // Terminal_Print("DS2438 OK\n\r");
 
 
@@ -269,6 +270,28 @@ int main(void)
   ---------------------------- IMU init ----------------------------
   ******************************************************************/
   __HAL_TIM_SET_PRESCALER(LED_TIM, 12000 - 1);
+
+  // initilize PID
+  Terminal_Print("PID start ... ");
+  PID_Init(&huart4);
+  Terminal_Print("PID OK\n\r");
+
+  /******************************************************************
+  ---------------------------- PID init ----------------------------
+  ******************************************************************/
+  __HAL_TIM_SET_PRESCALER(LED_TIM, 9000 - 1);
+
+  // initililize output via DSHOT protocol
+  Terminal_Print("DShot start ... ");
+  errorCode = DShot_Init(&htim3, DSHOT300, &htim14);
+  if(errorCode != DSHOT_OK)
+    Sensor_ErrorHandler(DSHOT, errorCode);
+  Terminal_Print("DShot OK\n\r");
+
+  /******************************************************************
+  --------------------------- DSHOT init ---------------------------
+  ******************************************************************/
+  __HAL_TIM_SET_PRESCALER(LED_TIM, 6000 - 1);
 
   // init IMU 10DOF
   Terminal_Print("IMU start ... ");
@@ -288,30 +311,6 @@ int main(void)
   if(errorCode != IMU_OK)
     Sensor_ErrorHandler(IMU, errorCode);
   Terminal_Print("IMU OK\n\r");
-
-  /******************************************************************
-  ---------------------------- PID init ----------------------------
-  ******************************************************************/
-  __HAL_TIM_SET_PRESCALER(LED_TIM, 9000 - 1);
-
-  // initilize PID
-  Terminal_Print("PID start ... ");
-  PID_Init(&huart4);
-  Terminal_Print("PID OK\n\r");
-
-
-  /******************************************************************
-  --------------------------- DSHOT init ---------------------------
-  ******************************************************************/
-  __HAL_TIM_SET_PRESCALER(LED_TIM, 6000 - 1);
-
-
-  // initililize output via DSHOT protocol
-  Terminal_Print("DShot start ... ");
-  errorCode = DShot_Init(&htim3, DSHOT300, &htim14);
-  if(errorCode != DSHOT_OK)
-    Sensor_ErrorHandler(DSHOT, errorCode);
-  Terminal_Print("DShot OK\n\r");
 
 
   /******************************************************************
@@ -339,8 +338,8 @@ int main(void)
   // start timer 1 counter + interrupt (real time structure)
   // set custom callback function
   Terminal_Print("Initilisation finished -> Start Real Time System ...\n\r");
-  HAL_TIM_RegisterCallback(&htim15, HAL_TIM_PERIOD_ELAPSED_CB_ID, RealTimeSystemCallback);
-  HAL_TIM_Base_Start_IT(&htim15);
+  // HAL_TIM_RegisterCallback(&htim15, HAL_TIM_PERIOD_ELAPSED_CB_ID, RealTimeSystemCallback);
+  // HAL_TIM_Base_Start_IT(&htim15);
 
   /* USER CODE END 2 */
 
@@ -995,7 +994,7 @@ static void MX_USART3_UART_Init(void)
   huart3.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
   huart3.Init.ClockPrescaler = UART_PRESCALER_DIV1;
   huart3.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
-  if (HAL_HalfDuplex_Init(&huart3) != HAL_OK)
+  if (HAL_UART_Init(&huart3) != HAL_OK)
   {
     Error_Handler();
   }
@@ -1046,6 +1045,9 @@ static void MX_DMA_Init(void)
   /* DMA2_Stream2_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA2_Stream2_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA2_Stream2_IRQn);
+  /* DMA2_Stream3_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA2_Stream3_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA2_Stream3_IRQn);
 
 }
 

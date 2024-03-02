@@ -39,6 +39,8 @@ void PID_Init(UART_HandleTypeDef *huart);
  */
 PID_Status PID_Hover(float inputThrottle);
 
+PID_Status PID_Normal(float inputThrottle, float inputPitch, float inputRoll, float inputYaw);
+
 /**
  * @brief This function changes a PID controller coefficients via uart
  * @param huart 
