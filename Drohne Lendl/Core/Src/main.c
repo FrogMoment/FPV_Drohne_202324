@@ -128,18 +128,20 @@ void RealTimeSystemCallback(TIM_HandleTypeDef *htim)
   // }
 
   /************************************************************************************************
-  --------------------------------------- RECEIVER + OUTPUT ---------------------------------------
-  ************************************************************************************************/
-  errorCode = Receiver_ConvertInput();
+	--------------------------------------- RECEIVER + OUTPUT ---------------------------------------
+	************************************************************************************************/
+	errorCode = Receiver_Decode();
 
-  if(errorCode != RECEIVER_OK)
-  {
-    sprintf(txt, "Receiver Error %d\n\r", errorCode);
-    Terminal_Print(txt);
+	if(errorCode != RECEIVER_OK)
+	{
+		if(errorCode == IBUS_SIGNAL_LOST_ERROR || errorCode == SBUS_SIGNAL_LOST || errorCode == SBUS_SIGNAL_FAILSAFE)
+			Receiver_FailsafeHandler();
 
-    if(errorCode == IBUS_SIGNAL_LOST_ERROR || errorCode == SBUS_SIGNAL_LOST || errorCode == SBUS_SIGNAL_FAILSAFE)
-      Receiver_FailsafeHandler();
-  }
+		sprintf(txt, "Receiver Error %d\n\r", errorCode);
+		Terminal_Print(txt);
+	}
+	else
+		Receiver_ConvertInput();
 
   /************************************************************************************************
   ---------------------------------------------- IMU ----------------------------------------------
@@ -250,7 +252,7 @@ int main(void)
   /******************************************************************
   ----------------------- data output to VTX -----------------------
   ******************************************************************/
-  // DATA_INIT(&huart3);
+  DATA_INIT(&huart3);
 
 
   /******************************************************************

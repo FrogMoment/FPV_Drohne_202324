@@ -142,11 +142,9 @@ Receiver_Status Receiver_Decode(void);
  *  - ESC_NORMALMODE_THR_MAX
  *  - ESC_OFFMODE_THR
  *  - ESC_TURN_OFFSET_MAX
- * @return Receiver_Status
+ * @return None
  */
-Receiver_Status Receiver_ConvertInput(void);
-
-Receiver_Status Receiver_GetAnglesPercent(float *throttle, float *pitch, float *roll, float *yaw);
+void Receiver_ConvertInput(void);
 
 /**
  * @brief This functions sets the throttle values to offmode throttle

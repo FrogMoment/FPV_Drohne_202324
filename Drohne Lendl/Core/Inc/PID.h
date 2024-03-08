@@ -39,6 +39,14 @@ void PID_Init(UART_HandleTypeDef *huart);
  */
 PID_Status PID_Hover(float inputThrottle);
 
+/**
+ * @brief This function controls the flight PID controller
+ * @param inputThrottle throttle value from joysticks
+ * @param inputPitch pitch value from joysticks
+ * @param inputRoll roll value from joysticks
+ * @param inputYaw yaw value from joysticks
+ * @return PID_Status 
+ */
 PID_Status PID_Normal(float inputThrottle, float inputPitch, float inputRoll, float inputYaw);
 
 /**

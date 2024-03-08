@@ -409,8 +409,8 @@ void IMU_GetAngles(void)
 	float accelPitch = atan2(accel.y, accel.z) * RAD2DEG;
 	float accelRoll = atan2(accel.x, accel.z) * RAD2DEG;
 
-	angle.roll = 0.98f * (angle.roll + gyro.y * imu_DeltaTime) + 0.02f * accelRoll;
-	angle.pitch = 0.98f * (angle.pitch - gyro.x * imu_DeltaTime) + 0.02f * accelPitch;
+	angle.roll = 0.98 * (angle.roll + gyro.y * imu_DeltaTime) + 0.02 * accelRoll;
+	angle.pitch = 0.98 * (angle.pitch - gyro.x * imu_DeltaTime) + 0.02 * accelPitch;
 	angle.yaw += gyro.z * imu_DeltaTime;
 }
 
