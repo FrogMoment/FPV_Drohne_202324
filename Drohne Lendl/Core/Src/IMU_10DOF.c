@@ -11,15 +11,15 @@
  *          - BMP280 initialization
  *          - read / write registers via I2C
  *          - connection check
- *          - read accerometer, gyroscope, magnetometer, barometer data
+ *          - read accerometer, gyroscope, barometer data
  *          - calculate pitch, roll and yaw with complementary filter
  */
 
 #include "IMU_10DOF.h"
 
- /**********************************************************************
- --------------------------- GLOBAL VARIABLES ---------------------------
- **********************************************************************/
+/**********************************************************************************
+-------------------------------- GLOBAL VARIABLES --------------------------------
+**********************************************************************************/
 
 I2C_HandleTypeDef *imu_ComI2C;
 TIM_HandleTypeDef *imu_DelayTIM;
@@ -43,9 +43,9 @@ float baroAltitudeOffset = 0;
 
 IMU_Angles angle = {0};
 
-/**********************************************************************
-------------------------- FUNCTION PROTOTYPES -------------------------
-**********************************************************************/
+/**********************************************************************************
+------------------------------------ FUNCTIONS ------------------------------------
+**********************************************************************************/
 
 /**
  * @brief This function delay the program in us
@@ -73,7 +73,6 @@ IMU_Status IMU_Init(IMU_InitTypeDef *imuInit)
 	if(imu_DelayTIM == NULL)
 		return IMU_TIM_ERROR;
 
-	// IMU_dt = imuInit->dt;
 
 	HAL_TIM_Base_Start(imu_DelayTIM); // start delay timer
 
@@ -398,8 +397,6 @@ void IMU_GetAngles(void)
 
 	// invert axis because the sensor is upside down
 	accel.z = -accel.z;
-	// gyro.y = -gyro.y;
-	// gyro.x = -gyro.x;
 
 	// mag.x = (float)magData.x * ((((float)magAdjust[0] - 128.0f) / 256.0f) + 1.0f);
 	// mag.y = (float)magData.y * ((((float)magAdjust[1] - 128.0f) / 256.0f) + 1.0f);

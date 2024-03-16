@@ -7,7 +7,7 @@
  * @copyright FPV Drohne DA 202324
  *
  * @brief This file provides functions for:
- *          - Sensor error handler
+ *          - Sensor initialisation error handling
  *          - terminal print
  */
 

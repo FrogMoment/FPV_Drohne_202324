@@ -11,27 +11,27 @@
  *          - BMP280 initialization
  *          - read / write registers via I2C
  *          - connection check
- *          - read accerometer, gyroscope, magnetometer, barometer data
+ *          - read accerometer, gyroscope, barometer data
  *          - calculate pitch, roll and yaw with complementary filter
  */
 
 #ifndef IMU_10DOF_INCLUDED
 #define IMU_10DOF_INCLUDED
 
-/**********************************************************************************
------------------------------------- INCLUDES ------------------------------------
-**********************************************************************************/
+ /**********************************************************************************
+ ------------------------------------ INCLUDES ------------------------------------
+ **********************************************************************************/
 
 #include "main.h"
 #include <string.h>
 #include <stdio.h>
 #include <math.h>
 
-/**********************************************************************************
---------------------------------- GLOBAL DEFINES ---------------------------------
-**********************************************************************************/
+ /**********************************************************************************
+ --------------------------------- GLOBAL DEFINES ---------------------------------
+ **********************************************************************************/
 
-// MPU9255 addresses
+ // MPU9255 addresses
 #define IMU_MPU_I2C_ADDR            0xD0    // MPU9250 I2C slave address
 #define IMU_MPU_WHOAMI_ADDR         0x75    // MPU9250 WHO AM I register address
 #define IMU_MPU_INT_PIN_CFG_ADDR    0x37    // MPU9250 bypass enable register address
@@ -243,7 +243,6 @@ typedef struct IMU_InitTypeDef
     IMU_BARO_Oversampling baroPressOS;
 
     TIM_HandleTypeDef *htim;    // timer for us delay
-    float dt;                   // time between measurements 
 } IMU_InitTypeDef;
 
 /**********************************************************************************
@@ -278,7 +277,7 @@ void IMU_DelayUs(uint16_t us);
 /**
  * @brief This function initialzes the 10DOF IMU (accelerometer, gyroscope, magnetometer, barometer
  * @param imuInit pointer to IMU_InitTypeDef
- * @return IMU_Status 
+ * @return IMU_Status
  */
 IMU_Status IMU_Init(IMU_InitTypeDef *imuInit);
 

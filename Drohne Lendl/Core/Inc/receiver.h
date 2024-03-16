@@ -7,32 +7,30 @@
  * @copyright FPV Drohne DA 202324
  *
  * @brief This file provides functions for:
- *          - receiver init
- *          - S.Bus / I.Bus read and decode
- *          - Motor control via DShot
- *          - failsafe detection
- *          - failsafe handler
- *          - output input data
+ *          - receiver init for S.Bus or I.Bus
+ *          - S.Bus / I.Bus reception via DMA
+ *          - S.Bus / I.Bus decoding
+ * 			- failsafe handler
+ * 			- reception interrupt control
  */
 
 #ifndef RECEIVER_H_INCLUDED
 #define RECEIVER_H_INCLUDED
 
- /************************************************************************************************
- ------------------------------------------- INCLUDES -------------------------------------------
- ************************************************************************************************/
+/**********************************************************************************
+------------------------------------ INCLUDES ------------------------------------
+**********************************************************************************/
 
 #include "main.h"
 #include <string.h>
 #include <stdio.h>
-#include "dshot_own.h"
 #include "PID.h"
 #include "DS2438.h"
 #include "datatransmission.h"
 
- /************************************************************************************************
- ---------------------------------------- GLOBAL DEFINES ----------------------------------------
- ************************************************************************************************/
+/**********************************************************************************
+--------------------------------- GLOBAL DEFINES ---------------------------------
+**********************************************************************************/
 
 #define ESC_SAFEMODE_THR_MAX    30      // max throttle in safe mode
 #define ESC_NORMALMODE_THR_MAX  60      // max throttle in normal mode
@@ -41,7 +39,7 @@
 #define ESC_MOTORTEST_THR       5       // throttle for motor test
 #define ESC_FAILSAFE_THR        0       // throttle to land drone in case of failsafe
 
-// channel indices (-1 because of array indices)
+ // channel indices (-1 because of array indices)
 #define RECEIVER_YAW_CHANNEL             1 - 1   // yaw channel index
 #define RECEIVER_PITCH_CHANNEL           2 - 1   // pitch channel index
 #define RECEIVER_THROTTLE_CHANNEL        3 - 1   // throttle channel index
@@ -49,9 +47,9 @@
 #define RECEIVER_ONOFF_SWITCH_CHANNEL    5 - 1   // on/off switch channel index
 #define RECEIVER_MODESEL_SWTICH_CHANNEL  6 - 1   // mode select channel index
 
- /************************************************************************************************
- --------------------------------------- GLOBAL STRUCTURES ---------------------------------------
- ************************************************************************************************/
+/**********************************************************************************
+------------------------------- GLOABAL STRUCTURES -------------------------------
+**********************************************************************************/
 
  // Receiver output protocol selection
 typedef enum Receiver_Protocol
@@ -95,9 +93,9 @@ typedef struct Motor_Position
     double RF, LF, RR, LR;
 } Motor_Position;
 
-/************************************************************************************************
---------------------------------------- GLOBAL VARIABLES ---------------------------------------
-************************************************************************************************/
+/**********************************************************************************
+-------------------------------- GLOBAL VARIABLES --------------------------------
+**********************************************************************************/
 
 extern UART_HandleTypeDef *receiver_InputUART;
 extern uint8_t receiver_RawData[32];    // raw data of receiver communication
@@ -105,9 +103,9 @@ extern uint16_t receiver_ChData[16];    // each channel data
 
 extern uint8_t failsafeFlag;
 
-/************************************************************************************************
--------------------------------------- FUNCTION PROTOTYPES --------------------------------------
-************************************************************************************************/
+/**********************************************************************************
+------------------------------- FUNCTION PROTOTYPES -------------------------------
+**********************************************************************************/
 
 /**
  * @brief This function calibrates and starts uart receive dma with selected protocol
@@ -147,13 +145,6 @@ Receiver_Status Receiver_Decode(void);
 void Receiver_ConvertInput(void);
 
 /**
- * @brief This functions sets the throttle values to offmode throttle
- * @details throttle value can be changed with define 'ESC_OFFMODE_THR' found in receiver.h
- * @return Receiver_Status
- */
-Receiver_Status Receiver_SetStdDC(void);
-
-/**
  * @brief This function outputs all receiver channels side by side
  * @attention This function uses the global array receiver_ChData[]
  * @param huart pointer to a UART_HandleTypeDef structure (for output)
@@ -174,7 +165,11 @@ Receiver_Status Receiver_FailsafeHandler(void);
  */
 void Receiver_IBusFailsafeCheck(void);
 
-
+/**
+ * @brief This function is the ISR for DMA receiver reception complete
+ * @details all data gets decoded, the motor speed gets regulated and data gets transmitted
+ * @param huart
+ */
 void Receiver_ReceptionCallback(UART_HandleTypeDef *huart);
 
 #endif // RECEIVER_H_INCLUDED

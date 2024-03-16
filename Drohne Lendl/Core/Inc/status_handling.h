@@ -7,16 +7,24 @@
  * @copyright FPV Drohne DA 202324
  *
  * @brief This file provides functions for:
- *          - Sensor error handler
+ *          - Sensor initialisation error handling
  *          - terminal print
  */
 
 #ifndef STATUS_HANDLING_H_INCLUDED
 #define STATUS_HANDLING_H_INCLUDED
 
+ /**********************************************************************************
+ ------------------------------------ INCLUDES ------------------------------------
+ **********************************************************************************/
+
 #include "main.h"
 #include <string.h>
 #include <stdio.h>
+
+ /**********************************************************************************
+ -------------------------------- GLOBAL STRUCTURES --------------------------------
+ **********************************************************************************/
 
 typedef enum Sensors
 {
@@ -27,6 +35,10 @@ typedef enum Sensors
   DSHOT = 5,
   PID = 6
 } Sensors;
+
+/**********************************************************************************
+------------------------------- FUNCTION PROTOTYPES -------------------------------
+**********************************************************************************/
 
 /**
  * @brief This funciton completly stops the program

@@ -10,27 +10,43 @@
  *          - PID algorithm for hover mode
  */
 
+ /**********************************************************************************
+ ------------------------------------ INCLUDES ------------------------------------
+ **********************************************************************************/
+
 #include "PID.h"
 #include <stdlib.h>
 
-#define PID_MAX_TURN 10
+ /**********************************************************************************
+ -------------------------------- GLOBAL VARIABLES --------------------------------
+ **********************************************************************************/
+
+#define PID_MAX_TURN 15
 
  /**
-	* [0] ... KP Roll
-	* [1] ... KI Roll
-	* [2] ... KD Roll
-	*
-	* [3] ... KP Pitch
-	* [4] ... KI Pitch
-	* [5] ... KD Pitch
-	*
-	* [6] ... KP Yaw
-	* [7] ... KI Yaw
-	* [8] ... KD Yaw
-	*/
-double allKs[9] = {0.0};
+  * [0] ... KP Roll
+  * [1] ... KI Roll
+  * [2] ... KD Roll
+  *
+  * [3] ... KP Pitch
+  * [4] ... KI Pitch
+  * [5] ... KD Pitch
+  *
+  * [6] ... KP Yaw
+  * [7] ... KI Yaw
+  * [8] ... KD Yaw
+  */
+double PID_AllKs[9] = {
+	0.120000, 0.006000, 0.001000,
+	0.150000, 0.006000, 0.001000,
+	0.100000, 0.000000, 0.000000
+};
 
 char receiveData[10];
+
+/**********************************************************************************
+------------------------------------ FUNCTIONS ------------------------------------
+**********************************************************************************/
 
 /**
  * @brief This function initializes the change Ks system
@@ -40,7 +56,7 @@ char receiveData[10];
 void PID_Init(UART_HandleTypeDef *huart)
 {
 	// start reception with uart
-	HAL_UART_RegisterCallback(huart, HAL_UART_RX_COMPLETE_CB_ID, changeKs);
+	HAL_UART_RegisterCallback(huart, HAL_UART_RX_COMPLETE_CB_ID, PID_ChangeKs);
 
 	HAL_UART_Receive_DMA(huart, (uint8_t *)&receiveData, 10);
 }
@@ -56,6 +72,18 @@ PID_Status PID_Hover(float inputThrottle)
 	static double I_Pitch = 0, errorPitchPrev = 0;
 	static double I_Yaw = 0, errorYawPrev = 0;
 
+	double inputRoll = 0, inputPitch = 0, inputYaw = 0;
+
+
+	/***********************************************************************************
+	----------------------------- get current andles + dt -----------------------------
+	***********************************************************************************/
+	IMU_GetAngles();
+
+
+	/***********************************************************************************
+	---------------------------------- check off mode ----------------------------------
+	***********************************************************************************/
 	if(inputThrottle < 5)
 	{
 		I_Roll = 0;
@@ -75,58 +103,81 @@ PID_Status PID_Hover(float inputThrottle)
 	if(inputThrottle > 30)
 		inputThrottle = 30;
 
-	double inputPitch = 0, inputRoll = 0, inputYaw = 0;
 
-	// get current angles + delta time
-	IMU_GetAngles();
+	/***********************************************************************************
+	--------------------------------- calc roll output ---------------------------------
+	***********************************************************************************/
+	double errorRoll = -inputRoll - angle.roll;
 
-
-	// calculate PID roll output 
-	double errorRoll = inputRoll - angle.roll;
-
-	I_Roll += (errorRoll * imu_DeltaTime) * allKs[1];
+	I_Roll += (errorRoll * imu_DeltaTime) * PID_AllKs[1];
 
 	if(I_Roll > PID_MAX_TURN) I_Roll = PID_MAX_TURN;
 	else if(I_Roll < -PID_MAX_TURN) I_Roll = -PID_MAX_TURN;
 
-	double rollOutput = allKs[0] * errorRoll + I_Roll + allKs[2] * ((errorRoll - errorRollPrev) / imu_DeltaTime);
+	double rollOutput = PID_AllKs[0] * errorRoll + I_Roll + PID_AllKs[2] * ((errorRoll - errorRollPrev) / imu_DeltaTime);
 	if(rollOutput > PID_MAX_TURN) rollOutput = PID_MAX_TURN;
 	else if(rollOutput < -PID_MAX_TURN) rollOutput = -PID_MAX_TURN;
 
 	errorRollPrev = errorRoll;
 
 
-	// calculate PID pitch output 
+	/***********************************************************************************
+	-------------------------------- calc pitch output --------------------------------
+	***********************************************************************************/
 	double errorPitch = inputPitch - angle.pitch;
 
-	I_Pitch += (errorPitch * imu_DeltaTime) * allKs[4];
+	I_Pitch += (errorPitch * imu_DeltaTime) * PID_AllKs[4];
 
 	if(I_Pitch > PID_MAX_TURN) I_Pitch = PID_MAX_TURN;
 	else if(I_Pitch < -PID_MAX_TURN) I_Pitch = -PID_MAX_TURN;
 
-	double pitchOutput = allKs[3] * errorPitch + I_Pitch + allKs[5] * ((errorPitch - errorPitchPrev) / imu_DeltaTime);
+	double pitchOutput = PID_AllKs[3] * errorPitch + I_Pitch + PID_AllKs[5] * ((errorPitch - errorPitchPrev) / imu_DeltaTime);
 	if(pitchOutput > PID_MAX_TURN) pitchOutput = PID_MAX_TURN;
 	else if(pitchOutput < -PID_MAX_TURN) pitchOutput = -PID_MAX_TURN;
 
 	errorPitchPrev = errorPitch;
 
 
-	// calculate PID yaw output 
-	double errorYaw = inputYaw - angle.yaw;
+	/***********************************************************************************
+	--------------------------------- calc yaw output ---------------------------------
+	***********************************************************************************/
+	static double controlYaw = 0;
+	static int8_t changeYawFlag = 1;
 
-	I_Yaw += (errorYaw * imu_DeltaTime) * allKs[7];
+	double yawOutput = inputYaw * PID_MAX_TURN;
 
-	if(I_Yaw > PID_MAX_TURN) I_Yaw = PID_MAX_TURN;
-	else if(I_Yaw < -PID_MAX_TURN) I_Yaw = -PID_MAX_TURN;
+	// check if yaw stick is used
+	if(yawOutput >= -1 && yawOutput <= 1)
+	{
+		// get yaw angle
+		if(changeYawFlag == 1)
+			controlYaw = angle.yaw;
 
-	double yawOutput = allKs[6] * errorYaw + I_Yaw + allKs[8] * ((errorYaw - errorYawPrev) / imu_DeltaTime);
-	if(yawOutput > PID_MAX_TURN) yawOutput = PID_MAX_TURN;
-	else if(yawOutput < -PID_MAX_TURN) yawOutput = -PID_MAX_TURN;
+		changeYawFlag = 0;
 
-	errorYawPrev = errorYaw;
+		// calc PID yaw output
+		double errorYaw = controlYaw - angle.yaw;
+
+		I_Yaw += (errorYaw * imu_DeltaTime) * PID_AllKs[7];
+
+		if(I_Yaw > PID_MAX_TURN) I_Yaw = PID_MAX_TURN;
+		else if(I_Yaw < -PID_MAX_TURN) I_Yaw = -PID_MAX_TURN;
+
+		yawOutput = PID_AllKs[6] * errorYaw + I_Yaw + PID_AllKs[8] * ((errorYaw - errorYawPrev) / imu_DeltaTime);
+		if(yawOutput > PID_MAX_TURN) yawOutput = PID_MAX_TURN;
+		else if(yawOutput < -PID_MAX_TURN) yawOutput = -PID_MAX_TURN;
+
+		errorYawPrev = errorYaw;
+	}
+	else
+	{
+		changeYawFlag = 1;
+	}
 
 
-	// check max/min values + output 
+	/***********************************************************************************
+	-------------------------- check min/max values + output --------------------------
+	***********************************************************************************/
 	float motorLF = (inputThrottle < 5) ? 0 : inputThrottle - pitchOutput - rollOutput - yawOutput;
 	float motorRF = (inputThrottle < 5) ? 0 : inputThrottle - pitchOutput + rollOutput + yawOutput;
 	float motorLR = (inputThrottle < 5) ? 0 : inputThrottle + pitchOutput - rollOutput + yawOutput;
@@ -162,10 +213,15 @@ PID_Status PID_Normal(float inputThrottle, float inputPitch, float inputRoll, fl
 	static double I_Yaw = 0, errorYawPrev = 0;
 
 
-	// get current angles + delta time
+	/***********************************************************************************
+	----------------------------- get current andles + dt -----------------------------
+	***********************************************************************************/
 	IMU_GetAngles();
 
 
+	/***********************************************************************************
+	---------------------------------- check off mode ----------------------------------
+	***********************************************************************************/
 	if(inputThrottle < 5)
 	{
 		I_Roll = 0;
@@ -183,37 +239,43 @@ PID_Status PID_Normal(float inputThrottle, float inputPitch, float inputRoll, fl
 	}
 
 
-	// calculate PID roll output 
+	/***********************************************************************************
+	--------------------------------- calc roll output ---------------------------------
+	***********************************************************************************/
 	double errorRoll = -inputRoll - angle.roll;
 
-	I_Roll += (errorRoll * imu_DeltaTime) * allKs[1];
+	I_Roll += (errorRoll * imu_DeltaTime) * PID_AllKs[1];
 
 	if(I_Roll > PID_MAX_TURN) I_Roll = PID_MAX_TURN;
 	else if(I_Roll < -PID_MAX_TURN) I_Roll = -PID_MAX_TURN;
 
-	double rollOutput = allKs[0] * errorRoll + I_Roll + allKs[2] * ((errorRoll - errorRollPrev) / imu_DeltaTime);
+	double rollOutput = PID_AllKs[0] * errorRoll + I_Roll + PID_AllKs[2] * ((errorRoll - errorRollPrev) / imu_DeltaTime);
 	if(rollOutput > PID_MAX_TURN) rollOutput = PID_MAX_TURN;
 	else if(rollOutput < -PID_MAX_TURN) rollOutput = -PID_MAX_TURN;
 
 	errorRollPrev = errorRoll;
 
 
-	// calculate PID pitch output 
+	/***********************************************************************************
+	-------------------------------- calc pitch output --------------------------------
+	***********************************************************************************/
 	double errorPitch = inputPitch - angle.pitch;
 
-	I_Pitch += (errorPitch * imu_DeltaTime) * allKs[4];
+	I_Pitch += (errorPitch * imu_DeltaTime) * PID_AllKs[4];
 
 	if(I_Pitch > PID_MAX_TURN) I_Pitch = PID_MAX_TURN;
 	else if(I_Pitch < -PID_MAX_TURN) I_Pitch = -PID_MAX_TURN;
 
-	double pitchOutput = allKs[3] * errorPitch + I_Pitch + allKs[5] * ((errorPitch - errorPitchPrev) / imu_DeltaTime);
+	double pitchOutput = PID_AllKs[3] * errorPitch + I_Pitch + PID_AllKs[5] * ((errorPitch - errorPitchPrev) / imu_DeltaTime);
 	if(pitchOutput > PID_MAX_TURN) pitchOutput = PID_MAX_TURN;
 	else if(pitchOutput < -PID_MAX_TURN) pitchOutput = -PID_MAX_TURN;
 
 	errorPitchPrev = errorPitch;
 
 
-	// calculate PID yaw output
+	/***********************************************************************************
+	--------------------------------- calc yaw output ---------------------------------
+	***********************************************************************************/
 	static double controlYaw = 0;
 	static int8_t changeYawFlag = 1;
 
@@ -228,12 +290,12 @@ PID_Status PID_Normal(float inputThrottle, float inputPitch, float inputRoll, fl
 
 		double errorYaw = controlYaw - angle.yaw;
 
-		I_Yaw += (errorYaw * imu_DeltaTime) * allKs[7];
+		I_Yaw += (errorYaw * imu_DeltaTime) * PID_AllKs[7];
 
 		if(I_Yaw > PID_MAX_TURN) I_Yaw = PID_MAX_TURN;
 		else if(I_Yaw < -PID_MAX_TURN) I_Yaw = -PID_MAX_TURN;
 
-		yawOutput = allKs[6] * errorYaw + I_Yaw + allKs[8] * ((errorYaw - errorYawPrev) / imu_DeltaTime);
+		yawOutput = PID_AllKs[6] * errorYaw + I_Yaw + PID_AllKs[8] * ((errorYaw - errorYawPrev) / imu_DeltaTime);
 		if(yawOutput > PID_MAX_TURN) yawOutput = PID_MAX_TURN;
 		else if(yawOutput < -PID_MAX_TURN) yawOutput = -PID_MAX_TURN;
 
@@ -245,8 +307,9 @@ PID_Status PID_Normal(float inputThrottle, float inputPitch, float inputRoll, fl
 	}
 
 
-
-	// check max/min values + output 
+	/***********************************************************************************
+	-------------------------- check min/max values + output --------------------------
+	***********************************************************************************/
 	float motorLF = (inputThrottle < 5) ? 0 : inputThrottle - pitchOutput - rollOutput - yawOutput;
 	float motorRF = (inputThrottle < 5) ? 0 : inputThrottle - pitchOutput + rollOutput + yawOutput;
 	float motorLR = (inputThrottle < 5) ? 0 : inputThrottle + pitchOutput - rollOutput + yawOutput;
@@ -267,20 +330,27 @@ PID_Status PID_Normal(float inputThrottle, float inputPitch, float inputRoll, fl
 	return PID_OK;
 }
 
-
-
-
-
 /**
  * @brief This function changes a PID controller coefficients via uart
  * @param huart
  */
-void changeKs(UART_HandleTypeDef *huart)
+void PID_ChangeKs(UART_HandleTypeDef *huart)
 {
+	// get index
 	int index = atoi(&receiveData[0]);
+
+	// check if index is in range
+	if(index < 0 || index > 8)
+	{
+		Terminal_Print("index out of range\n\r");
+		return;
+	}
+
+	// get value
 	char value[9];
 	sprintf(value, "%c%c%c%c%c%c%c%c", receiveData[2], receiveData[3], receiveData[4], receiveData[5], receiveData[6], receiveData[7], receiveData[8], receiveData[9]);
 
+	// check if value is in range
 	double tmp = atof(value);
 	if(tmp > 5 || tmp < 0)
 	{
@@ -288,14 +358,11 @@ void changeKs(UART_HandleTypeDef *huart)
 		return;
 	}
 
-	if(index < 0 || index > 8)
-	{
-		Terminal_Print("index out of range\n\r");
-		return;
-	}
+	// write value to array
+	PID_AllKs[index] = tmp;
 
-	allKs[index] = tmp;
-	sprintf(txt, "[%d] = %f\n\r", index, allKs[index]);
+	// write confirmation to terminal (eg: 0 = 0.250000)
+	sprintf(txt, "[%d] = %f\n\r", index, PID_AllKs[index]);
 	Terminal_Print(txt);
 }
 
