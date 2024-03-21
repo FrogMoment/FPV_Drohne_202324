@@ -15,6 +15,7 @@ git rm --cached -r Praesentationen/"Tag der offenen Tuer"/MPU9150_DEMO_REJ/MPU92
 git rm --cached -r Praesentationen/"Tag der offenen Tuer"/MPU9150_DEMO_REJ/HTL_Hollabrunn.STD.Pack.3.2.0.pack
 git rm --cached -r *.html
 git rm --cached -r *.htm
+git rm --cached -r "DA Bilder und Videos"
 
 ::show status
 git status
