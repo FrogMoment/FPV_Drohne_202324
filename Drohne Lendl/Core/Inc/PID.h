@@ -20,7 +20,7 @@
 #include "main.h"
 #include <math.h>
 #include "IMU_10DOF.h"
-#include "dshot_own.h"
+#include "dshot.h"
 
 /**********************************************************************************
 -------------------------------- GLOBAL STRUCTURES --------------------------------
@@ -45,13 +45,6 @@ typedef enum PID_Status
 void PID_Init(UART_HandleTypeDef *huart);
 
 /**
- * @brief This function controls hover mode with a PID controller
- * @param inputThrottle throttle value 0-100%
- * @return PID_Status
- */
-PID_Status PID_Hover(float inputThrottle);
-
-/**
  * @brief This function controls the flight PID controller
  * @param inputThrottle throttle value from joysticks
  * @param inputPitch pitch value from joysticks
@@ -59,7 +52,7 @@ PID_Status PID_Hover(float inputThrottle);
  * @param inputYaw yaw value from joysticks
  * @return PID_Status
  */
-PID_Status PID_Normal(float inputThrottle, float inputPitch, float inputRoll, float inputYaw);
+PID_Status PID_Update(float inputThrottle, float inputPitch, float inputRoll, float inputYaw);
 
 /**
  * @brief This function changes a PID controller coefficients via uart

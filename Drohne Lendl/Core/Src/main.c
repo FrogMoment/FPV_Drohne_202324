@@ -28,7 +28,7 @@
 #include "DS2438.h"
 #include "IMU_10DOF.h"
 #include "receiver.h"
-#include "dshot_own.h"
+#include "dshot.h"
 #include "PID.h"
 
 /* USER CODE END Includes */
@@ -158,7 +158,7 @@ int main(void)
   __HAL_TIM_SET_COMPARE(LED_TIM, LED_RED_CHANNEL, 0);
   __HAL_TIM_SET_COMPARE(LED_TIM, LED_BLUE_CHANNEL, 5000);
   // start timer for LEDs
-  HAL_TIM_PWM_Start(LED_TIM, TIM_CHANNEL_1);
+  HAL_TIM_PWM_Start(LED_TIM, LED_RED_CHANNEL);
   HAL_TIM_PWM_Start(LED_TIM, LED_BLUE_CHANNEL);
 
 
@@ -173,30 +173,30 @@ int main(void)
   ******************************************************************/
   __HAL_TIM_SET_PRESCALER(LED_TIM, 14000 - 1);
 
-  // initliaze DS2438
-  // Terminal_Print("DS2438 start ... ");
-  // errorCode = DS2438_Init(&htim16, GPIOC, GPIO_PIN_0);
-  // if(errorCode != DS2438_OK)
-  //   Sensor_ErrorHandler(DS2438, errorCode);
-  // Terminal_Print("DS2438 OK\n\r");
+  // initialize  DS2438
+  Terminal_Print("DS2438 start ... ");
+  errorCode = DS2438_Init(&htim16, GPIOC, GPIO_PIN_0);
+  if(errorCode != DS2438_OK)
+    Sensor_ErrorHandler(DS2438, errorCode);
+  Terminal_Print("DS2438 OK\n\r");
 
 
   /******************************************************************
-  ---------------------------- IMU init ----------------------------
+  ---------------------------- PID init ----------------------------
   ******************************************************************/
   __HAL_TIM_SET_PRESCALER(LED_TIM, 12000 - 1);
 
-  // initilize PID
+  // initialize  PID
   Terminal_Print("PID start ... ");
   PID_Init(&huart4);
   Terminal_Print("PID OK\n\r");
 
   /******************************************************************
-  ---------------------------- PID init ----------------------------
+  --------------------------- DShot init ---------------------------
   ******************************************************************/
   __HAL_TIM_SET_PRESCALER(LED_TIM, 9000 - 1);
 
-  // initililize output via DSHOT protocol
+  // initialize output via DSHOT protocol
   Terminal_Print("DShot start ... ");
   errorCode = DShot_Init(&htim3, DSHOT300, &htim14);
   if(errorCode != DSHOT_OK)
@@ -204,11 +204,11 @@ int main(void)
   Terminal_Print("DShot OK\n\r");
 
   /******************************************************************
-  --------------------------- DSHOT init ---------------------------
+  ---------------------------- IMU init ----------------------------
   ******************************************************************/
   __HAL_TIM_SET_PRESCALER(LED_TIM, 6000 - 1);
 
-  // init IMU 10DOF
+  // initialize IMU 10DOF
   Terminal_Print("IMU start ... ");
   IMU_InitTypeDef imuInit;
   imuInit.hi2c = &hi2c1;
@@ -258,6 +258,10 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while(1)
   {
+    errorCode = DS2438_ReadVoltage();
+
+    if(errorCode == DS2438_VOLTAGE_ERROR)
+      Receiver_FailsafeHandler();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

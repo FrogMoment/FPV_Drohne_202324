@@ -14,15 +14,15 @@
  * 			- reception interrupt control
  */
 
-/**********************************************************************************
------------------------------------- INCLUDES ------------------------------------
-**********************************************************************************/
+ /**********************************************************************************
+ ------------------------------------ INCLUDES ------------------------------------
+ **********************************************************************************/
 
 #include "receiver.h"
 
-/**********************************************************************************
--------------------------------- GLOBAL VARIABLES --------------------------------
-**********************************************************************************/
+ /**********************************************************************************
+ -------------------------------- GLOBAL VARIABLES --------------------------------
+ **********************************************************************************/
 
  // receiver variables
 UART_HandleTypeDef *receiver_InputUART = NULL;          // pointer to UART_HandleTypeDef of input signal
@@ -35,9 +35,6 @@ uint16_t receiver_SameDataCounter = 0;  // counter amount of same channel data a
 
 // pwm output variables
 Receiver_Values receiver_InputLimits = {0}; // input limits dependend on selected protocol
-
-uint8_t failsafeFlag = 0;
-uint8_t droneOffModeFlag = 1;
 
 Receiver_Status currentStatus;
 
@@ -77,7 +74,7 @@ Receiver_Status Receiver_Init(Receiver_Protocol proto, UART_HandleTypeDef *huart
 			if(receiver_InputUART->Init.BaudRate != 115200)
 				return RECEIVER_UART_ERROR;
 
-			// check if trnasmitter is connected (ppm signal reception) 
+			// check if transmitter is connected (ppm signal reception) 
 			uint8_t timeout = 0;
 			int8_t tmp_PinState = HAL_GPIO_ReadPin(RECEIVER_PPM_GPIO_Port, RECEIVER_PPM_Pin);
 			while(tmp_PinState == HAL_GPIO_ReadPin(RECEIVER_PPM_GPIO_Port, RECEIVER_PPM_Pin))
@@ -291,101 +288,111 @@ Receiver_Status Receiver_Decode(void)
 }
 
 /**
- * @brief This function convert the input from the receiver to throttle percentage
+ * @brief This function converts the input from the receiver to thorttle and angles
  * @details
  * The max throttle values per mode can be changed in receiver.h with:
  *  - ESC_SAFEMODE_THR_MAX
  *  - ESC_NORMALMODE_THR_MAX
  *  - ESC_OFFMODE_THR
  *  - ESC_TURN_OFFSET_MAX
+ * @param throttle percent of throttle speed
+ * @param pitch stick position in degrees
+ * @param roll stick position in degrees
+ * @param yaw stick position in degrees
  * @return None
  */
-void Receiver_ConvertInput(void)
+void Receiver_ConvertInput(float throttle, float pitch, float roll, float yaw)
 {
+	// turn red LED off
 	__HAL_TIM_SET_COMPARE(LED_TIM, LED_RED_CHANNEL, 0);
-
-	float throttle = 0, pitch = 0, roll = 0, yaw = 0;
-
 
 	/**************************************************************************************************************************************
 	-------------------------------------------------------- check ON / OFF switch --------------------------------------------------------
 	***************************************************************************************************************************************/
-	// top position (< half) = off (set standard throttle)
+	static uint8_t droneOffModeFlag = 1;
+
+	// top position (< half) = turn drone off
 	if(receiver_ChData[RECEIVER_ONOFF_SWITCH_CHANNEL] < receiver_InputLimits.half)
 	{
-		droneOffModeFlag = 1;
-		PID_Normal(0, 0, 0, 0);
-		return;
+		droneOffModeFlag = 1;	// set off flag
+		throttle = 0;			// turn motors off
 	}
 
-	if(droneOffModeFlag == 1 && receiver_ChData[RECEIVER_THROTTLE_CHANNEL] > receiver_InputLimits.min + 10)
+	// check if throttle stick in the lowest postiion after turning on/off switch to on
+	else if(droneOffModeFlag == 1 && receiver_ChData[RECEIVER_THROTTLE_CHANNEL] > receiver_InputLimits.min + 10)
 	{
-		PID_Normal(0, 0, 0, 0);
-		return;
+		throttle = 0; // turn motors off
 	}
 
-	droneOffModeFlag = 0;
-
-
-	/**************************************************************************************************************************************
-	------------------------------------------------ check 3 position switch (mode select) ------------------------------------------------
-	***************************************************************************************************************************************/
-	uint16_t esc_MaxThr = ESC_SAFEMODE_THR_MAX;
-	uint8_t hoverModeFlag = 0;
-
-	// top position (< half) = safemode
-	if(receiver_ChData[RECEIVER_MODESEL_SWTICH_CHANNEL] < receiver_InputLimits.half - 10)
-		esc_MaxThr = ESC_SAFEMODE_THR_MAX;
-
-	// middle position (half +- 10) = normalmode
-	else if(receiver_ChData[RECEIVER_MODESEL_SWTICH_CHANNEL] >= receiver_InputLimits.half - 10 && receiver_ChData[RECEIVER_MODESEL_SWTICH_CHANNEL] <= receiver_InputLimits.half + 10)
-		esc_MaxThr = ESC_NORMALMODE_THR_MAX;
-
-	// down position = extra mode hover mode
+	// normal control
 	else
-		hoverModeFlag = 1;
-
-
-	/**************************************************************************************************************************************
-	------------------------------------------------ calculate throttle input (up / down) ------------------------------------------------
-	***************************************************************************************************************************************/
-	throttle = (float)(receiver_ChData[RECEIVER_THROTTLE_CHANNEL] - receiver_InputLimits.min) / receiver_InputLimits.delta; // get joystick position
-	throttle *= esc_MaxThr; // get percent of max duty cycle addition
-
-	if(hoverModeFlag == 1)
 	{
-		PID_Hover(throttle);
-		return;
+		droneOffModeFlag = 0;
+
+		/**************************************************************************************************************************************
+		------------------------------------------------ check 3 position switch (mode select) ------------------------------------------------
+		***************************************************************************************************************************************/
+		uint16_t esc_MaxThr = ESC_SAFEMODE_THR_MAX;
+		uint8_t hoverModeFlag = 0;
+
+		// top position (< half) = safemode
+		if(receiver_ChData[RECEIVER_MODESEL_SWTICH_CHANNEL] < receiver_InputLimits.half - 10)
+			esc_MaxThr = ESC_SAFEMODE_THR_MAX;		// set max throttle value
+
+		// middle position (half +- 10) = normalmode
+		else if(receiver_ChData[RECEIVER_MODESEL_SWTICH_CHANNEL] >= receiver_InputLimits.half - 10 && receiver_ChData[RECEIVER_MODESEL_SWTICH_CHANNEL] <= receiver_InputLimits.half + 10)
+			esc_MaxThr = ESC_NORMALMODE_THR_MAX;	// set max throttle value
+
+		// down position = extra mode hover mode
+		else
+			hoverModeFlag = 1;
+
+
+		/**************************************************************************************************************************************
+		------------------------------------------------ calculate throttle input (up / down) ------------------------------------------------
+		***************************************************************************************************************************************/
+		// get joystick position
+		throttle = (float)(receiver_ChData[RECEIVER_THROTTLE_CHANNEL] - receiver_InputLimits.min) / receiver_InputLimits.delta;
+		throttle *= esc_MaxThr; // get real thorttle value
+
+
+		/**************************************************************************************************************************************
+		-------------------------------------------- calculate pitch input (forwards / backwards) --------------------------------------------
+		***************************************************************************************************************************************/
+		// get joystick position
+		pitch = (float)(receiver_ChData[RECEIVER_PITCH_CHANNEL] - receiver_InputLimits.min) / receiver_InputLimits.delta;
+		pitch = (pitch - 0.5f) * 2;		// check forwards or backwards position
+		pitch *= ESC_TURN_OFFSET_MAX; 	// get stick position in degrees 
+
+
+		/**************************************************************************************************************************************
+		------------------------------------------------- calculate roll input (left / right) -------------------------------------------------
+		***************************************************************************************************************************************/
+		// get joystick position
+		roll = (float)(receiver_ChData[RECEIVER_ROLL_CHANNEL] - receiver_InputLimits.min) / receiver_InputLimits.delta;
+		roll = (roll - 0.5f) * 2;		// check left or right position
+		roll *= ESC_TURN_OFFSET_MAX; 	// get stick position in degrees
+
+
+		/**************************************************************************************************************************************
+		------------------------------------------ calculate yaw input (rotate left / rotate right) ------------------------------------------
+		***************************************************************************************************************************************/
+		// get joystick position
+		yaw = (float)(receiver_ChData[RECEIVER_YAW_CHANNEL] - receiver_InputLimits.min) / receiver_InputLimits.delta;
+		yaw = (yaw - 0.5f) * 2;	// check left or right position
+
+
+		/**************************************************************************************************************************************
+		------------------------------------------------------------ check values ------------------------------------------------------------
+		**************************************************************************************************************************************/
+		// check if hovermode
+		if(hoverModeFlag == 1)
+		{
+			pitch = 0;
+			roll = 0;
+			yaw = 0;
+		}
 	}
-
-
-	/**************************************************************************************************************************************
-	-------------------------------------------- calculate pitch input (forwards / backwards) --------------------------------------------
-	***************************************************************************************************************************************/
-	pitch = (float)(receiver_ChData[RECEIVER_PITCH_CHANNEL] - receiver_InputLimits.min) / receiver_InputLimits.delta; // get joystick position
-	pitch = (pitch - 0.5f) * 2;
-	pitch *= ESC_TURN_OFFSET_MAX; // get percent of max duty cycle addition
-
-
-	/**************************************************************************************************************************************
-	------------------------------------------------- calculate roll input (left / right) -------------------------------------------------
-	***************************************************************************************************************************************/
-	roll = (float)(receiver_ChData[RECEIVER_ROLL_CHANNEL] - receiver_InputLimits.min) / receiver_InputLimits.delta; // get joystick position
-	roll = (roll - 0.5f) * 2;
-	roll *= ESC_TURN_OFFSET_MAX; // get percent of max duty cycle addition
-
-
-	/**************************************************************************************************************************************
-	------------------------------------------ calculate yaw input (rotate left / rotate right) ------------------------------------------
-	***************************************************************************************************************************************/
-	yaw = (float)(receiver_ChData[RECEIVER_YAW_CHANNEL] - receiver_InputLimits.min) / receiver_InputLimits.delta; // get joystick position
-	yaw = (yaw - 0.5f) * 2;
-
-
-	/**************************************************************************************************************************************
-	-------------------------------------------------------- check and send values --------------------------------------------------------
-	***************************************************************************************************************************************/
-	PID_Normal(throttle, pitch, roll, yaw);
 }
 
 /**
@@ -418,8 +425,7 @@ void Receiver_OutputChValues(void)
  */
 Receiver_Status Receiver_FailsafeHandler(void)
 {
-	PID_Normal(0, 0, 0, 0);
-	failsafeFlag = 1;
+	PID_Update(0, 0, 0, 0);
 
 	// TODO hover mode with a little less then take off throttle
 	// something like that 
@@ -472,49 +478,62 @@ void Receiver_IBusFailsafeCheck(void)
 }
 
 /**
- * @brief This function is the ISR for DMA receiver reception complete
- * @details all data gets decoded, the motor speed gets regulated and data gets transmitted
+ * @brief This function is the ISR for DMA receiver reception complete (called every 8ms)
+ * @details all data gets decoded, PID updated and data send to groundstation
  * @param huart
  */
 void Receiver_ReceptionCallback(UART_HandleTypeDef *huart)
 {
 	/************************************************************************************************
-	--------------------------------------- RECEIVER + OUTPUT ---------------------------------------
+	------------------------------------ part #1: receiver input ------------------------------------
 	************************************************************************************************/
 	uint8_t errorCode;
-	errorCode = Receiver_Decode();
+	float throttle = 0, pitch = 0, roll = 0, yaw = 0;
 
+	errorCode = Receiver_Decode(); // decode raw data to channel data
+
+	// check for decode errors
 	if(errorCode != RECEIVER_OK)
 	{
+		// check connection lost
 		if(errorCode == IBUS_SIGNAL_LOST_ERROR || errorCode == SBUS_SIGNAL_LOST || errorCode == SBUS_SIGNAL_FAILSAFE)
 			Receiver_FailsafeHandler();
 
+		// output error code
 		sprintf(txt, "Receiver Error %d\n\r", errorCode);
 		Terminal_Print(txt);
 	}
 	else
 	{
-		failsafeFlag = 0;
-		Receiver_ConvertInput();
+		/************************************************************************************************
+		------------------------------------ part #2: motor control ------------------------------------
+		************************************************************************************************/
+		// convert to throttle speed and stick positions to angles
+		Receiver_ConvertInput(throttle, pitch, roll, yaw);
+
+		// update target values
+		PID_Update(throttle, pitch, roll, yaw);
 	}
 
 
 	/************************************************************************************************
-	---------------------------------------------- IMU ----------------------------------------------
+	------------------------------------- part #3: get IMU data -------------------------------------
 	************************************************************************************************/
-	IMU_GetAngles();
-	IMU_BARO_ReadBaro();
+	IMU_GetAngles();			// get pitch, roll, yaw
+	IMU_BARO_ReadBaro();	// get altitude
 
 
 	/************************************************************************************************
-	--------------------------------------- data transmission ---------------------------------------
+	-------------------------- part #4: data transmission to groundstation --------------------------
 	************************************************************************************************/
 	static int8_t dataTransmitDelay = 0;
 
+	// insert time delay between packets
 	if(dataTransmitDelay++ >= 60)
 	{
 		static int8_t packetSelect = 0;
 
+		// check what packet to send
 		if(packetSelect == 0)
 			DATA_TRANSMISSION_1(ds2438_Voltage, baroAltitude, 0x00);
 		else

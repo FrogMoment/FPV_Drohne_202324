@@ -422,9 +422,6 @@
           </Files>
         </Group>
         <Group>
-          <GroupName>MPU9250</GroupName>
-        </Group>
-        <Group>
           <GroupName>DS2438</GroupName>
           <Files>
             <File>
@@ -478,9 +475,9 @@
           <GroupName>DShot</GroupName>
           <Files>
             <File>
-              <FileName>dshot_own.c</FileName>
+              <FileName>dshot.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\Core\Src\dshot_own.c</FilePath>
+              <FilePath>..\Core\Src\dshot.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -1707,5 +1704,14 @@
     </components>
     <files/>
   </RTE>
+
+  <LayerInfo>
+    <Layers>
+      <Layer>
+        <LayName>Drohne Lendl</LayName>
+        <LayPrjMark>1</LayPrjMark>
+      </Layer>
+    </Layers>
+  </LayerInfo>
 
 </Project>

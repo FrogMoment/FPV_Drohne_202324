@@ -87,12 +87,6 @@ typedef struct Receiver_Values
     uint16_t min, max, delta, half;
 } Receiver_Values;
 
-// motor position (right/left front/rear)
-typedef struct Motor_Position
-{
-    double RF, LF, RR, LR;
-} Motor_Position;
-
 /**********************************************************************************
 -------------------------------- GLOBAL VARIABLES --------------------------------
 **********************************************************************************/
@@ -100,8 +94,6 @@ typedef struct Motor_Position
 extern UART_HandleTypeDef *receiver_InputUART;
 extern uint8_t receiver_RawData[32];    // raw data of receiver communication
 extern uint16_t receiver_ChData[16];    // each channel data
-
-extern uint8_t failsafeFlag;
 
 /**********************************************************************************
 ------------------------------- FUNCTION PROTOTYPES -------------------------------
@@ -133,16 +125,20 @@ Receiver_Status Receiver_Init(Receiver_Protocol proto, UART_HandleTypeDef *huart
 Receiver_Status Receiver_Decode(void);
 
 /**
- * @brief This function convert the input from the receiver to throttle percentage
+ * @brief This function converts the input from the receiver to thorttle and angles
  * @details
  * The max throttle values per mode can be changed in receiver.h with:
  *  - ESC_SAFEMODE_THR_MAX
  *  - ESC_NORMALMODE_THR_MAX
  *  - ESC_OFFMODE_THR
  *  - ESC_TURN_OFFSET_MAX
+ * @param throttle percent of throttle speed
+ * @param pitch stick position in degrees 
+ * @param roll stick position in degrees
+ * @param yaw stick position in degrees
  * @return None
  */
-void Receiver_ConvertInput(void);
+void Receiver_ConvertInput(float throttle, float pitch, float roll, float yaw);
 
 /**
  * @brief This function outputs all receiver channels side by side

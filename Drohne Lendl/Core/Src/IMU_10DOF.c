@@ -17,9 +17,9 @@
 
 #include "IMU_10DOF.h"
 
-/**********************************************************************************
--------------------------------- GLOBAL VARIABLES --------------------------------
-**********************************************************************************/
+ /**********************************************************************************
+ -------------------------------- GLOBAL VARIABLES --------------------------------
+ **********************************************************************************/
 
 I2C_HandleTypeDef *imu_ComI2C;
 TIM_HandleTypeDef *imu_DelayTIM;
@@ -157,11 +157,13 @@ IMU_Status IMU_Init(IMU_InitTypeDef *imuInit)
 	*************************************************************************************/
 	IMU_WriteRegister(BMP280, IMU_BARO_RESET_ADDR, 0xB6); // reset barometer
 
-	// check status of device
+	// check if status bit for device = ready
 	uint8_t timeout = 0, status = 1;
 	while(status != 0x00)
 	{
 		IMU_ReadRegister(BMP280, IMU_BARO_STATUS_ADDR, &status, 1);
+
+		// check 100 times max
 		if(timeout++ > 100)
 			return IMU_BARO_INIT_ERROR;
 	}
@@ -185,6 +187,8 @@ IMU_Status IMU_Init(IMU_InitTypeDef *imuInit)
 		baroSum += baroAltitude;
 		IMU_DelayUs(1000);
 	}
+
+	// calc offset with the average
 	baroAltitudeOffset = baroSum / amount;
 
 	return IMU_OK;
@@ -453,6 +457,7 @@ void IMU_BARO_ReadBaro(void)
 	int32_t temp = IMU_BARO_CompensateTemp(adcTemp, &fineTemp);
 	uint32_t press = IMU_BARO_CompensatePress(adcPress, fineTemp);
 
+	// convert register values to real temp and pressure values
 	baroTemperature = (float)temp / 100.0;
 	baroPressure = (float)press / 256.0;
 
