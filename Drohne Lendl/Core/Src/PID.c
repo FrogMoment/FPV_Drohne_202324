@@ -58,6 +58,7 @@ void PID_Init(UART_HandleTypeDef *huart)
 	// start reception with uart
 	HAL_UART_RegisterCallback(huart, HAL_UART_RX_COMPLETE_CB_ID, PID_ChangeKs);
 
+	// read 10 Byte (for 10 chars for format "0 0.123456")
 	HAL_UART_Receive_DMA(huart, (uint8_t *)&receiveData, 10);
 }
 
@@ -184,16 +185,19 @@ PID_Status PID_Update(float inputThrottle, float inputPitch, float inputRoll, fl
 	/***********************************************************************************
 	-------------------------- check min/max values + output --------------------------
 	***********************************************************************************/
-	float motorLF = (inputThrottle < 5) ? 0 : inputThrottle - pitchOutput - rollOutput - yawOutput;
-	float motorRF = (inputThrottle < 5) ? 0 : inputThrottle - pitchOutput + rollOutput + yawOutput;
-	float motorLR = (inputThrottle < 5) ? 0 : inputThrottle + pitchOutput - rollOutput + yawOutput;
-	float motorRR = (inputThrottle < 5) ? 0 : inputThrottle + pitchOutput + rollOutput - yawOutput;
+	// calc throttle value
+	float motorLF = inputThrottle - pitchOutput - rollOutput - yawOutput;
+	float motorRF = inputThrottle - pitchOutput + rollOutput + yawOutput;
+	float motorLR = inputThrottle + pitchOutput - rollOutput + yawOutput;
+	float motorRR = inputThrottle + pitchOutput + rollOutput - yawOutput;
 
+	// if value is less then 5 -> turn motors off to hinder motor tremble
 	if(motorLF < 5) motorLF = 0;
 	if(motorRF < 5) motorRF = 0;
 	if(motorLR < 5) motorLR = 0;
 	if(motorRR < 5) motorRR = 0;
 
+	// check if value is higher than max value
 	if(motorLF > inputThrottle + PID_MAX_TURN) motorLF = inputThrottle + PID_MAX_TURN;
 	if(motorRF > inputThrottle + PID_MAX_TURN) motorRF = inputThrottle + PID_MAX_TURN;
 	if(motorLR > inputThrottle + PID_MAX_TURN) motorLR = inputThrottle + PID_MAX_TURN;

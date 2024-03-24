@@ -41,6 +41,7 @@ static void DShot_WriteDataCallback(TIM_HandleTypeDef *htim)
 	static uint16_t prevThrottle[4] = {1,1,1,1}; 	// stores previous throttle values
 	static uint16_t data[4][18] = {0};						// stores each bit (duty cycle value) for every motor
 
+	// check change of throttle values
 	if(newThrottle[0] != prevThrottle[0] || newThrottle[1] != prevThrottle[1] || newThrottle[2] != prevThrottle[2] || newThrottle[3] != prevThrottle[3])
 	{
 		DShot_FormatData(newThrottle, 0, data);
