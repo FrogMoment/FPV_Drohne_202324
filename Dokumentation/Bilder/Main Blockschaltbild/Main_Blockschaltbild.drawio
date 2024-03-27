@@ -1,6 +1,6 @@
-<mxfile host="app.diagrams.net" modified="2024-01-28T15:52:05.237Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:122.0) Gecko/20100101 Firefox/122.0" etag="lzBxfwqKheLuy92f5XHK" version="23.0.2" type="device">
+<mxfile host="Electron" modified="2024-03-27T15:17:38.479Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/24.1.0 Chrome/120.0.6099.109 Electron/28.1.0 Safari/537.36" etag="HnZnOeObnZEPaI01IAI4" version="24.1.0" type="device">
   <diagram name="Seite-1" id="pfCEiYjsCeP78EX_pHVQ">
-    <mxGraphModel dx="1434" dy="754" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" background="#FFFFFF" math="0" shadow="0">
+    <mxGraphModel dx="2206" dy="1298" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" background="#FFFFFF" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -220,13 +220,103 @@
             <mxPoint x="656" y="1013" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="Fbvp6mkSD9SLVdUTXd6Y-1" value="&amp;nbsp;&amp;nbsp; RTMP-Server" style="ellipse;shape=cloud;whiteSpace=wrap;html=1;strokeWidth=4;" parent="1" vertex="1">
+        <mxCell id="Fbvp6mkSD9SLVdUTXd6Y-1" value="&amp;nbsp;&amp;nbsp; RTMP - Server" style="ellipse;shape=cloud;whiteSpace=wrap;html=1;strokeWidth=4;" parent="1" vertex="1">
           <mxGeometry x="589" y="1293" width="141" height="79" as="geometry" />
         </mxCell>
         <mxCell id="Fbvp6mkSD9SLVdUTXd6Y-2" value="" style="endArrow=none;html=1;rounded=0;endSize=6;strokeWidth=4;startArrow=block;startFill=1;entryX=0.621;entryY=0.953;entryDx=0;entryDy=0;entryPerimeter=0;" parent="1" target="Fbvp6mkSD9SLVdUTXd6Y-1" edge="1">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
             <mxPoint x="691" y="1411" as="sourcePoint" />
             <mxPoint x="676" y="1374" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="gutVj2C_H3YP6-hFQAB7-1" value="" style="shape=image;verticalLabelPosition=bottom;labelBackgroundColor=default;verticalAlign=top;aspect=fixed;imageAspect=0;image=https://static.thenounproject.com/png/3015-200.png;connectable=0;imageBackground=none;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="1159" width="260" height="260" as="geometry" />
+        </mxCell>
+        <mxCell id="gutVj2C_H3YP6-hFQAB7-2" value="" style="sketch=0;pointerEvents=1;shadow=0;dashed=0;html=1;strokeColor=#000000;fillColor=#000000;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;outlineConnect=0;align=center;shape=mxgraph.office.devices.cell_phone_android_standalone;aspect=fixed;connectable=0;fillStyle=solid;" vertex="1" parent="1">
+          <mxGeometry x="1765" y="1442" width="95.99" height="176" as="geometry" />
+        </mxCell>
+        <mxCell id="gutVj2C_H3YP6-hFQAB7-3" value="" style="shape=image;verticalLabelPosition=bottom;labelBackgroundColor=default;verticalAlign=top;aspect=fixed;imageAspect=0;image=https://cdn-icons-png.flaticon.com/512/2971/2971466.png;connectable=0;" vertex="1" parent="1">
+          <mxGeometry x="2055" y="1206.46" width="114.18" height="114.18" as="geometry" />
+        </mxCell>
+        <mxCell id="gutVj2C_H3YP6-hFQAB7-4" value="" style="shape=image;verticalLabelPosition=bottom;labelBackgroundColor=default;verticalAlign=top;aspect=fixed;imageAspect=0;image=https://cdn.discordapp.com/attachments/1110259607466688633/1150700810494296134/3454400-200.png;connectable=0;imageBackground=none;" vertex="1" parent="1">
+          <mxGeometry x="1825" y="1129" width="155" height="155" as="geometry" />
+        </mxCell>
+        <mxCell id="gutVj2C_H3YP6-hFQAB7-5" value="" style="shape=image;verticalLabelPosition=bottom;labelBackgroundColor=default;verticalAlign=top;aspect=fixed;imageAspect=0;image=https://uxwing.com/wp-content/themes/uxwing/download/computers-mobile-hardware/camera-drone-icon.png;connectable=0;" vertex="1" parent="1">
+          <mxGeometry x="1535" y="919" width="222" height="120.54" as="geometry" />
+        </mxCell>
+        <mxCell id="gutVj2C_H3YP6-hFQAB7-6" value="" style="endArrow=none;html=1;rounded=0;endSize=6;strokeWidth=4;startArrow=block;startFill=1;exitX=0.79;exitY=0.152;exitDx=0;exitDy=0;exitPerimeter=0;" edge="1" parent="1" source="gutVj2C_H3YP6-hFQAB7-22">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1794" y="1338.54" as="sourcePoint" />
+            <mxPoint x="1890" y="1276" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="gutVj2C_H3YP6-hFQAB7-7" value="" style="endArrow=classic;html=1;rounded=0;endSize=6;strokeWidth=4;startArrow=none;startFill=0;endFill=1;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1975" y="1258.46" as="sourcePoint" />
+            <mxPoint x="2065" y="1258.46" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="gutVj2C_H3YP6-hFQAB7-8" value="" style="shape=image;verticalLabelPosition=bottom;labelBackgroundColor=default;verticalAlign=top;aspect=fixed;imageAspect=0;image=https://static-00.iconduck.com/assets.00/flutter-plain-icon-1655x2048-tm6fsmjb.png;" vertex="1" parent="1">
+          <mxGeometry x="1793.19" y="1477" width="39.6" height="49" as="geometry" />
+        </mxCell>
+        <mxCell id="gutVj2C_H3YP6-hFQAB7-9" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;remote control&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="1280" y="1430" width="60" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="gutVj2C_H3YP6-hFQAB7-10" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;2.4GHz&amp;nbsp;&lt;/font&gt;&lt;div&gt;&lt;font style=&quot;font-size: 18px;&quot;&gt;radio transmission&lt;/font&gt;&lt;/div&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="1430" y="1099" width="156" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="gutVj2C_H3YP6-hFQAB7-11" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;video + sensor data&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="1689" y="1096" width="100" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="gutVj2C_H3YP6-hFQAB7-12" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;5.8GHz FM-transmission&lt;br&gt;&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="1785" y="1053" width="147" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="gutVj2C_H3YP6-hFQAB7-13" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;RTMP - videostream&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="1739" y="1264" width="100" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="gutVj2C_H3YP6-hFQAB7-14" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;FPV-goggles&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="2085" y="1164" width="60" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="gutVj2C_H3YP6-hFQAB7-15" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;APP&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="1782.99" y="1534" width="60" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="gutVj2C_H3YP6-hFQAB7-16" value="MQTT - server" style="ellipse;shape=cloud;whiteSpace=wrap;html=1;strokeWidth=4;" vertex="1" parent="1">
+          <mxGeometry x="1935" y="1383" width="141" height="79" as="geometry" />
+        </mxCell>
+        <mxCell id="gutVj2C_H3YP6-hFQAB7-17" value="" style="endArrow=none;html=1;rounded=0;endSize=6;strokeWidth=4;startArrow=block;startFill=1;exitX=0.338;exitY=0.095;exitDx=0;exitDy=0;exitPerimeter=0;" edge="1" parent="1" source="gutVj2C_H3YP6-hFQAB7-16">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1823" y="1398" as="sourcePoint" />
+            <mxPoint x="1929" y="1279" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="gutVj2C_H3YP6-hFQAB7-18" value="" style="endArrow=none;html=1;rounded=0;endSize=6;strokeWidth=4;startArrow=block;startFill=1;entryX=0.097;entryY=0.667;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1867" y="1465" as="sourcePoint" />
+            <mxPoint x="1950.6770000000001" y="1442.0030000000002" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="gutVj2C_H3YP6-hFQAB7-19" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;datastream&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="1980" y="1344" width="100" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="gutVj2C_H3YP6-hFQAB7-20" value="" style="endArrow=none;html=1;rounded=0;endSize=6;strokeWidth=4;startArrow=block;startFill=1;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1539" y="1041" as="sourcePoint" />
+            <mxPoint x="1368" y="1163" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="gutVj2C_H3YP6-hFQAB7-21" value="" style="endArrow=none;html=1;rounded=0;endSize=6;strokeWidth=4;startArrow=block;startFill=1;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1841" y="1139" as="sourcePoint" />
+            <mxPoint x="1741" y="1045" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="gutVj2C_H3YP6-hFQAB7-22" value="&amp;nbsp;&amp;nbsp; RTMP - server" style="ellipse;shape=cloud;whiteSpace=wrap;html=1;strokeWidth=4;" vertex="1" parent="1">
+          <mxGeometry x="1674" y="1325" width="141" height="79" as="geometry" />
+        </mxCell>
+        <mxCell id="gutVj2C_H3YP6-hFQAB7-23" value="" style="endArrow=none;html=1;rounded=0;endSize=6;strokeWidth=4;startArrow=block;startFill=1;entryX=0.621;entryY=0.953;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" target="gutVj2C_H3YP6-hFQAB7-22">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1776" y="1443" as="sourcePoint" />
+            <mxPoint x="1761" y="1406" as="targetPoint" />
           </mxGeometry>
         </mxCell>
       </root>
