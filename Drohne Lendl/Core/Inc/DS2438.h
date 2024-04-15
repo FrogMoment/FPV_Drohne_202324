@@ -55,10 +55,8 @@ typedef enum DS2438_Status
 -------------------------------- GLOBAL VARIABLES --------------------------------
 **********************************************************************************/
 
-extern float ds2438_Current;        // DS2438 current value
 extern float ds2438_Voltage;        // DS2438 voltage value
 extern float ds2438_Temperature;    // DS2438 temperature value    
-extern float ds2438_Capacity;       // DS2438 capacity value
 
 /**********************************************************************************
 ------------------------------- FUNCTION PROTOTYPES -------------------------------

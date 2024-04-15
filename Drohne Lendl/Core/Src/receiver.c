@@ -36,7 +36,7 @@ uint16_t receiver_SameDataCounter = 0;  // counter amount of same channel data a
 // pwm output variables
 Receiver_Values receiver_InputLimits = {0}; // input limits dependend on selected protocol
 
-Receiver_Status currentStatus;
+char txt[100];
 
 /**********************************************************************************
 ------------------------------------ FUNCTIONS ------------------------------------

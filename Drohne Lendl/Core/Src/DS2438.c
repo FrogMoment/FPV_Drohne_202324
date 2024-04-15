@@ -24,10 +24,8 @@
 -------------------------------- GLOBAL VARIABLES --------------------------------
 **********************************************************************************/
 
-float ds2438_Current = 0;        // DS2438 current value
 float ds2438_Voltage = 0;        // DS2438 voltage value
 float ds2438_Temperature = 0;    // DS2438 temperature value    
-float ds2438_Capacity = 0;       // DS2438 capacity value
 
 TIM_HandleTypeDef *DS2438_DelayTimer = NULL;
 GPIO_TypeDef *ds2438_GPIOPort = NULL;

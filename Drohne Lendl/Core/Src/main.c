@@ -74,8 +74,6 @@ DMA_HandleTypeDef hdma_usart3_tx;
 
 /* USER CODE BEGIN PV */
 
-char txt[1000];
-
 //IMU_AnglesTypDef angles;
 /* USER CODE END PV */
 
@@ -246,12 +244,8 @@ int main(void)
   ******************************************************************/
   __HAL_TIM_SET_COMPARE(LED_TIM, LED_BLUE_CHANNEL, 10000);
 
-  Terminal_Print("Initilisation finished -> Start Real Time System ...\n\r");
-  
-  // TODO delete debug timer start
-  // HAL_TIM_Base_Start(&htim2);
+  Terminal_Print("Initilisation finished -> Run on Real Time System ...\n\r");
 
-  
   /* USER CODE END 2 */
 
   /* Infinite loop */

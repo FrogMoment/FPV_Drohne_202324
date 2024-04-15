@@ -240,6 +240,7 @@ void PID_ChangeKs(UART_HandleTypeDef *huart)
 	PID_AllKs[index] = tmp;
 
 	// write confirmation to terminal (eg: 0 = 0.250000)
+	char txt[100];
 	sprintf(txt, "[%d] = %f\n\r", index, PID_AllKs[index]);
 	Terminal_Print(txt);
 }
